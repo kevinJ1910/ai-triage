@@ -1,45 +1,28 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter, Space_Grotesk } from 'next/font/google';
+import './globals.css';
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-disp',
+});
 
 export const metadata: Metadata = {
-  title: 'AI-TRIAGE | Asistente Inteligente de Triaje Médico',
-  description: 'Sistema de triaje médico automatizado con reconocimiento de voz e inteligencia artificial para la clasificación de pacientes en entornos hospitalarios y de telemedicina',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
-}
+  title: 'AI-Triage | Asistente Inteligente de Voz',
+  description: 'Clasificación médica automatizada en entornos hospitalarios.',
+};
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="bg-background">
-      <body className="font-sans antialiased">
+    <html lang="es" className={`h-full ${inter.variable} ${spaceGrotesk.variable}`}>
+      <body className="font-sans antialiased bg-slate-900 text-slate-200 h-full flex flex-col overflow-hidden" suppressHydrationWarning>
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
-  )
+  );
 }

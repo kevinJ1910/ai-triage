@@ -1,5 +1,9 @@
-import { TriageContainer } from '@/components/triage/triage-container'
+import AppNavigation from './AppNavigation';
 
-export default function HomePage() {
-  return <TriageContainer />
+export default function Home() {
+  return (
+    <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-900">
+      <AppNavigation />
+    </main>
+  );
 }
