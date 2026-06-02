@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
+import { useWhisperASR } from '@/hooks/useWhisperASR';
 
 interface TriageSession {
   id: string;
@@ -16,11 +17,20 @@ interface TriageSession {
 }
 
 export default function TriageDashboard() {
-  const [isRecording, setIsRecording] = useState(false);
+  const {
+    isRecording,
+    transcript: liveTranscript,
+    interimText,
+    startRecording,
+    stopRecording,
+    resetTranscript,
+  } = useWhisperASR();
+
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
+
 
   const [savedSessions, setSavedSessions] = useState<TriageSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -108,51 +118,12 @@ export default function TriageDashboard() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Use real-time ASR via Web Speech API
-  const recognitionRef = useRef<any>(null);
-  const [interimText, setInterimText] = useState('');
-
+  // Sincronizar la transcripción en tiempo real del backend al estado local
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'es-ES';
-
-        recognitionRef.current.onresult = (event: any) => {
-          let currentInterim = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              const text = event.results[i][0].transcript.trim();
-              if (text) {
-                setTranscript(prev => [...prev, { speaker: 'Usuario', text }]);
-              }
-            } else {
-              currentInterim += event.results[i][0].transcript;
-            }
-          }
-          setInterimText(currentInterim);
-        };
-
-        recognitionRef.current.onerror = (event: any) => {
-          if (event.error === 'no-speech' || event.error === 'aborted') return;
-          console.error('Speech recognition error', event.error);
-        };
-
-        recognitionRef.current.onend = () => {
-           // Recognition ended
-        };
-      }
+    if (isRecording) {
+      setTranscript(liveTranscript);
     }
-    
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []); // Initialize once
+  }, [isRecording, liveTranscript]);
 
   const handleAnalyze = async (fullTranscript: {speaker: string, text: string}[]) => {
     setIsAnalyzing(true);
@@ -174,30 +145,24 @@ export default function TriageDashboard() {
 
   const handleToggleRecording = () => {
     if (isRecording) {
-      setIsRecording(false);
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (transcript.length > 0 || interimText) {
-        const fullTranscript = [...transcript];
-        if (interimText) {
-          fullTranscript.push({ speaker: 'Usuario', text: interimText });
-        }
-        handleAnalyze(fullTranscript);
-      }
+      stopRecording();
+      // Esperamos un momento para que el último chunk de audio sea enviado y transcrito
+      setTimeout(() => {
+        setTranscript(prev => {
+          if (prev.length > 0) {
+            handleAnalyze(prev);
+          } else {
+            toast.error("No se detectó audio transcrito. Intente de nuevo.");
+          }
+          return prev;
+        });
+      }, 800);
     } else {
       setTranscript([]);
-      setInterimText('');
+      resetTranscript();
       setAnalysisResult(null);
       setSyncStatus('idle');
-      setIsRecording(true);
-      try {
-        recognitionRef.current?.start();
-      } catch(e: any) {
-        if (e.name !== 'InvalidStateError') {
-          console.error(e);
-        }
-      }
+      startRecording();
     }
   };
 
@@ -296,7 +261,6 @@ export default function TriageDashboard() {
                       if (isRecording) handleToggleRecording();
                       setTranscript(session.transcript); 
                       setAnalysisResult(session.analysisResult); 
-                      setIsRecording(false); 
                       setShowHistory(false); 
                       setSelectedSessionId(session.id); 
                     }}>
