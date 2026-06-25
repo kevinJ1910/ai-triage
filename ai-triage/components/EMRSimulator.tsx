@@ -36,12 +36,12 @@ export default function EMRSimulator() {
                     <div className="text-sm font-bold text-slate-900">Juan Pérez</div>
                  </div>
                  <div>
-                    <label className="text-[9px] uppercase text-slate-500 font-bold tracking-wider mb-1 block">Motivo de Consulta (NER Extracted)</label>
+                    <label className="text-[9px] uppercase text-slate-500 font-bold tracking-wider mb-1 block">Motivo de Consulta (Extraído por NER)</label>
                     <div className="text-sm text-slate-700 font-medium">Dolor torácico opresivo, diaforesis.</div>
                  </div>
               </div>
               <div>
-                  <label className="text-[9px] uppercase text-slate-500 font-bold tracking-wider mb-2 block flex items-center gap-2">Anotaciones de Triaje Automático <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px]">AI GENERATED</span></label>
+                  <label className="text-[9px] uppercase text-slate-500 font-bold tracking-wider mb-2 block flex items-center gap-2">Anotaciones de Triaje Automático <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px]">GENERADO POR IA</span></label>
                   <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100 text-sm text-slate-700 italic leading-relaxed">
                      Paciente varón presenta sintomatología compatible con síndrome coronario agudo (SCA). La irradiación del dolor a mandíbula y la diaforesis asociada categorizan el riesgo como Nivel 2.
                   </div>

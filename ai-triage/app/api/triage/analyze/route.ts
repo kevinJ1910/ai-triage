@@ -10,11 +10,19 @@ export async function POST(req: NextRequest) {
 Eres un Asistente Médico de Triaje basado en el protocolo AI-Triage (similar a ESI y Manchester).
 Analiza la siguiente conversación transcrita entre un médico y un paciente.
 Extrae la siguiente información:
-1. "patientName": Nombre del paciente si se menciona en la conversación, de lo contrario devuelve "Paciente Desconocido".
-2. "symptoms": Lista de síntomas mencionados.
-3. "medications": Lista de medicamentos mencionados.
-4. "vitals": Constantes vitales o signos físicos descritos.
-5. "history": Antecedentes médicos o diagnósticos previos.
+1. "patientInfo": Información básica del paciente mencionada en la conversación. Extrae y normaliza los siguientes campos:
+   - "name": Nombre completo del paciente. Si no se menciona, devuelve null o "".
+   - "documentId": Documento de identidad (cédula, pasaporte, etc.). Extrae únicamente los dígitos numéricos. Si no se menciona, devuelve null.
+   - "birthDate": Fecha de nacimiento del paciente. Normaliza siempre al formato "YYYY-MM-DD" (por ejemplo, "11 de diciembre del 2004" debe ser "2004-12-11"). Si no se menciona, devuelve null.
+   - "gender": Género del paciente. Clasifica estrictamente en una de estas opciones: "male" (si refiere ser hombre, varón, masculino), "female" (si refiere ser mujer, femenina, femenino), "other" (si es otro género), o "unknown" (si no se menciona o no está claro).
+   - "phone": Número de teléfono. Extrae únicamente los dígitos numéricos. Si no se menciona, devuelve null.
+   - "insurance": Aseguradora médica o EPS mencionada (por ejemplo, Sura, Sanitas, Nueva EPS, etc.). Si no se menciona, devuelve null.
+
+2. "entities":
+   - "symptoms": Lista de síntomas mencionados.
+   - "medications": Lista de medicamentos mencionados.
+   - "vitals": Constantes vitales o signos físicos descritos (por ejemplo, tensión arterial, frecuencia cardíaca, etc.).
+   - "history": Antecedentes médicos o diagnósticos previos.
 
 Asigna un nivel de prioridad de triaje clínico del 1 al 5:
 Nivel 1: Resucitación (Riesgo vital inminente)
@@ -27,8 +35,15 @@ Proporciona una justificación clínica concisa en español de por qué se asign
 
 Devuelve estrictamente un objeto JSON con esta estructura exacta (solo el JSON validado):
 {
+  "patientInfo": {
+    "name": "string or null",
+    "documentId": "string or null",
+    "birthDate": "string or null",
+    "gender": "male | female | other | unknown",
+    "phone": "string or null",
+    "insurance": "string or null"
+  },
   "entities": {
-    "patientName": "string",
     "symptoms": ["string"],
     "medications": ["string"],
     "vitals": ["string"],

@@ -4,5 +4,7 @@ coverage/
 .DS_Store
 *.log
 .env*
+.venv*
 !.env.example
 .env.local
+__pycache__

@@ -41,18 +41,18 @@ export default function SecurityPanel() {
           <h3 className="text-[10px] uppercase font-bold text-slate-400 mb-3 tracking-widest flex items-center gap-1.5"><FileLock2 className="w-3 h-3 text-purple-400"/> Logs de Auditoría (Ley 1581 HCE)</h3>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-slate-600">
             {[
-              { time: "2026-05-28 06:15:02", user: "USR-8492", action: "FHIR_EXPORT", resource: "Encounter/10923", status: "SUCCESS" },
-              { time: "2026-05-28 06:10:45", user: "USR-8492", action: "READ_SESSION", resource: "Session/A491", status: "SUCCESS" },
-              { time: "2026-05-28 06:05:12", user: "USR-1023", action: "MODEL_CONFIG_CHANGE", resource: "System", status: "DENIED" },
-              { time: "2026-05-28 06:00:22", user: "ADM-001", action: "UPDATE_VOCABULARY", resource: "SNOMED CT", status: "SUCCESS" },
-              { time: "2026-05-27 18:32:10", user: "USR-1023", action: "FHIR_EXPORT", resource: "Encounter/10922", status: "SUCCESS" }
+              { time: "2026-05-28 06:15:02", user: "USR-8492", action: "FHIR_EXPORT", resource: "Encounter/10923", status: "ÉXITO" },
+              { time: "2026-05-28 06:10:45", user: "USR-8492", action: "READ_SESSION", resource: "Session/A491", status: "ÉXITO" },
+              { time: "2026-05-28 06:05:12", user: "USR-1023", action: "MODEL_CONFIG_CHANGE", resource: "System", status: "DENEGADO" },
+              { time: "2026-05-28 06:00:22", user: "ADM-001", action: "UPDATE_VOCABULARY", resource: "SNOMED CT", status: "ÉXITO" },
+              { time: "2026-05-27 18:32:10", user: "USR-1023", action: "FHIR_EXPORT", resource: "Encounter/10922", status: "ÉXITO" }
             ].map((log, i) => (
               <div key={i} className="bg-slate-900 p-2 rounded border-l-2 border-slate-600 text-[10px] font-mono text-slate-300">
                 <div className="flex justify-between mb-1">
                   <span className="text-slate-500">{log.time}</span>
-                  <span className={`px-1.5 py-0.5 rounded font-bold ${log.status==='SUCCESS'?'bg-emerald-500/20 text-emerald-400':'bg-red-500/20 text-red-400'}`}>{log.status}</span>
+                  <span className={`px-1.5 py-0.5 rounded font-bold ${log.status==='ÉXITO'?'bg-emerald-500/20 text-emerald-400':'bg-red-500/20 text-red-400'}`}>{log.status}</span>
                 </div>
-                <div><span className="text-blue-400">{log.user}</span> executed <span className="text-amber-400">{log.action}</span> on {log.resource}</div>
+                <div><span className="text-blue-400">{log.user}</span> ejecutó <span className="text-amber-400">{log.action}</span> en {log.resource}</div>
               </div>
             ))}
           </div>

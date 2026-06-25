@@ -2,16 +2,23 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface UseWhisperASRReturn {
   isRecording: boolean;
+  isPaused: boolean;
   transcript: { speaker: string; text: string }[];
   interimText: string;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
+  abortTranscription: () => void;
   resetTranscript: () => void;
   sessionId: string;
+  isTranscribing: boolean;
 }
 
 export function useWhisperASR(): UseWhisperASRReturn {
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState<{ speaker: string; text: string }[]>([]);
   const [interimText, setInterimText] = useState('');
   const [sessionId, setSessionId] = useState('');
@@ -22,14 +29,28 @@ export function useWhisperASR(): UseWhisperASRReturn {
   const audioChunksQueueRef = useRef<Blob[]>([]);
   const isProcessingQueueRef = useRef(false);
   const sessionIdRef = useRef<string>('');
+  const isStoppingRef = useRef(false);
+  const onStopFiredRef = useRef(false);
 
   // FIFO Audio processing queue
   const processQueue = useCallback(async () => {
-    if (isProcessingQueueRef.current || audioChunksQueueRef.current.length === 0) {
+    if (isProcessingQueueRef.current) {
+      return;
+    }
+    if (audioChunksQueueRef.current.length === 0) {
+      if (isStoppingRef.current) {
+        if (onStopFiredRef.current) {
+          setIsTranscribing(false);
+          isStoppingRef.current = false;
+        }
+      } else {
+        setIsTranscribing(false);
+      }
       return;
     }
 
     isProcessingQueueRef.current = true;
+    setIsTranscribing(true);
     const currentSessionId = sessionIdRef.current;
 
     while (audioChunksQueueRef.current.length > 0) {
@@ -68,6 +89,14 @@ export function useWhisperASR(): UseWhisperASRReturn {
     }
 
     isProcessingQueueRef.current = false;
+    if (isStoppingRef.current) {
+      if (onStopFiredRef.current && audioChunksQueueRef.current.length === 0) {
+        setIsTranscribing(false);
+        isStoppingRef.current = false;
+      }
+    } else {
+      setIsTranscribing(false);
+    }
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -77,6 +106,9 @@ export function useWhisperASR(): UseWhisperASRReturn {
       isProcessingQueueRef.current = false;
       setTranscript([]);
       setInterimText('');
+      setIsPaused(false);
+      isStoppingRef.current = false;
+      onStopFiredRef.current = false;
 
       // Generate a new Session ID
       const newSessionId = typeof crypto.randomUUID === 'function' 
@@ -109,25 +141,54 @@ export function useWhisperASR(): UseWhisperASRReturn {
         }
       };
 
+      mediaRecorderRef.current.onstop = () => {
+        onStopFiredRef.current = true;
+        processQueue();
+      };
+
       // Start recorder (and capture audio dynamically)
       mediaRecorderRef.current.start();
       setIsRecording(true);
 
-      // Setup chunk timer (every 4 seconds, cycle recorder to trigger dataavailable)
+      // Setup chunk timer (every 2 seconds, cycle recorder to trigger dataavailable)
       intervalRef.current = setInterval(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           // Stop and immediately restart creates a completed chunk
           mediaRecorderRef.current.stop();
           mediaRecorderRef.current.start();
         }
-      }, 4000);
+      }, 2000);
 
     } catch (error) {
       console.error('Failed to start MediaRecorder:', error);
       alert('No se pudo acceder al micrófono. Por favor verifica los permisos.');
       setIsRecording(false);
+      setIsPaused(false);
     }
   }, [processQueue]);
+
+  const pauseRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+      setInterimText('Grabación en pausa...');
+    }
+  }, []);
+
+  const resumeRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      setInterimText('');
+    }
+  }, []);
+
+  const abortTranscription = useCallback(() => {
+    audioChunksQueueRef.current = [];
+    setIsTranscribing(false);
+    isProcessingQueueRef.current = false;
+    setInterimText('');
+  }, []);
 
   const stopRecording = useCallback(() => {
     // Clear interval timer
@@ -136,30 +197,30 @@ export function useWhisperASR(): UseWhisperASRReturn {
       intervalRef.current = null;
     }
 
+    isStoppingRef.current = true;
+    setIsTranscribing(true); // Prevent race condition with useEffect in UI
+
     // Stop MediaRecorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
+    } else {
+      onStopFiredRef.current = true;
+      processQueue();
     }
 
-    // Stop audio tracks
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+    // Stop audio tracks with a slight delay
+    const activeStream = streamRef.current;
+    setTimeout(() => {
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+      }
+    }, 500);
 
+    streamRef.current = null;
     setIsRecording(false);
+    setIsPaused(false);
     setInterimText('');
-
-    // Call reset endpoint to clear backend session context cleanly after brief delay
-    const currentSessionId = sessionIdRef.current;
-    if (currentSessionId) {
-      fetch('/api/transcribe/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSessionId }),
-      }).catch(err => console.error('Error resetting backend session:', err));
-    }
-  }, []);
+  }, [processQueue]);
 
   const resetTranscript = useCallback(() => {
     setTranscript([]);
@@ -183,11 +244,16 @@ export function useWhisperASR(): UseWhisperASRReturn {
 
   return {
     isRecording,
+    isPaused,
     transcript,
     interimText,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
+    abortTranscription,
     resetTranscript,
     sessionId,
+    isTranscribing,
   };
 }

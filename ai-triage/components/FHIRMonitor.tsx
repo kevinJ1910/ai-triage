@@ -15,10 +15,10 @@ export default function FHIRMonitor() {
               <div key={i} className={`p-2.5 rounded border transition-colors ${i === 1 ? 'bg-slate-700/80 border-blue-500/50 shadow-md' : 'bg-slate-900 border-slate-700 hover:border-slate-500'} cursor-pointer`}>
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-[10px] font-mono font-bold text-slate-300">REQ-8{i}92</span>
-                  <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-bold border border-emerald-500/30">201 Created</span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded font-bold border border-emerald-500/30">201 Creado</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] text-slate-500 font-mono uppercase">Resource: Encounter</span>
+                  <span className="text-[9px] text-slate-500 font-mono uppercase">Recurso: Encounter</span>
                   <span className="text-[9px] text-slate-500 flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> 12:4{i} PM</span>
                 </div>
               </div>
@@ -37,7 +37,7 @@ export default function FHIRMonitor() {
   "class": {
     "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
     "code": "EMER",
-    "display": "Emergency"
+    "display": "Emergencia"
   },
   "priority": {
     "coding": [
@@ -54,7 +54,7 @@ export default function FHIRMonitor() {
         {
           "system": "http://snomed.info/sct",
           "code": "29857009",
-          "display": "Chest pain"
+          "display": "Dolor torácico"
         }
       ]
     }
