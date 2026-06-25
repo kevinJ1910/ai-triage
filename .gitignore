@@ -8,3 +8,5 @@ coverage/
 !.env.example
 .env.local
 __pycache__
+*.tsbuildinfo
+
