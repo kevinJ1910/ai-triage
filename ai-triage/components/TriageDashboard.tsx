@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
@@ -48,6 +48,19 @@ export default function TriageDashboard() {
   const [editedEntities, setEditedEntities] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
+  const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
+
+  const handleUpdateLine = (index: number, field: 'speaker' | 'text', value: string) => {
+    setTranscript(prev => prev.map((line, i) => i === index ? { ...line, [field]: value } : line));
+  };
+
+  const handleDeleteLine = (index: number) => {
+    setTranscript(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddLine = () => {
+    setTranscript(prev => [...prev, { speaker: 'Paciente', text: '' }]);
+  };
   const [patientInfo, setPatientInfo] = useState<PatientInfo>({
     name: '',
     documentId: '',
@@ -273,10 +286,10 @@ export default function TriageDashboard() {
 
   // Sincronizar la transcripción en tiempo real del backend al estado local
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording || isTranscribing) {
       setTranscript(liveTranscript);
     }
-  }, [isRecording, liveTranscript]);
+  }, [isRecording, isTranscribing, liveTranscript]);
 
   const handleAnalyze = async (fullTranscript: {speaker: string, text: string}[]) => {
     setIsAnalyzing(true);
@@ -301,7 +314,7 @@ export default function TriageDashboard() {
     if (isWaitingForAnalysis && !isTranscribing) {
       setIsWaitingForAnalysis(false);
       if (transcript.length > 0) {
-        handleAnalyze(transcript);
+        setIsVerifyingTranscript(true);
       } else {
         toast.error("No se detectó audio transcrito. Intente de nuevo.");
       }
@@ -318,6 +331,7 @@ export default function TriageDashboard() {
       setAnalysisResult(null);
       setEditedEntities(null);
       setIsEditMode(false);
+      setIsVerifyingTranscript(false);
       setSyncStatus('idle');
       setPatientInfo({
         name: '',
@@ -492,99 +506,140 @@ export default function TriageDashboard() {
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Mic className="w-4 h-4 text-blue-400" />
-                  Transcripción ASR
+                  {isVerifyingTranscript ? 'Verificación de Transcripción' : 'Transcripción ASR'}
                 </h3>
                 <div className="flex gap-2">
-                  {!isRecording && isTranscribing && (
+                  {isVerifyingTranscript ? (
                     <>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 animate-pulse">
-                        Terminando transcripción...
-                      </div>
                       <button
                         onClick={() => {
-                          abortTranscription();
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
-                      >
-                        <Square className="w-3 h-3 fill-current" />
-                        TERMINAR
-                      </button>
-                      <button
-                        onClick={() => {
-                          abortTranscription();
-                          setIsWaitingForAnalysis(false);
+                          setIsVerifyingTranscript(false);
                           setTranscript([]);
                           resetTranscript();
-                          setAnalysisResult(null);
-                          setEditedEntities(null);
-                          setIsEditMode(false);
-                          setPatientInfo({
-                            name: '',
-                            documentId: '',
-                            birthDate: '',
-                            gender: 'unknown',
-                            phone: '',
-                            insurance: ''
-                          });
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-slate-700 text-slate-300 border border-slate-600 hover:bg-red-500/30 hover:text-red-400 hover:border-red-500/50"
                       >
                         <X className="w-3 h-3" />
-                        CANCELAR
-                      </button>
-                    </>
-                  )}
-                  {isRecording && (
-                    <>
-                      <button
-                        onClick={isPaused ? resumeRecording : pauseRecording}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30"
-                      >
-                        {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-                        {isPaused ? 'REANUDAR' : 'PAUSAR'}
+                        Descartar
                       </button>
                       <button
                         onClick={() => {
-                          stopRecording();
-                          abortTranscription();
-                          setIsWaitingForAnalysis(false);
-                          setTranscript([]);
-                          resetTranscript();
-                          setAnalysisResult(null);
-                          setEditedEntities(null);
-                          setIsEditMode(false);
-                          setPatientInfo({
-                            name: '',
-                            documentId: '',
-                            birthDate: '',
-                            gender: 'unknown',
-                            phone: '',
-                            insurance: ''
-                          });
+                          if (transcript.length > 0) {
+                            handleAnalyze(transcript);
+                            setIsVerifyingTranscript(false);
+                          } else {
+                            toast.error("La transcripción no puede estar vacía.");
+                          }
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-slate-700 text-slate-300 border border-slate-600 hover:bg-red-500/30 hover:text-red-400 hover:border-red-500/50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-emerald-600/20 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-600/30"
                       >
-                        <X className="w-3 h-3" />
-                        CANCELAR
+                        <Check className="w-3 h-3" />
+                        Confirmar y Analizar
                       </button>
                     </>
-                  )}
-                  {(!isTranscribing || isRecording) && (
-                    <button
-                      onClick={handleToggleRecording}
-                      disabled={isAnalyzing}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all ${
-                        isRecording 
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30' 
-                        : 'bg-blue-600/20 text-blue-400 border border-blue-500/50 hover:bg-blue-600/30'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isRecording ? <Square className="w-3 h-3 fill-current" /> : <Mic className="w-3 h-3" />}
-                      {isRecording ? 'DETENER' : 'INICIAR GRABACIÓN'}
-                    </button>
+                  ) : (
+                    <>
+                      {!isRecording && isTranscribing && (
+                        <>
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 animate-pulse">
+                            Terminando transcripción...
+                          </div>
+                          <button
+                            onClick={() => {
+                              abortTranscription();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
+                          >
+                            <Square className="w-3 h-3 fill-current" />
+                            TERMINAR
+                          </button>
+                          <button
+                            onClick={() => {
+                              abortTranscription();
+                              setIsWaitingForAnalysis(false);
+                              setTranscript([]);
+                              resetTranscript();
+                              setAnalysisResult(null);
+                              setEditedEntities(null);
+                              setIsEditMode(false);
+                              setPatientInfo({
+                                name: '',
+                                documentId: '',
+                                birthDate: '',
+                                gender: 'unknown',
+                                phone: '',
+                                insurance: ''
+                              });
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-slate-700 text-slate-300 border border-slate-600 hover:bg-red-500/30 hover:text-red-400 hover:border-red-500/50"
+                          >
+                            <X className="w-3 h-3" />
+                            CANCELAR
+                          </button>
+                        </>
+                      )}
+                      {isRecording && (
+                        <>
+                          <button
+                            onClick={isPaused ? resumeRecording : pauseRecording}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30"
+                          >
+                            {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                            {isPaused ? 'REANUDAR' : 'PAUSAR'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              stopRecording();
+                              abortTranscription();
+                              setIsWaitingForAnalysis(false);
+                              setTranscript([]);
+                              resetTranscript();
+                              setAnalysisResult(null);
+                              setEditedEntities(null);
+                              setIsEditMode(false);
+                              setPatientInfo({
+                                name: '',
+                                documentId: '',
+                                birthDate: '',
+                                gender: 'unknown',
+                                phone: '',
+                                insurance: ''
+                              });
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all bg-slate-700 text-slate-300 border border-slate-600 hover:bg-red-500/30 hover:text-red-400 hover:border-red-500/50"
+                          >
+                            <X className="w-3 h-3" />
+                            CANCELAR
+                          </button>
+                        </>
+                      )}
+                      {(!isTranscribing || isRecording) && (
+                        <button
+                          onClick={handleToggleRecording}
+                          disabled={isAnalyzing}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all ${
+                            isRecording 
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30' 
+                            : 'bg-blue-600/20 text-blue-400 border border-blue-500/50 hover:bg-blue-600/30'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isRecording ? <Square className="w-3 h-3 fill-current" /> : <Mic className="w-3 h-3" />}
+                          {isRecording ? 'DETENER' : 'INICIAR GRABACIÓN'}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
+
+              {isVerifyingTranscript && (
+                <div className="bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded p-2.5 text-xs mb-3 flex items-start gap-2 shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Verificación de Conversación:</span> Edite los textos o cambie los roles de los interlocutores si es necesario. Presione <strong>Confirmar y Analizar</strong> cuando termine.
+                  </div>
+                </div>
+              )}
               
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                 {transcript.length === 0 && !isRecording && (
@@ -594,23 +649,62 @@ export default function TriageDashboard() {
                     </div>
                 )}
                 <AnimatePresence>
-                  {transcript.map((line, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-start"
-                    >
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{line.speaker}</span>
-                      <div className={`px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border ${
-                        line.speaker === 'Doctor' 
-                        ? 'bg-slate-800 border-l-2 border-slate-500 border-y-slate-700 border-r-slate-700 text-slate-300'
-                        : 'bg-slate-900/80 border-l-2 border-blue-500 border-y-slate-700 border-r-slate-700 text-slate-200'
-                      }`}>
-                        {line.text}
-                      </div>
-                    </motion.div>
-                  ))}
+                  {isVerifyingTranscript ? (
+                    transcript.map((line, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col gap-2 p-3 bg-slate-900/40 border border-slate-700/60 rounded-lg w-full"
+                      >
+                        <div className="flex justify-between items-center gap-3 w-full">
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={line.speaker}
+                              onChange={e => handleUpdateLine(i, 'speaker', e.target.value)}
+                              className="bg-slate-800 border border-slate-700 rounded py-1 px-2 text-[10px] text-slate-300 font-bold uppercase focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="Doctor">Doctor</option>
+                              <option value="Paciente">Paciente</option>
+                              <option value="Usuario">Usuario</option>
+                            </select>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteLine(i)}
+                            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-red-400 transition-colors"
+                            title="Eliminar línea"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <textarea
+                          value={line.text}
+                          onChange={e => handleUpdateLine(i, 'text', e.target.value)}
+                          rows={2}
+                          className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 resize-none leading-relaxed"
+                          placeholder="Texto de la transcripción..."
+                        />
+                      </motion.div>
+                    ))
+                  ) : (
+                    transcript.map((line, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex flex-col items-start"
+                      >
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{line.speaker}</span>
+                        <div className={`px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border ${
+                          line.speaker === 'Doctor' 
+                          ? 'bg-slate-800 border-l-2 border-slate-500 border-y-slate-700 border-r-slate-700 text-slate-300'
+                          : 'bg-slate-900/80 border-l-2 border-blue-500 border-y-slate-700 border-r-slate-700 text-slate-200'
+                        }`}>
+                          {line.text}
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
                   {interimText && isRecording && (
                     <motion.div
                       initial={{ opacity: 0, y: 5 }}
@@ -624,6 +718,15 @@ export default function TriageDashboard() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+                {isVerifyingTranscript && (
+                  <button
+                    onClick={handleAddLine}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-4 border border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/30 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-200 transition-all mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Agregar línea
+                  </button>
+                )}
                 {isRecording && (
                   <div className="flex items-center gap-2 text-blue-400/80 text-[10px] font-mono uppercase p-2 mt-2">
                     <div className="flex gap-1">
