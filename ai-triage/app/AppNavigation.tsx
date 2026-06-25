@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Stethoscope, Settings, Shield, RefreshCw, Server, Database, BarChart } from 'lucide-react';
+import { Stethoscope, Settings, Shield, RefreshCw, Server, Database, BarChart, ChevronLeft, ChevronRight } from 'lucide-react';
 import TriageDashboard from '@/components/TriageDashboard';
 import ConfigPanel from '@/components/ConfigPanel';
 import SecurityPanel from '@/components/SecurityPanel';
@@ -13,6 +13,7 @@ import { Toaster } from 'sonner';
 
 export default function AppNavigation() {
   const [activeTab, setActiveTab] = useState('triage');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
     { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulos Core (Triaje)' },
@@ -27,14 +28,20 @@ export default function AppNavigation() {
   return (
     <div className="flex h-full w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-16 md:w-56 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all">
-        <div className="h-14 border-b border-slate-800 flex items-center justify-center md:justify-start px-0 md:px-4 shrink-0">
+      <aside className={`${isCollapsed ? 'w-16' : 'w-16 md:w-56'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 relative z-10`}>
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex absolute -right-3 top-4 bg-slate-800 border border-slate-600 rounded-full p-1 z-20 hover:bg-slate-700 shadow-md text-slate-300"
+        >
+          {isCollapsed ? <ChevronRight className="w-3 h-3"/> : <ChevronLeft className="w-3 h-3"/>}
+        </button>
+        <div className="h-14 border-b border-slate-800 flex items-center justify-center md:justify-start px-0 md:px-4 shrink-0 overflow-hidden">
           <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shrink-0">
             <span className="font-bold text-white tracking-tighter">AI</span>
           </div>
-          <span className="hidden md:inline ml-3 font-semibold tracking-tight uppercase text-sm truncate">AI-Triage</span>
+          <span className={`ml-3 font-semibold tracking-tight uppercase text-sm truncate transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden md:hidden' : 'opacity-100 hidden md:inline'}`}>AI-Triage</span>
         </div>
-        <nav className="flex-1 py-4 flex flex-col gap-1 px-2 overflow-y-auto">
+        <nav className="flex-1 py-4 flex flex-col gap-1 px-2 overflow-y-auto overflow-x-hidden">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -44,10 +51,12 @@ export default function AppNavigation() {
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
                 : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300 border border-transparent'
               }`}
-              title={item.label}
+              title={isCollapsed ? item.label : undefined}
             >
               <div className="shrink-0">{item.icon}</div>
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-widest truncate">{item.label}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden md:hidden' : 'opacity-100 hidden md:inline'}`}>
+                {item.label}
+              </span>
             </button>
           ))}
         </nav>
