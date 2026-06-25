@@ -28,13 +28,7 @@ export default function AppNavigation() {
   return (
     <div className="flex h-full w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className={`${isCollapsed ? 'w-16' : 'w-16 md:w-56'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 relative z-10`}>
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden md:flex absolute -right-3 top-4 bg-slate-800 border border-slate-600 rounded-full p-1 z-20 hover:bg-slate-700 shadow-md text-slate-300"
-        >
-          {isCollapsed ? <ChevronRight className="w-3 h-3"/> : <ChevronLeft className="w-3 h-3"/>}
-        </button>
+      <aside className={`${isCollapsed ? 'w-16' : 'w-16 md:w-56'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 z-10`}>
         <div className="h-14 border-b border-slate-800 flex items-center justify-center md:justify-start px-0 md:px-4 shrink-0 overflow-hidden">
           <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shrink-0">
             <span className="font-bold text-white tracking-tighter">AI</span>
@@ -60,6 +54,21 @@ export default function AppNavigation() {
             </button>
           ))}
         </nav>
+        {/* Bottom Toggle Button */}
+        <div className="p-2 border-t border-slate-800 flex items-center justify-center md:justify-start shrink-0">
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-all"
+            title={isCollapsed ? "Expandir" : "Colapsar"}
+          >
+            <div className="shrink-0">
+              {isCollapsed ? <ChevronRight className="w-5 h-5"/> : <ChevronLeft className="w-5 h-5"/>}
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden md:hidden' : 'opacity-100 hidden md:inline'}`}>
+              Contraer
+            </span>
+          </button>
+        </div>
       </aside>
 
       {/* Main Content Area */}
