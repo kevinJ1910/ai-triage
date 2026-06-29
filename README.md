@@ -4,166 +4,277 @@
 
 ---
 
-## 🚀 Características Clave y Últimas Funcionalidades
+## 🚀 Características Clave
 
 *   **ASR Clínico en Tiempo Real (Faster-Whisper):** Transcripción continua y fragmentada de voz adaptada al idioma español, optimizada para capturar conversaciones entre médico y paciente.
-*   **Compatibilidad y Autodetección de GPU (Fallback Automático):** 
-    *   Ejecución acelerada por hardware usando **NVIDIA CUDA** cuando está disponible en la máquina.
-    *   **Detección inteligente y fallback automático a CPU** en caso de no encontrarse una tarjeta gráfica compatible (NVIDIA) o librerías CUDA/cuDNN instaladas. Esto garantiza compatibilidad universal con ordenadores de bajos recursos, procesadores Intel/AMD y sistemas sin gráficas dedicadas.
-*   **Paso Intermedio de Verificación y Edición (¡Nuevo!):**
-    *   Al finalizar la grabación, el sistema detiene el audio y entra en un **modo de revisión interactivo**.
-    *   Permite a los profesionales médicos modificar manualmente la conversación transcrita (cambiar speakers, corregir errores ortográficos/fonéticos, agregar nuevas líneas o eliminar entradas incorrectas) antes de enviar los datos al motor de IA.
-*   **Extracción de Entidades Clínicas (NER):** Extracción automatizada y estructurada mediante IA de datos críticos:
+*   **Compatibilidad con GPU y Fallback Automático a CPU:**
+    *   Ejecución acelerada por hardware usando **NVIDIA CUDA** cuando está disponible.
+    *   **Fallback automático a CPU** cuando no hay GPU, garantizando compatibilidad con cualquier sistema.
+*   **Paso Intermedio de Verificación y Edición:**
+    *   Al finalizar la grabación, el sistema entra en un **modo de revisión interactivo**.
+    *   Permite modificar manualmente la conversación transcrita (corregir errores, cambiar speakers, etc.) antes de enviar al motor de IA.
+*   **Extracción de Entidades Clínicas (NER):** Extracción automatizada mediante IA de:
     *   *Síntomas*, *Antecedentes Médicos*, *Medicamentos* y *Signos Vitales*.
-    *   Permite la edición dinámica (adición y eliminación de entidades) directamente desde el Dashboard.
-*   **Motor de Triaje Inteligente & Justificación:** Clasificación de la prioridad preliminar del paciente (Niveles del 1 al 5) con base en escalas internacionales (como ESI o Manchester), acompañada de una justificación clínica detallada redactada en lenguaje natural por la IA.
-*   **Interoperabilidad Estándar FHIR R4 & HL7:** Generación automatizada de Bundles estructurados en formato JSON compatibles con FHIR R4 (recursos `Patient`, `Encounter`, `Condition` y `Observation`), listos para sincronizarse con sistemas de Historia Clínica Electrónica (HCE).
-*   **Generación de Reportes PDF:** Descarga de reportes clínicos detallados con un solo clic.
-*   **Interfaz de Usuario Premium:**
-    *   Diseño moderno, fluido y oscuro con paleta de colores HSL armoniosa.
-    *   **Sidebar Colapsable (¡Nuevo!)** con transiciones y micro-animaciones fluidas animadas mediante Framer Motion.
-    *   Panel adaptable y redimensionable interactivamente (tanto vertical como horizontalmente) para un espacio de trabajo óptimo.
+    *   Edición dinámica directamente desde el Dashboard.
+*   **Motor de Triaje Inteligente & Justificación:** Clasificación del 1 al 5 con base en escalas internacionales (ESI/Manchester), con justificación clínica generada por IA.
+*   **Interoperabilidad FHIR R4:** Generación de Bundles JSON compatibles con FHIR R4 (`Patient`, `Encounter`, `Condition`, `Observation`).
+*   **Generación de Reportes PDF:** Descarga de reportes clínicos detallados.
+*   **Interfaz Premium:** Diseño oscuro moderno con animaciones fluidas mediante Framer Motion.
 
 ---
 
-## 📂 Estructura del Proyecto
-
-El repositorio está organizado en una arquitectura desacoplada de dos módulos principales:
+## 🏗️ Arquitectura del Proyecto
 
 ```
-ai-triage/                    (Raíz del repositorio)
-├── .gitignore                (Configuración global de exclusiones de Git)
-├── README.md                 (Documentación principal del proyecto)
+ai-triage/
+├── backend/                      # Django REST API (Python 3.12)
+│   ├── config/                    # Configuración Django
+│   │   ├── settings.py            # Settings principales (Whisper, DB, Redis)
+│   │   ├── urls.py                 # Enrutamiento principal
+│   │   ├── wsgi.py                 # WSGI entry point
+│   │   └── asgi.py                # ASGI entry point
+│   ├── transcription/              # App Django de transcripción
+│   │   ├── views.py                # Vistas REST (transcribe, reset, health)
+│   │   ├── urls.py                 # Rutas de la app
+│   │   ├── whisper_engine.py       # Motor singleton de Faster-Whisper
+│   │   └── medical_prompts.py      # Prompts clínicos para Whisper
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── manage.py
 │
-├── ai-triage/                (Módulo del Frontend - Next.js)
-│   ├── app/                  (Enrutamiento del lado del cliente, páginas y APIs)
-│   │   ├── api/              (Rutas de API locales para proxy/transmisión de datos)
-│   │   └── layout.tsx / AppNavigation.tsx
-│   ├── components/           (Componentes reutilizables, incluyendo TriageDashboard.tsx)
-│   ├── hooks/                (Hooks de React, incluyendo el controlador ASR useWhisperASR.ts)
-│   ├── public/               (Archivos estáticos y favicons)
-│   ├── package.json          (Dependencias de node)
-│   └── .env                  (Variables de entorno del cliente - Gemini API Key)
+├── frontend/                      # Next.js 15 (React 19)
+│   ├── app/                       # App Router de Next.js
+│   │   ├── page.tsx               # Página principal
+│   │   ├── layout.tsx             # Layout raíz
+│   │   ├── AppNavigation.tsx      # Navegación principal
+│   │   ├── globals.css            # Estilos globales (Tailwind)
+│   │   └── api/                   # API Routes (Next.js)
+│   │       ├── transcribe/        # Proxy a backend Django
+│   │       │   ├── route.ts       # POST /api/transcribe → backend
+│   │       │   └── reset/route.ts # POST /api/transcribe/reset → backend
+│   │       ├── triage/
+│   │       │   └── analyze/route.ts # POST /api/triage/analyze → Gemini
+│   │       └── fhir/route.ts     # Generación FHIR R4
+│   ├── components/                 # Componentes React
+│   │   ├── TriageDashboard.tsx    # Dashboard principal de triaje
+│   │   ├── ConfigPanel.tsx        # Panel de configuración
+│   │   ├── SecurityPanel.tsx      # Panel de seguridad
+│   │   ├── MetricsDashboard.tsx   # Métricas visuales
+│   │   ├── FHIRMonitor.tsx       # Monitor FHIR
+│   │   ├── NormalizationMonitor.tsx
+│   │   └── EMRSimulator.tsx       # Simulador de HCE
+│   ├── hooks/                     # Custom React Hooks
+│   │   ├── useWhisperASR.ts      # Hook de grabación/transcripción
+│   │   └── use-mobile.ts         # Detección de dispositivo móvil
+│   ├── lib/                       # Utilidades
+│   │   └── utils.ts               # Funciones helper (cn, etc.)
+│   ├── Dockerfile
+│   ├── next.config.ts             # Configuración Next.js
+│   ├── package.json
+│   └── tailwind/postcss config
 │
-└── ai-triage-backend/        (Módulo del Backend - Django)
-    ├── config/               (Configuración base del proyecto Django)
-    │   ├── settings.py       (Ajustes de CORS, Whisper y variables globales)
-    │   └── urls.py           (Rutas del backend)
-    ├── transcription/        (Aplicación de transcripción)
-    │   ├── views.py          (Endpoints de chunking de audio)
-    │   └── whisper_engine.py (Inicializador y motor del modelo Faster-Whisper)
-    ├── manage.py             (Orquestador de comandos de Django)
-    └── requirements.txt      (Dependencias de Python)
+├── nginx/                         # Reverse Proxy (nginx alpine)
+│   ├── nginx.conf                 # Configuración de rutas
+│   └── Dockerfile
+│
+├── scripts/                       # Scripts de utilidad
+│   └── entrypoint.sh              # Script de inicio
+│
+├── docker-compose.yml             # Orquestación de servicios
+├── .env                           # Variables de entorno (producción)
+├── .env.example                   # Template de variables
+└── README.md
 ```
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🔌 Flujo de Datos entre Servicios
 
-### Frontend
-- **Framework:** Next.js 15.4.9 (React 19, TypeScript)
-- **Estilos:** Vanilla CSS y utilidades modernas
-- **Animaciones:** Framer Motion (motion/react)
-- **Iconografía:** Lucide React
-- **Documentos:** jsPDF
-- **Notificaciones:** Sonner (Toast system)
-- **Gestor de Paquetes:** `pnpm`
-
-### Backend
-- **Framework:** Django 5.1
-- **Motor de Transcripción ASR:** `faster-whisper`
-- **NLP / Triage Engine:** Google Gemini API (modelos 1.5 Flash / 3.5 Flash)
-- **Control de Variables:** `python-dotenv`
-- **Interoperabilidad:** Mapeadores JSON a FHIR R4
-
----
-
-## 🚀 Guía de Instalación y Ejecución
-
-Sigue estos pasos para desplegar la aplicación localmente en modo de desarrollo:
-
-### 1. Requisitos Previos
-- **Node.js** v18 o superior.
-- **Python** v3.10 o v3.11 (se recomienda v3.11 para compatibilidad óptima con `faster-whisper`).
-- **Gestor de paquetes** `pnpm` (`npm install -g pnpm`).
-- *(Opcional)* **NVIDIA CUDA Toolkit (12.x)** y librerías **cuDNN** configuradas en tu sistema si deseas habilitar aceleración por GPU.
-
----
-
-### 2. Configurar y Ejecutar el Backend (Django)
-
-1. Navega a la carpeta del backend:
-   ```bash
-   cd ai-triage-backend
-   ```
-2. Crea un entorno virtual de Python:
-   ```bash
-   python -m venv .venv
-   ```
-3. Activa el entorno virtual:
-   - **En Windows:**
-     ```bash
-     .venv\Scripts\activate
-     ```
-   - **En macOS/Linux:**
-     ```bash
-     source .venv/bin/activate
-     ```
-4. Instala las dependencias requeridas:
-   ```bash
-   pip install -r requirements.txt
-   ```
-5. *(Opcional)* Configura las variables de entorno de Whisper en un archivo `.env` dentro de `ai-triage-backend`:
-   ```ini
-   WHISPER_MODEL_SIZE=large-v3-turbo
-   WHISPER_DEVICE=cuda # O 'cpu', o dejar en 'auto'
-   WHISPER_COMPUTE_TYPE=float16 # float16 para GPU, int8 para CPU
-   ```
-6. Inicia el servidor de desarrollo de Django:
-   ```bash
-   python manage.py runserver 8000
-   ```
-   El backend estará disponible en `http://localhost:8000`.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         NAVEGADOR (Cliente)                         │
+│                    http://localhost (puerto 80)                      │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           NGINX (Puerto 80)                            │
+│                        Reverse Proxy / API Gateway                     │
+├───────────────────────────────────────────────────────────────────────┤
+│  /              → frontend:3000  (Next.js App)                        │
+│  /api/transcribe → backend:8000  (Django + Faster-Whisper)           │
+│  /api/triage/    → frontend:3000  (Next.js → Gemini API)              │
+│  /api/fhir/      → frontend:3000  (Next.js → FHIR R4)                 │
+│  /admin/         → backend:8000  (Django Admin)                       │
+└────────┬────────────────────┬──────────────────────┬───────────────┘
+         │                    │                      │
+         ▼                    ▼                      ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│    FRONTEND     │  │    BACKEND       │  │   EXTERNAL      │
+│  (Next.js 3000) │  │ (Django 8000)    │  │   APIs          │
+├─────────────────┤  ├─────────────────┤  ├─────────────────┤
+│ TriageDashboard │  │ Faster-Whisper  │  │ Google Gemini   │
+│ useWhisperASR   │  │ (ASR Engine)    │  │ (Triaje IA)     │
+│ FHIRMonitor     │  │ PostgreSQL      │  │                 │
+│ PDF Generator   │  │ Redis (Cache)   │  │                 │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+```
 
 ---
 
-### 3. Configurar y Ejecutar el Frontend (Next.js)
+## 📋 Requisitos
 
-1. Abre una nueva terminal y navega a la carpeta del frontend:
-   ```bash
-   cd ai-triage
-   ```
-2. Instala las dependencias del proyecto utilizando `pnpm`:
-   ```bash
-   pnpm install
-   ```
-3. Crea un archivo `.env` en la raíz de la carpeta `ai-triage`:
-   ```bash
-   touch .env
-   ```
-4. Añade tu API Key de Gemini y la URL del servidor al archivo `.env`:
-   ```ini
-   GEMINI_API_KEY="TU_API_KEY_AQUI"
-   APP_URL="http://localhost:3000"
-   ```
-5. Ejecuta el servidor en modo de desarrollo:
-   ```bash
-   pnpm run dev
-   ```
-   Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la aplicación web interactiva.
+- **Docker Engine** 24.0+
+- **Docker Compose** v2.20+
+- **8GB+ RAM** mínimo (16GB recomendado para modelos grandes)
+- **NVIDIA GPU** (opcional, para aceleración GPU)
 
 ---
 
-## ⚡ Aceleración por GPU (NVIDIA CUDA)
-Para utilizar la aceleración por hardware de `faster-whisper`:
-1. Asegúrate de tener una tarjeta gráfica NVIDIA y que los controladores estén actualizados.
-2. Instala [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit) compatible con tu sistema.
-3. Descarga y añade a tus variables del sistema (PATH) los binarios de [cuDNN](https://developer.nvidia.com/cudnn).
-4. El sistema cargará el modelo ASR en GPU de forma predeterminada reduciendo la latencia de procesamiento por bloque a pocos milisegundos. De lo contrario, registrará un aviso en la terminal del backend (`backend_debug.log`) e iniciará de manera transparente en la CPU.
+## 🚀 Inicio Rápido
+
+### 1. Clonar y configurar
+
+```bash
+git clone <repo-url>
+cd ai-triage
+cp .env.example .env
+```
+
+### 2. Configurar variables de entorno
+
+Edita `.env` con tus credenciales:
+
+```bash
+# Gemini API Key (necesaria para triaje)
+GEMINI_API_KEY=tu-api-key-de-gemini
+
+# Whisper (opcional, para cambiar modelo)
+WHISPER_MODEL_SIZE=base           # Modelos: tiny, base, small, medium, large-v3-turbo
+WHISPER_DEVICE=cpu                # cpu o cuda (para GPU)
+WHISPER_COMPUTE_TYPE=int8         # int8 para CPU, float16 para GPU
+```
+
+### 3. Levantar servicios
+
+```bash
+docker compose up --build -d
+```
+
+### 4. Verificar funcionamiento
+
+```bash
+# Estado de servicios
+docker compose ps
+
+# Health check del backend
+curl http://localhost/api/transcribe/health
+
+# Ver logs
+docker compose logs -f backend
+```
 
 ---
 
-## 👥 Autores y Créditos
+## 🌐 Endpoints API
+
+| Método | Endpoint | Descripción | Servicio |
+|--------|----------|-------------|----------|
+| GET | `/api/transcribe/health` | Health check del motor ASR | Backend |
+| POST | `/api/transcribe` | Transcribir audio (FormData) | Backend |
+| POST | `/api/transcribe/reset` | Resetear sesión de transcripción | Backend |
+| POST | `/api/triage/analyze` | Análisis de triaje con Gemini | Frontend |
+| POST | `/api/fhir` | Generar Bundle FHIR R4 | Frontend |
+| GET | `/health` | Health check general | Nginx |
+
+---
+
+## ⚙️ Configuración de Modelos Whisper
+
+Edita las variables en `.env`:
+
+```bash
+# Modelo Whisper (disponibles: tiny, base, small, medium, large-v3-turbo)
+WHISPER_MODEL_SIZE=base
+
+# Dispositivo de cómputo
+# - cpu: Usa CPU (funciona en cualquier máquina)
+# - cuda: Usa GPU NVIDIA (requiere CUDA Toolkit)
+# - auto: Detecta automáticamente (GPU si disponible, si no CPU)
+WHISPER_DEVICE=cpu
+
+# Tipo de cómputo
+# - int8: Recomendado para CPU (más rápido, menos RAM)
+# - float16: Recomendado para GPU
+# - default: Automático según dispositivo
+WHISPER_COMPUTE_TYPE=int8
+```
+
+### Requisitos de RAM según modelo:
+
+| Modelo | RAM mínima | RAM recomendada |
+|--------|-----------|-----------------|
+| tiny | 1GB | 2GB |
+| base | 1GB | 3GB |
+| small | 2GB | 4GB |
+| medium | 3GB | 6GB |
+| large-v3-turbo | 4GB | 8GB |
+
+---
+
+## 🛠️ Desarrollo
+
+### Solo backend (sin frontend)
+
+```bash
+docker compose up backend postgres redis -d
+```
+
+### Recargar después de cambios en backend
+
+```bash
+docker compose up --build backend
+```
+
+### Ver logs de un servicio específico
+
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f nginx
+```
+
+---
+
+## 🛑 Detener Servicios
+
+```bash
+# Detener sin eliminar datos
+docker compose stop
+
+# Detener y eliminar contenedores
+docker compose down
+
+# Detener y eliminar volúmenes (⚠️ elimina datos)
+docker compose down -v
+```
+
+---
+
+## 📁 Estructura de Volumes Docker
+
+Los datos persistentes se almacenan en volúmenes Docker:
+
+| Volumen | Descripción |
+|---------|-------------|
+| `postgres_data` | Datos de PostgreSQL |
+| `redis_data` | Cache de Redis |
+| `audio_uploads` | Archivos de audio subidos |
+
+---
+
+## 👥 Autores
+
 - **Kevin Jordan Alzate** - [kevin.jordan@correounivalle.edu.co](mailto:kevin.jordan@correounivalle.edu.co)
 - **Junior Orlando Cantor Arevalo** - [junior.cantor@correounivalle.edu.co](mailto:junior.cantor@correounivalle.edu.co)
 - **Director de Proyecto:** Carlos Mauricio Gaona Cuevas

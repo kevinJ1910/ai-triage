@@ -1,18 +1,17 @@
 import json
 import uuid
 import logging
+import os
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .whisper_engine import WhisperEngine
 
-import logging
-import os
-
 logger = logging.getLogger(__name__)
 
-# Temporary file logging
-fh = logging.FileHandler('backend_debug.log')
+_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+os.makedirs(_log_dir, exist_ok=True)
+fh = logging.FileHandler(os.path.join(_log_dir, 'backend_debug.log'))
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)

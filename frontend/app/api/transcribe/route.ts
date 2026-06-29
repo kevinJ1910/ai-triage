@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const backendUrl = process.env.DJANGO_BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = process.env.DJANGO_BACKEND_URL || 'http://backend:8000';
     
     // Forward the multipart/form-data request to Django ASR backend
     const response = await fetch(`${backendUrl}/api/transcribe/`, {

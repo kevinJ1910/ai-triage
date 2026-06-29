@@ -2,10 +2,9 @@ import threading
 import time
 import tempfile
 import os
+import sys
 import logging
 from typing import Dict, Any, Tuple
-import os
-import sys
 
 # --- INJECT NVIDIA DLLs TO PATH FOR WINDOWS ---
 if os.name == 'nt':
@@ -29,8 +28,9 @@ from .medical_prompts import CLINICAL_INITIAL_PROMPT
 
 logger = logging.getLogger(__name__)
 
-# Temporary file logging
-fh = logging.FileHandler('backend_debug.log')
+_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+os.makedirs(_log_dir, exist_ok=True)
+fh = logging.FileHandler(os.path.join(_log_dir, 'backend_debug.log'))
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -49,17 +49,24 @@ class WhisperEngine:
 
     def _initialize(self) -> None:
         logger.info("Initializing WhisperEngine model...")
-        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')
-        device = getattr(settings, 'WHISPER_DEVICE', 'cpu')
-        compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'int8')
-
+        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'base')
+        
+        # Force CPU for stability in Docker/containers without GPU
+        # Use int8 compute type for best CPU performance
+        device = 'cpu'
+        compute_type = 'int8'
+        
         logger.info(f"Loading Faster-Whisper model '{model_size}' on '{device}' using '{compute_type}'")
         start_time = time.perf_counter()
         
         # Load Faster-Whisper Model
-        self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
-        
-        logger.info(f"Model loaded successfully in {time.perf_counter() - start_time:.2f} seconds")
+        # Using CPU with int8 for stability - no GPU fallback needed
+        try:
+            self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
+            logger.info(f"Model loaded successfully in {time.perf_counter() - start_time:.2f} seconds on device '{device}'")
+        except Exception as e:
+            logger.error(f"Failed to initialize WhisperEngine: {e}")
+            raise RuntimeError(f"Failed to load Whisper model: {e}") from e
 
         # Session contexts: session_id -> running transcribed text
         self._session_contexts: Dict[str, str] = {}
@@ -148,9 +155,9 @@ class WhisperEngine:
             active_sessions = list(self._session_contexts.keys())
         
         return {
-            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo'),
-            "device": getattr(settings, 'WHISPER_DEVICE', 'cpu'),
-            "compute_type": getattr(settings, 'WHISPER_COMPUTE_TYPE', 'int8'),
+            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'base'),
+            "device": "cpu",
+            "compute_type": "int8",
             "active_sessions_count": len(active_sessions),
             "active_session_ids": active_sessions
         }
