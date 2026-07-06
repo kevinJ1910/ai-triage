@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ai_triage}
       POSTGRES_USER: ${POSTGRES_USER:-triage_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -40,6 +42,7 @@ services:
     container_name: ai_triage_backend
     restart: unless-stopped
     environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-triage_user}:${POSTGRES_PASSWORD:-change-me-in-production}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ai_triage}
       - DATABASE_HOST=${POSTGRES_HOST:-postgres}
       - DATABASE_PORT=${POSTGRES_PORT:-5432}
       - DATABASE_NAME=${POSTGRES_DB:-ai_triage}
@@ -55,6 +58,7 @@ services:
       - WHISPER_DEVICE=${WHISPER_DEVICE:-auto}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-default}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - audio_uploads:/app/media
     networks:
@@ -70,6 +74,10 @@ services:
           memory: 8G
         reservations:
           memory: 4G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   frontend:
     build:

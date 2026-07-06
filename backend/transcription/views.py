@@ -17,18 +17,20 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 logger.setLevel(logging.DEBUG)
-# Initialize WhisperEngine at module loading to warm up the model early
-try:
-    engine = WhisperEngine()
-except Exception as engine_err:
-    logger.critical(f"Could not initialize WhisperEngine on start: {engine_err}", exc_info=True)
-    engine = None
+
+# WhisperEngine will be initialized lazily on first request
+engine = None
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def transcribe_chunk(request: HttpRequest) -> JsonResponse:
+    global engine
     if engine is None:
-        return JsonResponse({"error": "Whisper Engine is not initialized"}, status=503)
+        try:
+            engine = WhisperEngine()
+        except Exception as engine_err:
+            logger.critical(f"Could not initialize WhisperEngine: {engine_err}", exc_info=True)
+            return JsonResponse({"error": "Whisper Engine could not be initialized"}, status=503)
         
     try:
         audio_file = request.FILES.get('audio')
@@ -58,6 +60,7 @@ def transcribe_chunk(request: HttpRequest) -> JsonResponse:
 @csrf_exempt
 @require_http_methods(["POST"])
 def reset_session(request: HttpRequest) -> JsonResponse:
+    global engine
     if engine is None:
         return JsonResponse({"error": "Whisper Engine is not initialized"}, status=503)
 

@@ -7,6 +7,7 @@ import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, Shi
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
+import { fetchWithAuth } from '@/lib/api';
 
 interface PatientInfo {
   name: string;
@@ -295,7 +296,7 @@ export default function TriageDashboard() {
     setIsAnalyzing(true);
     try {
       const text = fullTranscript.map(t => `${t.speaker}: ${t.text}`).join('\n');
-      const res = await fetch('/api/triage/analyze', {
+      const res = await fetchWithAuth('/api/triage/sessions/analyze/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript: text })
@@ -365,7 +366,7 @@ export default function TriageDashboard() {
       };
       const fhirBundle = generateFHIRBundle(tempSession);
       
-      const res = await fetch('/api/fhir', {
+      const res = await fetchWithAuth('/api/fhir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fhirBundle)

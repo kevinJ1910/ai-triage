@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Stethoscope, Settings, Shield, RefreshCw, Server, Database, BarChart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Stethoscope, Settings, Shield, RefreshCw, Server, Database, BarChart, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import TriageDashboard from '@/components/TriageDashboard';
 import ConfigPanel from '@/components/ConfigPanel';
 import SecurityPanel from '@/components/SecurityPanel';
@@ -14,6 +15,14 @@ import { Toaster } from 'sonner';
 export default function AppNavigation() {
   const [activeTab, setActiveTab] = useState('triage');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.push('/login');
+    }
+  }, [router]);
 
   const navItems = [
     { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulos Core (Triaje)' },
@@ -54,7 +63,23 @@ export default function AppNavigation() {
             </button>
           ))}
         </nav>
-        {/* Bottom Toggle Button */}
+        {/* Bottom Actions */}
+        <div className="p-2 border-t border-slate-800 flex flex-col items-center justify-center md:justify-start shrink-0 gap-1">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              router.push('/login');
+            }}
+            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-all"
+            title={isCollapsed ? "Cerrar Sesión" : "Cerrar Sesión"}
+          >
+            <div className="shrink-0"><LogOut className="w-5 h-5"/></div>
+            <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden md:hidden' : 'opacity-100 hidden md:inline'}`}>
+              Cerrar Sesión
+            </span>
+          </button>
+        </div>
         <div className="p-2 border-t border-slate-800 flex items-center justify-center md:justify-start shrink-0">
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
