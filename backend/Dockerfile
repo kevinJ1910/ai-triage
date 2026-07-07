@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir gunicorn
 
 COPY . .
 
+RUN python manage.py makemigrations accounts patients triage
+
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 
 # Configure entrypoint script

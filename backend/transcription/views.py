@@ -86,11 +86,17 @@ def reset_session(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["GET"])
 def health_check(request: HttpRequest) -> JsonResponse:
+    global engine
     if engine is None:
-        return JsonResponse({
-            "status": "unhealthy", 
-            "error": "Whisper Engine could not be loaded"
-        }, status=503)
+        try:
+            engine = WhisperEngine()
+        except Exception as engine_err:
+            logger.critical(f"Could not initialize WhisperEngine in health check: {engine_err}", exc_info=True)
+            return JsonResponse({
+                "status": "unhealthy", 
+                "error": "Whisper Engine could not be initialized",
+                "details": str(engine_err)
+            }, status=503)
         
     try:
         status_info = engine.get_status()

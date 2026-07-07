@@ -49,24 +49,39 @@ class WhisperEngine:
 
     def _initialize(self) -> None:
         logger.info("Initializing WhisperEngine model...")
-        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'base')
+        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')
+        device = getattr(settings, 'WHISPER_DEVICE', 'auto')
+        compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
+        cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)
         
-        # Force CPU for stability in Docker/containers without GPU
-        # Use int8 compute type for best CPU performance
-        device = 'cpu'
-        compute_type = 'int8'
-        
-        logger.info(f"Loading Faster-Whisper model '{model_size}' on '{device}' using '{compute_type}'")
+        logger.info(f"Loading Faster-Whisper model '{model_size}' on device '{device}' using compute_type '{compute_type}' and cpu_threads {cpu_threads}")
         start_time = time.perf_counter()
         
-        # Load Faster-Whisper Model
-        # Using CPU with int8 for stability - no GPU fallback needed
         try:
-            self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
-            logger.info(f"Model loaded successfully in {time.perf_counter() - start_time:.2f} seconds on device '{device}'")
+            self.model = WhisperModel(
+                model_size, 
+                device=device, 
+                compute_type=compute_type,
+                cpu_threads=cpu_threads
+            )
+            self.device_used = device
+            self.compute_type_used = compute_type
+            logger.info(f"Model loaded successfully in {time.perf_counter() - start_time:.2f} seconds on device '{device}' with compute_type '{compute_type}'")
         except Exception as e:
-            logger.error(f"Failed to initialize WhisperEngine: {e}")
-            raise RuntimeError(f"Failed to load Whisper model: {e}") from e
+            logger.warning(f"Failed to load WhisperModel with device='{device}' and compute_type='{compute_type}': {e}. Falling back to CPU with int8.")
+            try:
+                self.model = WhisperModel(
+                    model_size, 
+                    device='cpu', 
+                    compute_type='int8',
+                    cpu_threads=cpu_threads
+                )
+                self.device_used = 'cpu'
+                self.compute_type_used = 'int8'
+                logger.info(f"Fallback model loaded successfully on CPU (int8) in {time.perf_counter() - start_time:.2f} seconds")
+            except Exception as cpu_err:
+                logger.error(f"Failed to initialize WhisperEngine fallback on CPU: {cpu_err}")
+                raise RuntimeError(f"Failed to load Whisper model on both settings and CPU fallback: {cpu_err}") from cpu_err
 
         # Session contexts: session_id -> running transcribed text
         self._session_contexts: Dict[str, str] = {}
@@ -93,14 +108,15 @@ class WhisperEngine:
             if history_slice:
                 full_prompt += "\nHistorial previo de la conversación: " + history_slice
 
-            logger.info("Starting self.model.transcribe...")
+            beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 3)
+            logger.info(f"Starting self.model.transcribe with beam_size={beam_size}...")
             # 3. Perform transcription
-            # Forced Spanish language, beam_size=5, vad_filter to prevent hallucination loops on silence
+            # Forced Spanish language, beam_size, vad_filter to prevent hallucination loops on silence
             segments, info = self.model.transcribe(
                 temp_file_path,
                 language="es",
                 initial_prompt=full_prompt,
-                beam_size=5,
+                beam_size=beam_size,
                 condition_on_previous_text=False,
                 vad_filter=True,
                 vad_parameters=dict(min_silence_duration_ms=1000)
@@ -155,9 +171,9 @@ class WhisperEngine:
             active_sessions = list(self._session_contexts.keys())
         
         return {
-            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'base'),
-            "device": "cpu",
-            "compute_type": "int8",
+            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo'),
+            "device": getattr(self, 'device_used', 'unknown'),
+            "compute_type": getattr(self, 'compute_type_used', 'unknown'),
             "active_sessions_count": len(active_sessions),
             "active_session_ids": active_sessions
         }

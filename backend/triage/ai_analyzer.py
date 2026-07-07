@@ -12,6 +12,9 @@ def analyze_triage_transcript(transcript: str) -> dict:
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set")
         
+    # Strip any surrounding quotes that may be preserved by Docker env loading
+    api_key = api_key.strip("'\"")
+        
     client = genai.Client(api_key=api_key)
     
     prompt = f"""

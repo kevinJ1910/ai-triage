@@ -41,6 +41,8 @@ services:
       dockerfile: Dockerfile
     container_name: ai_triage_backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-triage_user}:${POSTGRES_PASSWORD:-change-me-in-production}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ai_triage}
       - DATABASE_HOST=${POSTGRES_HOST:-postgres}
@@ -85,6 +87,8 @@ services:
       dockerfile: Dockerfile
     container_name: ai_triage_frontend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost/api
       - NEXT_PUBLIC_FHIR_URL=${FHIR_SERVER_URL:-}
