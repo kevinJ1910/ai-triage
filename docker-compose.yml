@@ -39,6 +39,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: cantor11/ai-triage-backend:latest
     container_name: ai_triage_backend
     restart: unless-stopped
     env_file:
@@ -85,6 +86,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: cantor11/ai-triage-frontend:latest
     container_name: ai_triage_frontend
     restart: unless-stopped
     env_file:
@@ -102,6 +104,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    image: cantor11/ai-triage-nginx:latest
     container_name: ai_triage_nginx
     restart: unless-stopped
     ports:
