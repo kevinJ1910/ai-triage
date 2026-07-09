@@ -302,8 +302,9 @@ export default function TriageDashboard() {
         body: JSON.stringify({ transcript: text })
       });
       const data = await res.json();
-      setAnalysisResult(data);
-      if (data.entities) setEditedEntities(data.entities);
+      const aiAnalysis = data.analysis || data;
+      setAnalysisResult(aiAnalysis);
+      if (aiAnalysis.entities) setEditedEntities(aiAnalysis.entities);
     } catch (err) {
       console.error(err);
     } finally {
