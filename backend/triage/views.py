@@ -95,3 +95,64 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "transcript": transcript_text,
             "analysis": analysis
         }, status=status.HTTP_201_CREATED)
+
+from django.http import JsonResponse, HttpRequest
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+import random
+import time
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def fhir_sync(request: HttpRequest) -> JsonResponse:
+    """
+    Simulates FHIR server synchronization, stores a FHIRRecord in the DB
+    associated with the TriageSession if found, and returns 201.
+    """
+    try:
+        payload = json.loads(request.body)
+        # Simulate network delay (800ms)
+        time.sleep(0.8)
+        
+        fhir_id = f"fhir-enc-{random.randint(100000, 999999)}"
+        
+        # Try to find associated session id from resource IDs like pat-<id> or enc-<id>
+        session_id = None
+        entries = payload.get('entry', [])
+        for entry in entries:
+            resource = entry.get('resource', {})
+            res_id = resource.get('id', '')
+            if res_id.startswith('enc-') or res_id.startswith('pat-'):
+                parts = res_id.split('-')
+                if len(parts) > 1 and parts[1].isdigit():
+                    session_id = int(parts[1])
+                    break
+        
+        if session_id:
+            try:
+                from .models import TriageSession, FHIRRecord
+                triage_session = TriageSession.objects.filter(id=session_id).first()
+                if triage_session:
+                    FHIRRecord.objects.update_or_create(
+                        triage_session=triage_session,
+                        defaults={
+                            'fhir_resource_id': fhir_id,
+                            'payload_sent': payload
+                        }
+                    )
+            except Exception as db_err:
+                logger.error(f"Error saving FHIRRecord in database: {db_err}", exc_info=True)
+                
+        return JsonResponse({
+            "message": "Resource created",
+            "id": fhir_id,
+            "resourceReceived": payload
+        }, status=201)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON FHIR payload"}, status=400)
+    except Exception as e:
+        logger.error(f"Error in fhir_sync: {e}", exc_info=True)
+        return JsonResponse({"error": "Internal server error during FHIR sync", "details": str(e)}, status=500)
+
