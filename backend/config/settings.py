@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'accounts',
     'patients',
     'triage',
+    'system_settings',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
