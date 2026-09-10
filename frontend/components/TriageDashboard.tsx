@@ -28,6 +28,17 @@ interface TriageSession {
 }
 
 export default function TriageDashboard() {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user_profile');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {}
+  }, []);
+
   const {
     isRecording,
     isPaused,
@@ -408,7 +419,11 @@ export default function TriageDashboard() {
             <span className={`text-xs font-mono uppercase ${isRecording ? 'text-red-500' : 'text-emerald-500'} hidden sm:inline`}>{isRecording ? 'GRABANDO' : 'ASR ACTIVO'}</span>
           </div>
           <div className="px-3 py-1 bg-slate-700 rounded text-[10px] sm:text-xs font-medium text-slate-300 truncate max-w-[120px] sm:max-w-none">
-            Usuario: Dr. Rodriguez
+              <User className="w-3.5 h-3.5 text-blue-400 shrink-0 inline mr-1" />
+              <span>Usuario: {currentUser?.full_name || "Dr. Rodriguez"}</span>
+              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] uppercase font-bold tracking-wider">
+                {currentUser?.role || "Medico"}
+              </span>
           </div>
         </div>
       </header>
