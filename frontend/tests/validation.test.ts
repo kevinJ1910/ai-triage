@@ -131,4 +131,23 @@ describe('Frontend Validation Module', () => {
       expect(resMismatch.warning).toContain('no coinciden');
     });
   });
+
+  describe('validatePhone', () => {
+    it('accepts valid phone formats and empty optional values', () => {
+      expect(validatePhone('').isValid).toBe(true);
+      expect(validatePhone('+57 300 123 4567').isValid).toBe(true);
+      expect(validatePhone('3001234567').isValid).toBe(true);
+      expect(validatePhone('123-456-7890').isValid).toBe(true);
+    });
+
+    it('rejects too short or invalid phone formats', () => {
+      const resShort = validatePhone('12345');
+      expect(resShort.isValid).toBe(false);
+      expect(resShort.warning).toContain('entre 7 y 20 caracteres');
+
+      const resInvalid = validatePhone('phone-with-letters');
+      expect(resInvalid.isValid).toBe(false);
+      expect(resInvalid.warning).toContain('entre 7 y 20 caracteres');
+    });
+  });
 });

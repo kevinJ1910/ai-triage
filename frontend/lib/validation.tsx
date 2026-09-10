@@ -1,5 +1,4 @@
 import React from 'react';
-import { z } from 'zod';
 import { AlertTriangle } from 'lucide-react';
 
 export interface ValidationResult {
@@ -133,7 +132,7 @@ export function validatePhone(value: string): ValidationResult {
   }
   const clean = value.trim();
   if (!/^\+?[0-9\s-]{7,20}$/.test(clean)) {
-    return { isValid: false, warning: 'Formato de telefono invalido (debe contener entre 7 y 15 digitos).' };
+    return { isValid: false, warning: 'Formato de telefono invalido (debe contener entre 7 y 20 caracteres: digitos, espacios o guiones).' };
   }
   return { isValid: true };
 }
