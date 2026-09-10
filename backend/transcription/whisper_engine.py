@@ -32,14 +32,7 @@ from .medical_prompts import CLINICAL_INITIAL_PROMPT
 
 logger = logging.getLogger(__name__)
 
-_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-os.makedirs(_log_dir, exist_ok=True)
-fh = logging.FileHandler(os.path.join(_log_dir, 'backend_debug.log'), encoding='utf-8')
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
-logger.setLevel(logging.DEBUG)
+# FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual duplicado.
 
 
 class WhisperEngine:

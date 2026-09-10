@@ -9,28 +9,19 @@ from .whisper_engine import WhisperEngine
 
 logger = logging.getLogger(__name__)
 
-_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-os.makedirs(_log_dir, exist_ok=True)
-fh = logging.FileHandler(os.path.join(_log_dir, 'backend_debug.log'))
-fh.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
-logger.setLevel(logging.DEBUG)
-
-# WhisperEngine will be initialized lazily on first request
-engine = None
+# FIX-TEC-004: Variable global engine eliminada. El Singleton de WhisperEngine
+# garantiza una sola instancia con threading.Lock sin necesidad de estado global en el modulo.
+# FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual.
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def transcribe_chunk(request: HttpRequest) -> JsonResponse:
-    global engine
-    if engine is None:
-        try:
-            engine = WhisperEngine()
-        except Exception as engine_err:
-            logger.critical(f"Could not initialize WhisperEngine: {engine_err}", exc_info=True)
-            return JsonResponse({"error": "Whisper Engine could not be initialized"}, status=503)
+    # FIX-TEC-004: Usar Singleton directamente, sin variable global mutable en el modulo.
+    try:
+        engine = WhisperEngine()
+    except Exception as engine_err:
+        logger.critical(f"Could not initialize WhisperEngine: {engine_err}", exc_info=True)
+        return JsonResponse({"error": "Whisper Engine could not be initialized"}, status=503)
         
     try:
         audio_file = request.FILES.get('audio')
@@ -60,8 +51,10 @@ def transcribe_chunk(request: HttpRequest) -> JsonResponse:
 @csrf_exempt
 @require_http_methods(["POST"])
 def reset_session(request: HttpRequest) -> JsonResponse:
-    global engine
-    if engine is None:
+    # FIX-TEC-004: Singleton directo, sin estado global mutable.
+    try:
+        engine = WhisperEngine()
+    except Exception:
         return JsonResponse({"error": "Whisper Engine is not initialized"}, status=503)
 
     try:
@@ -86,17 +79,15 @@ def reset_session(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["GET"])
 def health_check(request: HttpRequest) -> JsonResponse:
-    global engine
-    if engine is None:
-        try:
-            engine = WhisperEngine()
-        except Exception as engine_err:
-            logger.critical(f"Could not initialize WhisperEngine in health check: {engine_err}", exc_info=True)
-            return JsonResponse({
-                "status": "unhealthy", 
-                "error": "Whisper Engine could not be initialized",
-                "details": str(engine_err)
-            }, status=503)
+    try:
+        engine = WhisperEngine()
+    except Exception as engine_err:
+        logger.critical(f"Could not initialize WhisperEngine in health check: {engine_err}", exc_info=True)
+        return JsonResponse({
+            "status": "unhealthy", 
+            "error": "Whisper Engine could not be initialized",
+            "details": str(engine_err)
+        }, status=503)
         
     try:
         status_info = engine.get_status()

@@ -26,14 +26,21 @@ class TriageSession(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.ai_level:
-            self.ai_level = self.level or 5
-        if not self.final_level:
-            self.final_level = self.level or 5
-        self.level = self.final_level
-        self.is_level_modified = (self.final_level != self.ai_level)
-        dist = abs(self.final_level - self.ai_level)
-        self.agreement_score = max(0.0, 1.0 - (dist / 4.0))
+        # FIX-TEC-005: Solo recalcular si los campos de nivel estan siendo modificados.
+        # Evita recalculos incorrectos en save(update_fields=[...]) parciales.
+        update_fields = kwargs.get('update_fields')
+        level_fields = {'ai_level', 'final_level', 'level'}
+        should_recalculate = update_fields is None or bool(level_fields & set(update_fields))
+
+        if should_recalculate:
+            if not self.ai_level:
+                self.ai_level = self.level or 5
+            if not self.final_level:
+                self.final_level = self.level or 5
+            self.level = self.final_level
+            self.is_level_modified = (self.final_level != self.ai_level)
+            dist = abs(self.final_level - self.ai_level)
+            self.agreement_score = max(0.0, 1.0 - (dist / 4.0))
         super().save(*args, **kwargs)
 
     def __str__(self):
