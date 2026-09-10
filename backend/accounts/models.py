@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+﻿from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -12,7 +12,6 @@ class UserManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         
-        # Asignar permisos por defecto segun rol si no existen
         if not hasattr(user, 'permissions'):
             UserPermission.create_defaults_for_role(user)
             
@@ -61,14 +60,17 @@ class AuthVerificationCode(models.Model):
         ('password_reset', 'Recuperacion de Contrasena'),
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_codes')
-    code = models.CharField(max_length=6)
+    code = models.CharField(max_length=6, db_index=True)
     code_type = models.CharField(max_length=20, choices=CODE_TYPE_CHOICES, default='registration')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     expires_at = models.DateTimeField()
-    is_used = models.BooleanField(default=False)
+    is_used = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'code', 'is_used'], name='auth_code_lookup_idx'),
+        ]
 
     def is_valid(self):
         return (not self.is_used) and (timezone.now() <= self.expires_at)
@@ -106,15 +108,19 @@ class UserPermission(models.Model):
 
 class AuditLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
-    action = models.CharField(max_length=50)
+    action = models.CharField(max_length=50, db_index=True)
     resource = models.CharField(max_length=150)
     status = models.CharField(max_length=20, default='SUCCESS')
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     details = models.TextField(blank=True, default='')
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['-timestamp'], name='audit_log_time_idx'),
+            models.Index(fields=['action', '-timestamp'], name='audit_log_action_idx'),
+        ]
 
     def __str__(self):
         return f"{self.timestamp} - {self.user} - {self.action} ({self.status})"

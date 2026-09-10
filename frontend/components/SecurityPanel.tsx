@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Shield, 
   Users, 
@@ -69,11 +69,7 @@ export default function SecurityPanel() {
   const [actionFilter, setActionFilter] = useState('ALL');
   const [updatingPermKey, setUpdatingPermKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSecurityData();
-  }, []);
-
-  const loadSecurityData = async () => {
+  const loadSecurityData = useCallback(async () => {
     setLoading(true);
     try {
       const [usersRes, logsRes] = await Promise.all([
@@ -84,9 +80,7 @@ export default function SecurityPanel() {
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         setUsers(usersData);
-        if (usersData.length > 0 && expandedUserId === null) {
-          setExpandedUserId(usersData[0].id);
-        }
+        setExpandedUserId(prev => (prev === null && usersData.length > 0 ? usersData[0].id : prev));
       }
 
       if (logsRes.ok) {
@@ -99,7 +93,11 @@ export default function SecurityPanel() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSecurityData();
+  }, [loadSecurityData]);
 
   const handleTogglePermission = async (userId: number, permKey: keyof UserPermissionData, currentValue: boolean) => {
     const updatingId = `${userId}-${permKey}`;

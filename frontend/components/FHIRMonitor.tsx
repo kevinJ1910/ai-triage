@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Server, 
   CheckCircle2, 
@@ -37,7 +37,7 @@ export default function FHIRMonitor() {
   const [copied, setCopied] = useState(false);
   const [syncingTest, setSyncingTest] = useState(false);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       const headers: Record<string, string> = {};
@@ -47,20 +47,18 @@ export default function FHIRMonitor() {
       if (res.ok) {
         const data = await res.json();
         setLogs(data);
-        if (data.length > 0 && !selectedLog) {
-          setSelectedLog(data[0]);
-        }
+        setSelectedLog(prev => (!prev && data.length > 0 ? data[0] : prev));
       }
     } catch (err) {
       console.error('Error cargando logs FHIR:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [fetchLogs]);
 
   const handleCopyJson = () => {
     if (!selectedLog) return;

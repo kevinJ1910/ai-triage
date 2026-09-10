@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Database, 
   User, 
@@ -70,7 +70,7 @@ export default function EMRSimulator() {
   const [assignedBox, setAssignedBox] = useState('');
   const [isSavingBox, setIsSavingBox] = useState(false);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       const headers: Record<string, string> = {};
@@ -80,21 +80,24 @@ export default function EMRSimulator() {
       if (res.ok) {
         const data = await res.json();
         setPatients(data);
-        if (data.length > 0 && !selectedPatient) {
-          setSelectedPatient(data[0]);
-          setAssignedBox(data[0].assigned_box || 'BOX-01');
-        }
+        setSelectedPatient(prev => {
+          if (!prev && data.length > 0) {
+            setAssignedBox(data[0].assigned_box || 'BOX-01');
+            return data[0];
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.error('Error cargando pacientes EMR:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [fetchPatients]);
 
   const handleSelectPatient = (p: PatientEMR) => {
     setSelectedPatient(p);
