@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
+import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
 
 interface PatientInfo {
   name: string;
@@ -837,6 +838,10 @@ export default function TriageDashboard() {
                     className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="C.C., T.I., etc."
                   />
+                  <InputWarning 
+                    warning={patientInfo.documentId ? validateDocumentId(patientInfo.documentId).warning : null} 
+                    id="triage-doc-warning" 
+                  />
                 </div>
                 <div>
                   <label className="text-[9px] text-slate-500 uppercase block mb-1">Fecha Nacimiento</label>
@@ -845,6 +850,10 @@ export default function TriageDashboard() {
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  />
+                  <InputWarning 
+                    warning={patientInfo.birthDate ? validateDate(patientInfo.birthDate, { maxDate: new Date().toISOString().split('T')[0], label: 'Fecha de nacimiento' }).warning : null} 
+                    id="triage-birth-warning" 
                   />
                 </div>
                 <div>
@@ -868,6 +877,10 @@ export default function TriageDashboard() {
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Número telefónico"
+                  />
+                  <InputWarning 
+                    warning={patientInfo.phone ? validatePhone(patientInfo.phone).warning : null} 
+                    id="triage-phone-warning" 
                   />
                 </div>
                 <div>

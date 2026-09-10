@@ -121,9 +121,12 @@ def normalize_text(request: HttpRequest) -> JsonResponse:
     except Exception:
         return JsonResponse({"error": "Formato JSON invalido"}, status=400)
 
-    raw_text = data.get("raw_text", "").strip()
-    if not raw_text:
-        return JsonResponse({"error": "El campo 'raw_text' no puede estar vacio"}, status=400)
+    from core.validation import validate_payload, NormalizeTextSchema
+    try:
+        validated = validate_payload(NormalizeTextSchema, data)
+        raw_text = validated.raw_text.strip()
+    except Exception as e:
+        return JsonResponse(getattr(e, 'detail', {"error": str(e)}), status=400)
 
     custom_instruction = data.get("custom_instruction", "")
 

@@ -172,12 +172,19 @@ class UserListView(APIView):
         data = UserSerializer(users, many=True).data
         return Response(data)
 
+from core.validation import validate_payload, UserPermissionUpdateSchema
+
 class UserPermissionUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, user_id):
         if not (request.user.role == 'admin' or request.user.is_superuser):
             return Response({"detail": "Permiso denegado. Solo administradores pueden modificar roles y permisos."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            validate_payload(UserPermissionUpdateSchema, request.data)
+        except Exception as e:
+            return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         try:
             target_user = User.objects.get(id=user_id)

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,14 @@ import {
   KeyRound,
   X
 } from 'lucide-react';
+import { 
+  validateEmail, 
+  validateDocumentId, 
+  validatePhone, 
+  validatePassword, 
+  validateOtpCode, 
+  InputWarning 
+} from '@/lib/validation';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,11 +69,34 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
 
+  // Validaciones tipadas en tiempo real
+  const loginEmailWarning = loginEmail ? validateEmail(loginEmail).warning : null;
+  const loginPasswordWarning = loginPassword ? validatePassword(loginPassword).warning : null;
+
+  const regEmailWarning = regEmail ? validateEmail(regEmail).warning : null;
+  const regDocWarning = regDocNumber ? validateDocumentId(regDocNumber).warning : null;
+  const regPhoneWarning = regPhone ? validatePhone(regPhone).warning : null;
+  const regPasswordWarning = regPassword ? validatePassword(regPassword).warning : null;
+  const regConfirmPasswordWarning = regConfirmPassword ? validatePassword(regPassword, regConfirmPassword).warning : null;
+
+  const verifyCodeWarning = verifyCode ? validateOtpCode(verifyCode).warning : null;
+
+  const forgotEmailWarning = forgotEmail ? validateEmail(forgotEmail).warning : null;
+  const forgotCodeWarning = forgotCode ? validateOtpCode(forgotCode).warning : null;
+  const forgotNewPasswordWarning = forgotNewPassword ? validatePassword(forgotNewPassword).warning : null;
+
   // Handle Login Submit
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setInfoMessage('');
+
+    const emailCheck = validateEmail(loginEmail);
+    if (!emailCheck.isValid) {
+      setError(emailCheck.warning || 'Correo institucional invalido.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -109,8 +140,27 @@ export default function LoginPage() {
     setError('');
     setInfoMessage('');
 
-    if (regPassword !== regConfirmPassword) {
-      setError('Las contrasenas no coinciden.');
+    const emailCheck = validateEmail(regEmail);
+    if (!emailCheck.isValid) {
+      setError(emailCheck.warning || 'Correo institucional invalido.');
+      return;
+    }
+
+    const docCheck = validateDocumentId(regDocNumber);
+    if (!docCheck.isValid) {
+      setError(docCheck.warning || 'Documento de identidad invalido.');
+      return;
+    }
+
+    const phoneCheck = validatePhone(regPhone);
+    if (!phoneCheck.isValid) {
+      setError(phoneCheck.warning || 'Formato de telefono invalido.');
+      return;
+    }
+
+    const passCheck = validatePassword(regPassword, regConfirmPassword);
+    if (!passCheck.isValid) {
+      setError(passCheck.warning || 'Contrasenas no validas.');
       return;
     }
 
@@ -154,6 +204,13 @@ export default function LoginPage() {
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const codeCheck = validateOtpCode(verifyCode);
+    if (!codeCheck.isValid) {
+      setError(codeCheck.warning || 'Codigo de verificacion no valido.');
+      return;
+    }
+
     setVerifyLoading(true);
 
     try {
@@ -216,6 +273,13 @@ export default function LoginPage() {
   const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const emailCheck = validateEmail(forgotEmail);
+    if (!emailCheck.isValid) {
+      setError(emailCheck.warning || 'Correo institucional invalido.');
+      return;
+    }
+
     setForgotLoading(true);
 
     try {
@@ -242,6 +306,19 @@ export default function LoginPage() {
   const handleConfirmPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const codeCheck = validateOtpCode(forgotCode);
+    if (!codeCheck.isValid) {
+      setError(codeCheck.warning || 'Codigo de verificacion invalido.');
+      return;
+    }
+
+    const passCheck = validatePassword(forgotNewPassword);
+    if (!passCheck.isValid) {
+      setError(passCheck.warning || 'Contrasena no valida.');
+      return;
+    }
+
     setForgotLoading(true);
 
     try {
@@ -353,6 +430,7 @@ export default function LoginPage() {
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
+              <InputWarning warning={loginEmailWarning} id="login-email-warning" />
             </div>
 
             <div>
@@ -389,6 +467,7 @@ export default function LoginPage() {
                   {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <InputWarning warning={loginPasswordWarning} id="login-password-warning" />
             </div>
 
             <button
@@ -477,6 +556,7 @@ export default function LoginPage() {
                     className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
+                <InputWarning warning={regDocWarning} id="reg-doc-warning" />
               </div>
             </div>
 
@@ -495,6 +575,7 @@ export default function LoginPage() {
                     className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                 </div>
+                <InputWarning warning={regPhoneWarning} id="reg-phone-warning" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
@@ -528,6 +609,7 @@ export default function LoginPage() {
                   className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
+              <InputWarning warning={regEmailWarning} id="reg-email-warning" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -553,6 +635,7 @@ export default function LoginPage() {
                     {showRegPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   </button>
                 </div>
+                <InputWarning warning={regPasswordWarning} id="reg-pass-warning" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
@@ -566,6 +649,7 @@ export default function LoginPage() {
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                 />
+                <InputWarning warning={regConfirmPasswordWarning} id="reg-confirm-warning" />
               </div>
             </div>
 
@@ -628,6 +712,7 @@ export default function LoginPage() {
                   onChange={(e) => setVerifyCode(e.target.value.replace(/[^0-9]/g, ''))}
                   className="w-full py-3 text-center text-2xl font-mono tracking-widest bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
                 />
+                <InputWarning warning={verifyCodeWarning} id="verify-code-warning" />
               </div>
 
               <div className="flex gap-2">
@@ -688,6 +773,7 @@ export default function LoginPage() {
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   />
+                  <InputWarning warning={forgotEmailWarning} id="forgot-email-warning" />
                 </div>
                 <button
                   type="submit"
@@ -715,6 +801,7 @@ export default function LoginPage() {
                     onChange={(e) => setForgotCode(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full py-2 text-center text-xl font-mono tracking-widest bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
                   />
+                  <InputWarning warning={forgotCodeWarning} id="forgot-code-warning" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
@@ -728,6 +815,7 @@ export default function LoginPage() {
                     onChange={(e) => setForgotNewPassword(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   />
+                  <InputWarning warning={forgotNewPasswordWarning} id="forgot-pass-warning" />
                 </div>
                 <button
                   type="submit"
