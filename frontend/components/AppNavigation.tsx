@@ -1,7 +1,6 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import { 
   Stethoscope, 
   Settings, 
@@ -10,11 +9,13 @@ import {
   Server, 
   Database, 
   BarChart, 
+  LogOut, 
   ChevronLeft, 
-  ChevronRight, 
-  LogOut,
-  User as UserIcon
+  ChevronRight 
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Toaster } from 'sonner';
+
 import TriageDashboard from '@/components/TriageDashboard';
 import ConfigPanel from '@/components/ConfigPanel';
 import SecurityPanel from '@/components/SecurityPanel';
@@ -22,12 +23,28 @@ import NormalizationMonitor from '@/components/NormalizationMonitor';
 import FHIRMonitor from '@/components/FHIRMonitor';
 import EMRSimulator from '@/components/EMRSimulator';
 import MetricsDashboard from '@/components/MetricsDashboard';
-import { Toaster } from 'sonner';
+
+interface UserProfile {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: string;
+  permissions: {
+    can_use_transcriber: boolean;
+    can_edit_symptoms: boolean;
+    can_register_patients: boolean;
+    can_view_emr: boolean;
+    can_view_fhir: boolean;
+    can_manage_config: boolean;
+  };
+}
 
 export default function AppNavigation() {
-  const [activeTab, setActiveTab] = useState('triage');
+  const [activeTab, setActiveTab] = useState<string>('triage');
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const router = useRouter();
 
@@ -41,7 +58,7 @@ export default function AppNavigation() {
     // Validar token en backend y sincronizar perfil de usuario
     fetch('/api/auth/me/', {
       headers: {
-        'Authorization': Bearer $token,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
@@ -68,21 +85,17 @@ export default function AppNavigation() {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-200">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center animate-pulse shadow-lg shadow-blue-500/30">
-            <span className="font-bold text-white tracking-tighter text-lg">AI</span>
-          </div>
-          <span className="text-xs uppercase tracking-widest text-slate-400 font-medium">
-            Verificando credenciales clinicas...
-          </span>
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Verificando sesion medica...</p>
         </div>
       </div>
     );
   }
 
   const navItems = [
-    { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulos Core (Triaje)' },
+    { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulo de Triaje' },
     { id: 'config', icon: <Settings className="w-5 h-5"/>, label: 'Configuracion' },
-    { id: 'security', icon: <Shield className="w-5 h-5"/>, label: 'Seguridad (RBAC)' },
+    { id: 'security', icon: <Shield className="w-5 h-5"/>, label: 'Seguridad y RBAC' },
     { id: 'normalization', icon: <RefreshCw className="w-5 h-5"/>, label: 'Monitor Normalizacion' },
     { id: 'fhir', icon: <Server className="w-5 h-5"/>, label: 'Monitor FHIR/HL7' },
     { id: 'emr', icon: <Database className="w-5 h-5"/>, label: 'Simulador HCE' },
@@ -92,12 +105,12 @@ export default function AppNavigation() {
   return (
     <div className="flex h-full w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className={${isCollapsed ? 'w-16' : 'w-16 md:w-56'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 z-10}>
+      <aside className={`${isCollapsed ? 'w-16' : 'w-16 md:w-56'} bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-300 z-10`}>
         <div className="h-14 border-b border-slate-800 flex items-center justify-center md:justify-start px-0 md:px-4 shrink-0 overflow-hidden">
           <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30">
             <span className="font-bold text-white tracking-tighter">AI</span>
           </div>
-          <span className={ml-3 font-semibold tracking-tight uppercase text-sm truncate transition-opacity duration-300 }>
+          <span className={`ml-3 font-semibold tracking-tight uppercase text-sm truncate transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
             AI-Triage
           </span>
         </div>
@@ -108,7 +121,7 @@ export default function AppNavigation() {
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-sm">
               {currentUser?.first_name ? currentUser.first_name[0].toUpperCase() : 'U'}
             </div>
-            <div className={overflow-hidden transition-opacity duration-300 }>
+            <div className={`overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
               <div className="text-xs font-semibold text-slate-200 truncate leading-tight">
                 {currentUser?.full_name || 'Personal Medico'}
               </div>
@@ -120,19 +133,26 @@ export default function AppNavigation() {
         </div>
 
         <nav className="flex-1 py-3 flex flex-col gap-1 px-2 overflow-y-auto overflow-x-hidden">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={lex items-center justify-center md:justify-start gap-3 p-2.5 rounded transition-all group }
-              title={isCollapsed ? item.label : undefined}
-            >
-              <div className="shrink-0">{item.icon}</div>
-              <span className={	ext-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 }>
-                {item.label}
-              </span>
-            </button>
-          ))}
+          {navItems.map(item => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center justify-center md:justify-start gap-3 p-2.5 rounded transition-all group ${
+                  isActive 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <div className="shrink-0">{item.icon}</div>
+                <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* Bottom Actions */}
@@ -148,7 +168,7 @@ export default function AppNavigation() {
             title="Cerrar Sesion"
           >
             <div className="shrink-0"><LogOut className="w-5 h-5"/></div>
-            <span className={	ext-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 }>
+            <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
               Cerrar Sesion
             </span>
           </button>
@@ -163,7 +183,7 @@ export default function AppNavigation() {
             <div className="shrink-0">
               {isCollapsed ? <ChevronRight className="w-5 h-5"/> : <ChevronLeft className="w-5 h-5"/>}
             </div>
-            <span className={	ext-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 }>
+            <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
               Contraer
             </span>
           </button>
