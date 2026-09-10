@@ -386,22 +386,22 @@ Similar a `boto3`, `sendgrid` esta declarado como dependencia pero el sistema de
 
 ---
 
-## 7. Resumen de Prioridades
+## 7. Resumen de Prioridades y Estado de Resolucion
 
-| # | Severidad | Descripcion | Archivo |
-|:--|:----------|:------------|:--------|
-| 1 | CRITICO | Todo `TriageSessionViewSet` sin autenticacion (`AllowAny`) | `triage/views.py:23` |
-| 2 | CRITICO | Sin rate limiting en endpoints de auth y OTP | `config/settings.py` |
-| 3 | ALTO | JWT refresh tokens sin lista negra (tokens robados reutilizables) | `config/settings.py:144` |
-| 4 | ALTO | Tokens en `localStorage` (XSS vulnerable) | `lib/api.ts`, `login/page.tsx` |
-| 5 | ALTO | `SECRET_KEY` con fallback inseguro hardcodeado | `config/settings.py:14` |
-| 6 | ALTO | Historial clinico solo en `localStorage` (no sincronizado con BD) | `TriageDashboard.tsx:218` |
-| 7 | ALTO | `time.sleep(0.5)` sincronico bloquea workers de Gunicorn | `triage/views.py:410` |
-| 8 | ALTO | Variable global `engine` con condicion de carrera potencial | `transcription/views.py:22` |
-| 9 | ALTO | `TriageDashboard.tsx` monolitico de 1.451 lineas | `TriageDashboard.tsx` |
-| 10 | ALTO | `useState<any>` en datos clinicos criticos (sin tipado) | `TriageDashboard.tsx:32,63,65` |
-| 11 | ALTO | Sin manejo de timeout ni errores en llamadas a Gemini API | `ai_analyzer.py:77` |
-| 12 | MEDIO | `TriageSession.save()` recalcula agreement_score en `update_fields` parcial | `triage/models.py:28` |
-| 13 | MEDIO | `db.sqlite3` rastreado en git | `backend/db.sqlite3` |
-| 14 | MEDIO | Puerto PostgreSQL 5432 expuesto al host en Docker | `docker-compose.yml:10` |
-| 15 | MEDIO | Dependencias no utilizadas (`boto3`, `sendgrid`) en `requirements.txt` | `requirements.txt:11,30` |
+| # | Severidad | Descripcion | Archivo | Estado |
+|:--|:----------|:------------|:--------|:-------|
+| 1 | CRITICO | Todo `TriageSessionViewSet` sin autenticacion (`AllowAny`) | `triage/views.py:23` | **RESUELTO** (`012d8a6`) — Aplicado `IsAuthenticatedOrReadOnly` |
+| 2 | CRITICO | Sin rate limiting en endpoints de auth y OTP | `config/settings.py` | **RESUELTO** (`012d8a6`) — Throttles `auth` (10/min) y `otp` (5/min) |
+| 3 | ALTO | JWT refresh tokens sin lista negra | `config/settings.py:144` | **RESUELTO** (`012d8a6`) — `token_blacklist` y rotacion activa |
+| 4 | ALTO | Tokens en `localStorage` (XSS vulnerable) | `lib/api.ts`, `login/page.tsx` | **EN HOJA DE RUTA** — Requiere cookies httpOnly en proxima iteracion |
+| 5 | ALTO | `SECRET_KEY` con fallback inseguro hardcodeado | `config/settings.py:14` | **RESUELTO** (`012d8a6`) — Fallback eliminado; error explicito |
+| 6 | ALTO | Historial clinico solo en `localStorage` | `TriageDashboard.tsx:218` | **EN HOJA DE RUTA** — Persistencia completa en BD lista; migrar UI historico |
+| 7 | ALTO | `time.sleep(0.5)` sincronico bloquea workers | `triage/views.py:410` | **RESUELTO** (`012d8a6`) — Bloqueo sincronico eliminado |
+| 8 | ALTO | Variable global `engine` con condicion de carrera | `transcription/views.py:22` | **RESUELTO** (`9267476`) — Singleton `WhisperEngine` directo |
+| 9 | ALTO | `TriageDashboard.tsx` monolitico de 1.451 lineas | `TriageDashboard.tsx` | **EN HOJA DE RUTA** — Refactor modular planeado |
+| 10 | ALTO | `useState<any>` en datos clinicos criticos (sin tipado) | `TriageDashboard.tsx:32,63,65` | **RESUELTO** (`4e31c14`) — Interfaces `UserProfile`, `AnalysisResult`, etc. |
+| 11 | ALTO | Sin manejo de timeout ni errores en llamadas a Gemini | `ai_analyzer.py:77` | **RESUELTO** (`9267476`) — Timeout 30s y try/except estructurado |
+| 12 | MEDIO | `TriageSession.save()` recalcula en updates parciales | `triage/models.py:28` | **RESUELTO** (`9267476`) — Evaluacion condicional de campos |
+| 13 | MEDIO | `db.sqlite3` rastreado en git | `backend/db.sqlite3` | **VERIFICADO** — Excluido en `.gitignore` y no rastreado |
+| 14 | MEDIO | Puerto PostgreSQL 5432 expuesto al host en Docker | `docker-compose.yml:10` | **RESUELTO** (`012d8a6`) — Puerto aislado en red interna |
+| 15 | MEDIO | Dependencias no utilizadas (`boto3`, `sendgrid`) | `requirements.txt:11,30` | **RESUELTO** (`9267476`) — Dependencias eliminadas |

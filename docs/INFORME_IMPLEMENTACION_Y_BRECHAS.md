@@ -133,6 +133,15 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
   - `ai_triage_redis`: Cola y almacenamiento temporal Redis 7 Alpine.
   - `ai_triage_mailpit`: Servidor SMTP y visor web de correos transaccionales.
 
+### 2.13. Fortalecimiento de Seguridad, Concurrencia y Resolucion de Auditoria
+- **Control de Acceso en Triaje**: Se blindo `TriageSessionViewSet` con `IsAuthenticatedOrReadOnly`, bloqueando creaciones y sobreescrituras no autenticadas con codigo 401.
+- **Defensa contra Fuerza Bruta (Rate Limiting)**: Se configuraron clases de throttle especificas (`AuthThrottle`: 10 peticiones/minuto, `OTPThrottle`: 5 peticiones/minuto) en endpoints de login, registro, verificacion OTP y recuperacion de clave, complementadas con politicas globales en `REST_FRAMEWORK`.
+- **Lista Negra de Tokens JWT**: Se integro `rest_framework_simplejwt.token_blacklist` y se configuro `BLACKLIST_AFTER_ROTATION: True`, invalidando de inmediato refresh tokens tras su renovacion o cierre de sesion.
+- **Proteccion de Llaves Criptograficas**: Se elimino el fallback inseguro hardcodeado de `SECRET_KEY`, forzando excepciones explicitas en startup si no se suministra via variables de entorno, con soporte de carga jerarquica de `.env`.
+- **Concurrencia en Backend**: Se erradico la variable global mutable en `transcription/views.py` aprovechando el patron Singleton con candado `threading.Lock` de `WhisperEngine`, y se removio el bloqueo sincrono `time.sleep(0.5)` en el endpoint FHIR.
+- **Aislamiento de Red Docker**: Se cerro la exposicion directa del puerto `5432` de PostgreSQL al host en `docker-compose.yml`, restringiendo su trafico a la red interna `ai_triage_network`.
+- **Resiliencia en Cliente Frontend**: Se implemento la renovacion silenciosa automatica de access tokens via `tryRefreshToken` en `fetchWithAuth` ante respuestas HTTP 401 previniendo interrupciones abruptas de sesion, y se sustituyo `useState<any>` por interfaces clinicas tipadas (`UserProfile`, `TriageEntities`, `TriageLevelInfo`, `AnalysisResult`).
+
 ---
 
 ## 3. Brechas Identificadas y Limitaciones Actuales
@@ -160,27 +169,28 @@ A pesar de que el sistema cumple a cabalidad con la funcionalidad logica, valida
 
 ## 4. Matriz de Endpoints y Servicios
 
-| Metodo | Endpoint | Descripcion | Esquema de Validacion | Autenticacion |
+| Metodo | Endpoint | Descripcion | Esquema de Validacion | Autenticacion / Control |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login/` | Autenticacion JWT con verificacion de cuenta | `LoginSchema` (Pydantic) | No |
-| `POST` | `/api/auth/register/` | Registro de personal clinico con envio de OTP | `RegisterSchema` (Pydantic) | No |
-| `POST` | `/api/auth/verify/` | Validacion de codigo OTP de 6 digitos | `VerifyCodeSchema` (Pydantic) | No |
-| `POST` | `/api/auth/password-reset/` | Solicitud y confirmacion de recuperacion | `PasswordResetRequest/Confirm` | No |
-| `GET` | `/api/auth/me/` | Perfil del usuario autenticado y roles | N/A | Bearer JWT |
-| `GET` | `/api/security/users/` | Directorio de usuarios y permisos | N/A | Bearer JWT |
-| `PATCH`| `/api/security/users/<id>/permissions/` | Modificacion de matriz RBAC | `UserPermissionUpdateSchema` | Bearer JWT |
-| `GET` | `/api/security/audit/` | Pistas de auditoria inmutables | N/A | Bearer JWT |
-| `GET` | `/api/config/` | Parametros y modelos de IA activos | N/A | Bearer JWT |
-| `PATCH`| `/api/config/` | Actualizacion de configuracion del sistema | `SystemConfigUpdateSchema` | Bearer JWT |
-| `POST` | `/api/config/keys/` | Registro y cifrado de llaves en boveda AES | `APIKeyCreateSchema` (Pydantic) | Bearer JWT |
-| `POST` | `/api/transcribe/normalize/` | Normalizacion SNOMED-CT / CIE-10 | `NormalizeTextSchema` (Pydantic) | Permisivo / JWT |
-| `POST` | `/api/triage/sessions/analyze/` | Inferencia clinica y creacion de triaje | N/A | Permisivo / JWT |
-| `PATCH`| `/api/triage/sessions/<id>/override_level/` | Ajuste manual de nivel y sintomas | `TriageOverrideSchema` (Pydantic) | Permisivo / JWT |
-| `POST` | `/api/triage/sessions/<id>/assign_box/` | Asignacion persistente de Box hospitalario | `EMRBoxAssignSchema` (Pydantic) | Permisivo / JWT |
-| `GET` | `/api/triage/sessions/evaluation_metrics/` | Calculo de Kappa, concordancia y deriva | N/A | Permisivo / JWT |
-| `GET` | `/api/triage/sessions/emr_patients/` | Lista de admisiones para HCE | N/A | Permisivo / JWT |
-| `GET` | `/api/triage/sessions/fhir_logs/` | Historial de transacciones FHIR R4 | N/A | Permisivo / JWT |
-| `POST` | `/api/fhir/` | Ingestion e interoperabilidad FHIR R4 | `FHIRSyncSchema` (Pydantic) | Libre / Publico |
+| `POST` | `/api/auth/login/` | Autenticacion JWT con verificacion de cuenta | `LoginSchema` (Pydantic) | Publico (Rate Limit: 10/min) |
+| `POST` | `/api/auth/register/` | Registro de personal clinico con envio de OTP | `RegisterSchema` (Pydantic) | Publico (Rate Limit: 10/min) |
+| `POST` | `/api/auth/verify/` | Validacion de codigo OTP de 6 digitos | `VerifyCodeSchema` (Pydantic) | Publico (Rate Limit: 5/min) |
+| `POST` | `/api/auth/password-reset/` | Solicitud y confirmacion de recuperacion | `PasswordResetRequest/Confirm` | Publico (Rate Limit: 10/min) |
+| `POST` | `/api/auth/token/refresh/` | Renovacion de tokens JWT (Blacklist activo) | N/A | Publico / Refresh Token |
+| `GET` | `/api/auth/me/` | Perfil del usuario autenticado y roles | N/A | Bearer JWT Requerido |
+| `GET` | `/api/security/users/` | Directorio de usuarios y permisos | N/A | Bearer JWT Requerido |
+| `PATCH`| `/api/security/users/<id>/permissions/` | Modificacion de matriz RBAC | `UserPermissionUpdateSchema` | Bearer JWT (Solo Admin) |
+| `GET` | `/api/security/audit/` | Pistas de auditoria inmutables | N/A | Bearer JWT Requerido |
+| `GET` | `/api/config/` | Parametros y modelos de IA activos | N/A | Bearer JWT Requerido |
+| `PATCH`| `/api/config/` | Actualizacion de configuracion del sistema | `SystemConfigUpdateSchema` | Bearer JWT (Solo Admin) |
+| `POST` | `/api/config/keys/` | Registro y cifrado de llaves en boveda AES | `APIKeyCreateSchema` (Pydantic) | Bearer JWT Requerido |
+| `POST` | `/api/transcribe/normalize/` | Normalizacion SNOMED-CT / CIE-10 | `NormalizeTextSchema` (Pydantic) | Publico / Bearer JWT |
+| `POST` | `/api/triage/sessions/analyze/` | Inferencia clinica y creacion de triaje | N/A | Bearer JWT Requerido |
+| `PATCH`| `/api/triage/sessions/<id>/override_level/` | Ajuste manual de nivel y sintomas | `TriageOverrideSchema` (Pydantic) | Bearer JWT Requerido |
+| `POST` | `/api/triage/sessions/<id>/assign_box/` | Asignacion persistente de Box hospitalario | `EMRBoxAssignSchema` (Pydantic) | Bearer JWT Requerido |
+| `GET` | `/api/triage/sessions/evaluation_metrics/` | Calculo de Kappa, concordancia y deriva | N/A | IsAuthenticatedOrReadOnly |
+| `GET` | `/api/triage/sessions/emr_patients/` | Lista de admisiones para HCE | N/A | IsAuthenticatedOrReadOnly |
+| `GET` | `/api/triage/sessions/fhir_logs/` | Historial de transacciones FHIR R4 | N/A | IsAuthenticatedOrReadOnly |
+| `POST` | `/api/fhir/` | Ingestion e interoperabilidad FHIR R4 | `FHIRSyncSchema` (Pydantic) | Libre / Validacion Esquema |
 | `GET` | `/api/health_check/` | Estado y telemetria del motor Whisper ASR | N/A | Libre / Publico |
 
 ---
