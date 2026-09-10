@@ -1,0 +1,147 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_triage_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_triage}
+      POSTGRES_USER: ${POSTGRES_USER:-triage_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+    # FIX-INF-001: Puerto PostgreSQL no expuesto al host. Solo accesible dentro de ai_triage_network.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai_triage_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-triage_user} -d ${POSTGRES_DB:-ai_triage}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai_triage_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai_triage_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ai_triage_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - ai_triage_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: cantor11/ai-triage-backend:latest
+    container_name: ai_triage_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-triage_user}:${POSTGRES_PASSWORD:-change-me-in-production}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ai_triage}
+      - DATABASE_HOST=${POSTGRES_HOST:-postgres}
+      - DATABASE_PORT=${POSTGRES_PORT:-5432}
+      - DATABASE_NAME=${POSTGRES_DB:-ai_triage}
+      - DATABASE_USER=${POSTGRES_USER:-triage_user}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-change-me-in-production}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-nginx,localhost,127.0.0.1}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost}
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-large-v3-turbo}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-auto}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-default}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+      - EMAIL_HOST=mailpit
+      - EMAIL_PORT=1025
+      - EMAIL_USE_TLS=False
+      - DEFAULT_FROM_EMAIL=AI-Triage <no-reply@hospital.com>
+    volumes:
+      - audio_uploads:/app/media
+    networks:
+      - ai_triage_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: cantor11/ai-triage-frontend:latest
+    container_name: ai_triage_frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_FHIR_URL=${FHIR_SERVER_URL:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    networks:
+      - ai_triage_network
+    depends_on:
+      - backend
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: cantor11/ai-triage-nginx:latest
+    container_name: ai_triage_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - ai_triage_network
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ai_triage_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  audio_uploads:
