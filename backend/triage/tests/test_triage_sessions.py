@@ -1,13 +1,23 @@
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.contrib.auth import get_user_model
 from patients.models import Patient
 from triage.models import TriageSession
+
+User = get_user_model()
 
 @pytest.mark.django_db
 class TestTriageSessions:
     def setup_method(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="doctor_triage@hospital.com",
+            password="Password123!",
+            role="medico",
+            is_verified=True
+        )
+        self.client.force_authenticate(user=self.user)
         self.patient = Patient.objects.create(
             document_id="CC-TRIAGE-001",
             full_name="Alejandro Morales",
@@ -150,4 +160,61 @@ class TestTriageSessions:
             data={"box_name": ""},
             format="json"
         )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_unauthenticated_requests_blocked(self):
+        unauth_client = APIClient()
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=3,
+            ai_level=3,
+            final_level=3,
+            justification="Sesion para prueba auth"
+        )
+        # Mutaciones sin auth son bloqueadas con 401
+        res_override = unauth_client.patch(
+            f"/api/triage/sessions/{session.id}/override_level/",
+            data={"final_level": 2},
+            format="json"
+        )
+        assert res_override.status_code == status.HTTP_401_UNAUTHORIZED
+
+        res_box = unauth_client.post(
+            f"/api/triage/sessions/{session.id}/assign_box/",
+            data={"box_name": "BOX-01"},
+            format="json"
+        )
+        assert res_box.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_analyze_transcript_action_creates_session(self, mocker):
+        mock_result = {
+            "patientInfo": {
+                "name": "Carlos Ruiz",
+                "documentId": "1020304050",
+                "gender": "male"
+            },
+            "entities": {
+                "symptoms": ["Fiebre alta", "Tos seca"],
+                "medications": ["Paracetamol"],
+                "vitals": ["38.5 C"],
+                "history": []
+            },
+            "triage": {
+                "level": 3,
+                "justification": "Sindrome febril agudo sin signos de alarma respiratoria"
+            },
+            "confidence": 0.92
+        }
+        mocker.patch("triage.views.analyze_triage_transcript", return_value=mock_result)
+
+        response = self.client.post(
+            "/api/triage/sessions/analyze/",
+            data={"transcript": "Paciente Carlos Ruiz refiere fiebre alta de 38.5 C y tos seca"},
+            format="json"
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "session_id" in response.data
+        assert response.data["ai_level"] == 3
+        assert response.data["final_level"] == 3
+        assert response.data["is_level_modified"] is False
+
