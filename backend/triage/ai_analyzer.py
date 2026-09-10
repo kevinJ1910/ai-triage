@@ -8,12 +8,20 @@ def analyze_triage_transcript(transcript: str) -> dict:
     Calls Gemini API to analyze a clinical transcript and extract entities.
     Returns a dictionary matching the triage schema.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = ""
+    try:
+        from system_settings.models import APIKeyCredential
+        cred = APIKeyCredential.objects.filter(provider='gemini', is_active=True).first()
+        if cred:
+            api_key = cred.get_key()
+    except Exception:
+        pass
+
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is not set")
-        
-    # Strip any surrounding quotes that may be preserved by Docker env loading
-    api_key = api_key.strip("'\"")
+        api_key = os.environ.get("GEMINI_API_KEY", "").strip("'")
+
+    if not api_key:
+        raise ValueError("No se encontro una GEMINI_API_KEY valida ni en base de datos ni en variables de entorno.")
         
     client = genai.Client(api_key=api_key)
     
