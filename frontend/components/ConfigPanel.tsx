@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Settings, 
   Key, 
@@ -65,11 +65,7 @@ export default function ConfigPanel() {
   const [showPlainKey, setShowPlainKey] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
 
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
+  const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetchWithAuth('/api/config/');
@@ -82,7 +78,11 @@ export default function ConfigPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const handleSaveModels = async () => {
     setSavingConfig(true);

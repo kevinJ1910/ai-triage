@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart3, 
   ShieldCheck, 
@@ -53,7 +53,7 @@ export default function MetricsDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       const headers: Record<string, string> = {};
@@ -70,11 +70,11 @@ export default function MetricsDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, [fetchMetrics]);
 
   const handleRefresh = () => {
     setRefreshing(true);
