@@ -10,6 +10,67 @@ import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
 import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
 
+
+// FIX-TEC-008: Interfaces tipadas para datos clinicos criticos.
+// Sustituyen useState<any> para garantizar integridad del sistema de tipos.
+interface UserPermissions {
+  can_use_transcriber: boolean;
+  can_edit_symptoms: boolean;
+  can_register_patients: boolean;
+  can_view_emr: boolean;
+  can_view_fhir: boolean;
+  can_manage_config: boolean;
+}
+
+interface UserProfile {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  name?: string;
+  role: string;
+  permissions?: UserPermissions;
+  [key: string]: any;
+}
+
+interface TriageEntities {
+  symptoms?: string[];
+  medications?: string[];
+  vitals?: string[];
+  history?: string[];
+  patientName?: string;
+  [key: string]: any;
+}
+
+interface TriageLevelInfo {
+  level: number;
+  justification?: string;
+  ai_level?: number;
+  final_level?: number;
+  [key: string]: any;
+}
+
+interface AnalysisResult {
+  session_id?: number;
+  ai_level?: number;
+  final_level?: number;
+  is_level_modified?: boolean;
+  agreement_score?: number;
+  transcript?: string;
+  patientInfo?: PatientInfo;
+  analysis?: {
+    patientInfo?: PatientInfo;
+    entities?: TriageEntities | null;
+    triage?: TriageLevelInfo;
+    confidence?: number;
+    [key: string]: any;
+  };
+  triage?: TriageLevelInfo;
+  entities?: TriageEntities | null;
+  [key: string]: any;
+}
+
 interface PatientInfo {
   name: string;
   documentId: string;
@@ -29,7 +90,7 @@ interface TriageSession {
 }
 
 export default function TriageDashboard() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   const canUseTranscriber = currentUser?.permissions ? currentUser.permissions.can_use_transcriber : true;
   const canEditSymptoms = currentUser?.permissions ? currentUser.permissions.can_edit_symptoms : true;
@@ -60,9 +121,9 @@ export default function TriageDashboard() {
 
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editedEntities, setEditedEntities] = useState<any>(null);
+  const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
   const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
@@ -196,7 +257,7 @@ export default function TriageDashboard() {
     } else if (analysisResult?.entities?.patientName && analysisResult.entities.patientName !== 'Paciente Desconocido') {
       setPatientInfo(prev => ({
         ...prev,
-        name: prev.name || analysisResult.entities.patientName
+        name: prev.name || analysisResult.entities?.patientName || ''
       }));
     }
   }, [analysisResult]);
@@ -937,29 +998,29 @@ export default function TriageDashboard() {
                   title="Síntomas" icon={<AlertTriangle className="w-3 h-3"/>} color="text-red-400" bg="bg-red-500" border="border-red-500" 
                   entities={(isEditMode ? editedEntities : analysisResult?.entities)?.symptoms} 
                   loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities({...editedEntities, symptoms: [...(editedEntities?.symptoms || []), val]})}
-                  onRemove={idx => setEditedEntities({...editedEntities, symptoms: editedEntities.symptoms.filter((_: any, i: number) => i !== idx)})}
+                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), symptoms: [...(prev?.symptoms || []), val] }))}
+                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), symptoms: (prev?.symptoms || []).filter((_, i) => i !== idx) }))}
                 />
                 <EntityGroup 
                   title="Antecedentes" icon={<FileText className="w-3 h-3"/>} color="text-amber-400" bg="bg-amber-500" border="border-amber-500" 
                   entities={(isEditMode ? editedEntities : analysisResult?.entities)?.history} 
                   loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities({...editedEntities, history: [...(editedEntities?.history || []), val]})}
-                  onRemove={idx => setEditedEntities({...editedEntities, history: editedEntities.history.filter((_: any, i: number) => i !== idx)})}
+                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), history: [...(prev?.history || []), val] }))}
+                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), history: (prev?.history || []).filter((_, i) => i !== idx) }))}
                 />
                 <EntityGroup 
                   title="Medicamentos" icon={<Pill className="w-3 h-3"/>} color="text-blue-400" bg="bg-blue-500" border="border-blue-500" 
                   entities={(isEditMode ? editedEntities : analysisResult?.entities)?.medications} 
                   loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities({...editedEntities, medications: [...(editedEntities?.medications || []), val]})}
-                  onRemove={idx => setEditedEntities({...editedEntities, medications: editedEntities.medications.filter((_: any, i: number) => i !== idx)})}
+                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), medications: [...(prev?.medications || []), val] }))}
+                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), medications: (prev?.medications || []).filter((_, i) => i !== idx) }))}
                 />
                 <EntityGroup 
                   title="Signos Vitales" icon={<Thermometer className="w-3 h-3"/>} color="text-emerald-400" bg="bg-emerald-500" border="border-emerald-500" 
                   entities={(isEditMode ? editedEntities : analysisResult?.entities)?.vitals} 
                   loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities({...editedEntities, vitals: [...(editedEntities?.vitals || []), val]})}
-                  onRemove={idx => setEditedEntities({...editedEntities, vitals: editedEntities.vitals.filter((_: any, i: number) => i !== idx)})}
+                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), vitals: [...(prev?.vitals || []), val] }))}
+                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), vitals: (prev?.vitals || []).filter((_, i) => i !== idx) }))}
                 />
               </div>
             </div>
@@ -979,16 +1040,12 @@ export default function TriageDashboard() {
                   Motor de Triaje Inteligente
                 </h2>
 
-                {!analysisResult && !isAnalyzing ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
-                    Esperando datos de la consulta...
-                  </div>
-                ) : isAnalyzing ? (
+                {isAnalyzing ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest gap-3 py-4">
                      <div className="w-5 h-5 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
                      Calculando gravedad...
                   </div>
-                ) : (
+                ) : analysisResult ? (
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
                       <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
                          <div className="flex items-center justify-between w-full px-1 mb-1">
@@ -1009,7 +1066,7 @@ export default function TriageDashboard() {
                            <button
                              type="button"
                              onClick={() => handleUpdateTriageLevel(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
-                             disabled={analysisResult.triage?.level <= 1}
+                             disabled={(analysisResult.triage?.level || 1) <= 1}
                              className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
                              title="Aumentar Urgencia (Nivel mas critico)"
                            >
@@ -1028,7 +1085,7 @@ export default function TriageDashboard() {
                            <button
                              type="button"
                              onClick={() => handleUpdateTriageLevel(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
-                             disabled={analysisResult.triage?.level >= 5}
+                             disabled={(analysisResult.triage?.level || 5) >= 5}
                              className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
                              title="Disminuir Urgencia (Nivel menos critico)"
                            >
@@ -1055,7 +1112,12 @@ export default function TriageDashboard() {
                          </p>
                       </div>
                     </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
+                    Esperando datos de la consulta...
+                  </div>
                 )}
+
             </div>
 
             {/* Sync Module */}
