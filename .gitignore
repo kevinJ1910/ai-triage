@@ -105,3 +105,6 @@ test/
 tmp/
 temp/
 *.tgz
+# Documentation PDFs
+Memorias/
+*.pdf
