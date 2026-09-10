@@ -114,3 +114,40 @@ class TestTriageSessions:
         assert first_patient["name"] == "Alejandro Morales"
         assert first_patient["document_id"] == "CC-TRIAGE-001"
         assert "assigned_box" in first_patient
+
+    def test_assign_box_endpoint_success(self):
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=3,
+            ai_level=3,
+            final_level=3,
+            justification="Paciente para box 3",
+            clinical_entities={"vitals": {"fc": "88"}}
+        )
+        response = self.client.post(
+            f"/api/triage/sessions/{session.id}/assign_box/",
+            data={"box_name": "BOX-03"},
+            format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["assigned_box"] == "BOX-03"
+        assert response.data["status"] == "En Atencion"
+
+        session.refresh_from_db()
+        assert session.clinical_entities["assigned_box"] == "BOX-03"
+        assert session.clinical_entities["status"] == "En Atencion"
+
+    def test_assign_box_endpoint_invalid_name(self):
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=3,
+            ai_level=3,
+            final_level=3,
+            justification="Paciente para box invalido"
+        )
+        response = self.client.post(
+            f"/api/triage/sessions/{session.id}/assign_box/",
+            data={"box_name": ""},
+            format="json"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

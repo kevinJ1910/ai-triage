@@ -124,4 +124,57 @@ describe('EMRSimulator Component', () => {
       expect(screen.getByText('75 lpm')).toBeInTheDocument();
     });
   });
+
+  it('assigns a hospital box and persists to backend API', async () => {
+    render(<EMRSimulator />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Maria Elena Gomez').length).toBeGreaterThan(0);
+    });
+
+    global.fetch = vi.fn().mockImplementation((url: string, opts?: any) => {
+      if (url.includes('/assign_box/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            message: 'Box BOX-04 asignado exitosamente',
+            assigned_box: 'BOX-04',
+            status: 'En Atencion'
+          }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, json: async () => mockPatients } as Response);
+    });
+
+    const selectBox = screen.getByRole('combobox');
+    fireEvent.change(selectBox, { target: { value: 'BOX-04' } });
+
+    const assignBtn = screen.getByRole('button', { name: /Asignar Box/i });
+    fireEvent.click(assignBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/triage/sessions/1/assign_box/'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ box_name: 'BOX-04' })
+        })
+      );
+    });
+  });
+
+  it('supports mobile navigation between list and patient detail view', async () => {
+    render(<EMRSimulator />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Maria Elena Gomez').length).toBeGreaterThan(0);
+    });
+
+    const jorgeCards = screen.getAllByText('Jorge Ramirez');
+    fireEvent.click(jorgeCards[0]);
+
+    const backBtn = screen.getByRole('button', { name: /Volver a Cola de Pacientes/i });
+    expect(backBtn).toBeInTheDocument();
+    fireEvent.click(backBtn);
+  });
 });

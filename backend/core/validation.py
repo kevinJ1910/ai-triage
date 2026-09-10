@@ -6,7 +6,7 @@ manteniendo flexibilidad en cargas dinámicas (JSON payloads, metadatos, bundles
 
 from typing import Optional, List, Dict, Any, Union, Literal
 from datetime import date
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, ValidationError
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
@@ -118,8 +118,18 @@ class TriageOverrideSchema(BaseModel):
     final_symptoms: Optional[List[str]] = None  # Flexible
 
 class EMRBoxAssignSchema(BaseModel):
-    assigned_box: str = Field(min_length=1, max_length=50)
+    assigned_box: Optional[str] = Field(default=None, max_length=50)
+    box_name: Optional[str] = Field(default=None, max_length=50)
     status: Optional[str] = Field(default="En Atencion", max_length=50)
+
+    @model_validator(mode='after')
+    def validate_box_presence(self):
+        resolved = self.assigned_box or self.box_name
+        if not resolved or not resolved.strip():
+            raise ValueError("assigned_box o box_name debe ser proporcionado y no vacio")
+        self.assigned_box = resolved.strip()
+        return self
+
 
 class FHIRSyncSchema(BaseModel):
     resourceType: Literal['Bundle']

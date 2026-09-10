@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -52,9 +52,4 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
-});
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  localStorage.clear();
-});
+});

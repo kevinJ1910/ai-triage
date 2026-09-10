@@ -565,7 +565,7 @@ export default function TriageDashboard() {
             className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-auto"
           >
             {/* ASR Transcription Box */}
-            <div style={{ height: `${leftRatio}%` }} className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 flex flex-col overflow-hidden min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0">
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Mic className="w-4 h-4 text-blue-400" />
@@ -718,44 +718,39 @@ export default function TriageDashboard() {
                         key={i}
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col gap-2 p-3 bg-slate-900/40 border border-slate-700/60 rounded-lg w-full"
+                        className="flex items-center gap-2 bg-slate-900/60 p-1.5 rounded border border-slate-700"
                       >
-                        <div className="flex justify-between items-center gap-3 w-full">
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={line.speaker}
-                              onChange={e => handleUpdateLine(i, 'speaker', e.target.value)}
-                              className="bg-slate-800 border border-slate-700 rounded py-1 px-2 text-[10px] text-slate-300 font-bold uppercase focus:outline-none focus:border-blue-500"
-                            >
-                              <option value="Doctor">Doctor</option>
-                              <option value="Paciente">Paciente</option>
-                              <option value="Usuario">Usuario</option>
-                            </select>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteLine(i)}
-                            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-red-400 transition-colors"
-                            title="Eliminar línea"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <textarea
+                        <select
+                          value={line.speaker}
+                          onChange={(e) => handleUpdateLine(i, 'speaker', e.target.value)}
+                          className="bg-slate-800 text-[10px] font-bold text-slate-300 rounded border border-slate-600 px-1.5 py-1 uppercase"
+                        >
+                          <option value="Doctor">Doctor</option>
+                          <option value="Paciente">Paciente</option>
+                          <option value="Familiar">Familiar</option>
+                        </select>
+                        <input
+                          type="text"
                           value={line.text}
-                          onChange={e => handleUpdateLine(i, 'text', e.target.value)}
-                          rows={2}
-                          className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 resize-none leading-relaxed"
-                          placeholder="Texto de la transcripción..."
+                          onChange={(e) => handleUpdateLine(i, 'text', e.target.value)}
+                          className="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                         />
+                        <button
+                          onClick={() => handleDeleteLine(i)}
+                          className="p-1 text-slate-400 hover:text-red-400"
+                          title="Eliminar línea"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </motion.div>
                     ))
                   ) : (
                     transcript.map((line, i) => (
-                      <motion.div
-                        key={i}
+                      <motion.div 
+                        key={i} 
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-start"
+                        className={`flex flex-col ${line.speaker === 'Doctor' ? 'items-start' : 'items-end'}`}
                       >
                         <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{line.speaker}</span>
                         <div className={`px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border ${
@@ -807,13 +802,13 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleLeftResizeStart}
-              className="h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all flex items-center justify-center shrink-0 group py-1"
+              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-blue-300 rounded"></div>
             </div>
 
             {/* Patient Info Box */}
-            <div className="flex-1 bg-slate-800/50 rounded-lg border border-slate-700 p-4 flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
               <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-3 shrink-0">
                 <User className="w-4 h-4 text-blue-400" />
                 Información del Paciente
@@ -912,7 +907,7 @@ export default function TriageDashboard() {
           >
             
             {/* NER Module */}
-            <div style={{ height: `${rightRatio}%` }} className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 flex flex-col overflow-hidden min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0">
               <div className="flex justify-between items-center shrink-0 mb-3">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -972,13 +967,13 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleRightResizeStart}
-              className="h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all flex items-center justify-center shrink-0 group py-1"
+              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-emerald-300 rounded"></div>
             </div>
 
             {/* Triage Output */}
-            <div className="flex-1 min-h-[100px] bg-slate-800/50 rounded-lg border border-slate-700 p-4 flex flex-col gap-3 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700">
+            <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700">
                 <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-1 shrink-0">
                   <ShieldAlert className="w-4 h-4 text-orange-400" />
                   Motor de Triaje Inteligente

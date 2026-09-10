@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -15,9 +15,11 @@ import {
   Bed, 
   Sparkles,
   Phone,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchWithAuth } from '@/lib/api';
 
 interface PatientEMR {
   id: number;
@@ -69,14 +71,11 @@ export default function EMRSimulator() {
   const [searchQuery, setSearchQuery] = useState('');
   const [assignedBox, setAssignedBox] = useState('');
   const [isSavingBox, setIsSavingBox] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   const fetchPatients = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch('/api/triage/sessions/emr_patients/', { headers });
+      const res = await fetchWithAuth('/api/triage/sessions/emr_patients/');
       if (res.ok) {
         const data = await res.json();
         setPatients(data);
@@ -102,21 +101,33 @@ export default function EMRSimulator() {
   const handleSelectPatient = (p: PatientEMR) => {
     setSelectedPatient(p);
     setAssignedBox(p.assigned_box || 'BOX-01');
+    setMobileView('detail');
   };
 
-  const handleAssignBox = () => {
+  const handleAssignBox = async () => {
     if (!selectedPatient) return;
     setIsSavingBox(true);
-    setTimeout(() => {
+    try {
+      const res = await fetchWithAuth(`/api/triage/sessions/${selectedPatient.id}/assign_box/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ box_name: assignedBox }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Error al asignar box hospitalario');
+
       setPatients(prev => prev.map(p => 
         p.id === selectedPatient.id 
           ? { ...p, assigned_box: assignedBox, status: 'En Atencion' } 
           : p
       ));
       setSelectedPatient(prev => prev ? { ...prev, assigned_box: assignedBox, status: 'En Atencion' } : null);
+      toast.success(data.message || `Paciente asignado a ${assignedBox} exitosamente.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Fallo de comunicacion con el servidor HCE');
+    } finally {
       setIsSavingBox(false);
-      toast.success(`Paciente asignado a ${assignedBox} exitosamente.`);
-    }, 600);
+    }
   };
 
   const filteredPatients = patients.filter(p => 
@@ -157,7 +168,9 @@ export default function EMRSimulator() {
       {/* Main Workspace */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
         {/* Left Column: Patient Queue (4 cols) */}
-        <div className="md:col-span-4 border-r border-slate-800 bg-slate-900/60 flex flex-col overflow-hidden">
+        <div className={`md:col-span-4 border-r border-slate-800 bg-slate-900/60 flex flex-col overflow-hidden ${
+          mobileView === 'detail' ? 'hidden md:flex' : 'flex'
+        }`}>
           {/* Search box */}
           <div className="p-3 border-b border-slate-800/80">
             <div className="relative">
@@ -244,7 +257,20 @@ export default function EMRSimulator() {
         </div>
 
         {/* Right Column: Selected Patient Clinical Record (8 cols) */}
-        <div className="md:col-span-8 bg-slate-950 p-6 flex flex-col overflow-y-auto space-y-6">
+        <div className={`md:col-span-8 bg-slate-950 p-4 sm:p-6 flex flex-col overflow-y-auto space-y-4 sm:space-y-6 ${
+          mobileView === 'list' ? 'hidden md:flex' : 'flex'
+        }`}>
+          {/* Mobile Back Button */}
+          <div className="md:hidden flex items-center pb-2">
+            <button
+              onClick={() => setMobileView('list')}
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Volver a Cola de Pacientes
+            </button>
+          </div>
+
           {selectedPatient ? (
             <>
               {/* Header profile card */}

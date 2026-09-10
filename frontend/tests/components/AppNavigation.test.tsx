@@ -151,4 +151,36 @@ describe('AppNavigation Component', () => {
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(mockPush).toHaveBeenCalledWith('/login');
   });
+
+  it('opens mobile drawer and navigates from mobile drawer', async () => {
+    localStorage.setItem('access_token', 'valid-jwt-token');
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/auth/me/')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockUser,
+        } as Response);
+      }
+      return Promise.resolve({ ok: false } as Response);
+    });
+
+    render(<AppNavigation />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('triage-view')).toBeInTheDocument();
+    });
+
+    // Open mobile menu
+    const menuBtn = screen.getByLabelText(/Abrir menu de navegacion/i);
+    fireEvent.click(menuBtn);
+
+    // Click on EMR simulator in mobile drawer
+    const emrTabs = screen.getAllByRole('button', { name: /Simulador HCE/i });
+    fireEvent.click(emrTabs[emrTabs.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('emr-view')).toBeInTheDocument();
+    });
+  });
 });

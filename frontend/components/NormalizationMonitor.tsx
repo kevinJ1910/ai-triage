@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { RefreshCw, ArrowRight, Check, Copy, Sparkles, BookOpen, AlertCircle, Database } from 'lucide-react';
@@ -92,7 +92,7 @@ export default function NormalizationMonitor() {
   }) || [];
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-y-auto space-y-6">
+    <div className="flex flex-col h-full w-full bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-purple-500/10 rounded-xl border border-purple-500/20 text-purple-400">
@@ -230,7 +230,7 @@ export default function NormalizationMonitor() {
                 </span>
               </h2>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {['ALL', 'Sintoma', 'Signo', 'Medicamento', 'Antecedente'].map((cat) => (
                 <button
                   key={cat}

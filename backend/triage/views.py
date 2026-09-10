@@ -292,19 +292,29 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
     def emr_patients(self, request):
         """
         Returns patients list from real database for the EMR simulator.
+        Reads persisted assigned_box and status if available.
         """
         sessions = TriageSession.objects.select_related('patient').all().order_by('-created_at')[:20]
         results = []
-        box_counter = 1
 
         for s in sessions:
             pat = s.patient
-            # Assigned box simulation based on session id or deterministic slot
-            box_num = f"BOX-0{((s.id * 3) % 8) + 1}"
-            status_val = "En Espera" if s.final_level >= 4 else "En Atencion"
-            if s.final_level == 1:
-                status_val = "Reanimacion Inmediata"
-                box_num = "REAN-01"
+            entities = s.clinical_entities or {}
+            box_num = entities.get("assigned_box")
+            if not box_num:
+                if s.final_level == 1:
+                    box_num = "REAN-01"
+                else:
+                    box_num = f"BOX-0{((s.id * 3) % 8) + 1}"
+
+            status_val = entities.get("status")
+            if not status_val:
+                if s.final_level == 1:
+                    status_val = "Reanimacion Inmediata"
+                elif s.final_level >= 4:
+                    status_val = "En Espera"
+                else:
+                    status_val = "En Atencion"
 
             results.append({
                 "id": s.id,
@@ -321,10 +331,49 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 "status": status_val,
                 "admission_time": s.created_at.strftime('%H:%M:%S'),
                 "justification": s.justification,
-                "entities": s.clinical_entities
+                "entities": entities
             })
 
         return Response(results)
+
+    @action(detail=True, methods=['POST'])
+    def assign_box(self, request, pk=None):
+        """
+        Assigns a hospital box/bed to a triage session patient.
+        Validates payload with EMRBoxAssignSchema and persists in clinical_entities.
+        """
+        session = self.get_object()
+        from core.validation import validate_payload, EMRBoxAssignSchema
+        validated = validate_payload(EMRBoxAssignSchema, request.data)
+
+        box = validated.assigned_box
+        status_str = validated.status or 'En Atencion'
+
+        entities = session.clinical_entities or {}
+        entities['assigned_box'] = box
+        entities['status'] = status_str
+        session.clinical_entities = entities
+        session.save(update_fields=['clinical_entities'])
+
+        # Audit log creation
+        from accounts.models import AuditLog
+        user = request.user if request.user.is_authenticated else session.user
+        AuditLog.objects.create(
+            user=user,
+            action="ASSIGN_EMR_BOX",
+            resource=f"TriageSession:{session.id}",
+            status="SUCCESS",
+            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+            details=f"Box asignado: {box} al paciente {session.patient.document_id}"
+        )
+
+        return Response({
+            "message": f"Box {box} asignado exitosamente",
+            "session_id": session.id,
+            "patient_id": session.patient.id,
+            "assigned_box": box,
+            "status": status_str
+        })
 
     @action(detail=False, methods=['GET'])
     def fhir_logs(self, request):

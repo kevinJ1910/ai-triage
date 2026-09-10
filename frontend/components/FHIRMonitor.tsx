@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -13,7 +13,8 @@ import {
   ShieldCheck, 
   FileCode, 
   ArrowUpRight, 
-  Download 
+  Download,
+  ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,6 +37,7 @@ export default function FHIRMonitor() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [syncingTest, setSyncingTest] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -178,7 +180,9 @@ export default function FHIRMonitor() {
       {/* Main Container: Grid 12 cols */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
         {/* Left Column: Transaction Log (4 cols) */}
-        <div className="md:col-span-4 border-r border-slate-800 bg-slate-900/60 flex flex-col overflow-hidden">
+        <div className={`md:col-span-4 border-r border-slate-800 bg-slate-900/60 flex flex-col overflow-hidden ${
+          mobileView === 'detail' ? 'hidden md:flex' : 'flex'
+        }`}>
           <div className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 flex justify-between items-center">
             <span>Mensajes Transaccionales ({logs.length})</span>
             <span className="text-slate-500 font-mono">FHIR R4 JSON</span>
@@ -200,7 +204,10 @@ export default function FHIRMonitor() {
                 return (
                   <button
                     key={log.id}
-                    onClick={() => setSelectedLog(log)}
+                    onClick={() => {
+                      setSelectedLog(log);
+                      setMobileView('detail');
+                    }}
                     className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
                       isSelected
                         ? 'bg-orange-600/15 border-orange-500/50 shadow-md shadow-orange-600/10'
@@ -244,7 +251,20 @@ export default function FHIRMonitor() {
         </div>
 
         {/* Right Column: Payload Inspector & Schema Validation (8 cols) */}
-        <div className="md:col-span-8 bg-slate-950 p-6 flex flex-col overflow-y-auto space-y-4">
+        <div className={`md:col-span-8 bg-slate-950 p-4 sm:p-6 flex flex-col overflow-y-auto space-y-4 ${
+          mobileView === 'list' ? 'hidden md:flex' : 'flex'
+        }`}>
+          {/* Mobile Back Button */}
+          <div className="md:hidden flex items-center pb-1">
+            <button
+              onClick={() => setMobileView('list')}
+              className="flex items-center gap-1.5 text-xs font-semibold text-orange-400 hover:text-orange-300 py-1 px-2.5 rounded-lg bg-slate-900 border border-slate-800"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Volver a Transacciones
+            </button>
+          </div>
+
           {selectedLog ? (
             <>
               {/* Transaction Metadata Card */}
