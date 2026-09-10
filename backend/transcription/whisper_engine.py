@@ -22,7 +22,10 @@ if os.name == 'nt':
         pass
 # ----------------------------------------------
 
-from faster_whisper import WhisperModel
+try:
+    from faster_whisper import WhisperModel
+except ImportError:
+    WhisperModel = None
 from django.conf import settings
 from .medical_prompts import CLINICAL_INITIAL_PROMPT
 
@@ -58,6 +61,8 @@ class WhisperEngine:
         start_time = time.perf_counter()
         
         try:
+            if WhisperModel is None:
+                raise RuntimeError('faster_whisper no disponible en entorno local')
             self.model = WhisperModel(
                 model_size, 
                 device=device, 
@@ -70,6 +75,8 @@ class WhisperEngine:
         except Exception as e:
             logger.warning(f"Failed to load WhisperModel with device='{device}' and compute_type='{compute_type}': {e}. Falling back to CPU with int8.")
             try:
+                if WhisperModel is None:
+                    raise RuntimeError('faster_whisper no disponible en entorno local')
                 self.model = WhisperModel(
                     model_size, 
                     device='cpu', 
@@ -177,3 +184,4 @@ class WhisperEngine:
             "active_sessions_count": len(active_sessions),
             "active_session_ids": active_sessions
         }
+
