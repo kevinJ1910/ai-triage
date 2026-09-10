@@ -30,6 +30,10 @@ interface TriageSession {
 export default function TriageDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  const canUseTranscriber = currentUser?.permissions ? currentUser.permissions.can_use_transcriber : true;
+  const canEditSymptoms = currentUser?.permissions ? currentUser.permissions.can_edit_symptoms : true;
+
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user_profile');
@@ -335,6 +339,10 @@ export default function TriageDashboard() {
   }, [isTranscribing, isWaitingForAnalysis, transcript]);
 
   const handleToggleRecording = () => {
+    if (!canUseTranscriber) {
+      toast.error('Acceso denegado: Tu perfil no tiene permisos para iniciar grabaciones ASR.');
+      return;
+    }
     if (isRecording) {
       stopRecording();
       setIsWaitingForAnalysis(true);
