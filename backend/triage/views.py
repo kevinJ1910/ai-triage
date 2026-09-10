@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -140,19 +140,14 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
         Allows physician to manually override triage level (1 to 5) and symptom list.
         """
         session = self.get_object()
-        new_level = request.data.get('final_level')
-        override_reason = request.data.get('override_reason', '')
-        final_symptoms = request.data.get('final_symptoms')
-
-        if new_level is None:
-            return Response({"error": "Campo 'final_level' es requerido"}, status=status.HTTP_400_BAD_REQUEST)
-
+        from core.validation import validate_payload, TriageOverrideSchema
         try:
-            new_level = int(new_level)
-            if new_level < 1 or new_level > 5:
-                return Response({"error": "El nivel debe estar entre 1 y 5"}, status=status.HTTP_400_BAD_REQUEST)
-        except (ValueError, TypeError):
-            return Response({"error": "El nivel debe ser un numero entero"}, status=status.HTTP_400_BAD_REQUEST)
+            validated = validate_payload(TriageOverrideSchema, request.data)
+            new_level = validated.final_level
+            override_reason = validated.override_reason or ''
+            final_symptoms = validated.final_symptoms
+        except Exception as e:
+            return Response(getattr(e, 'detail', {"error": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         old_level = session.final_level
         session.final_level = new_level
@@ -361,6 +356,8 @@ def fhir_sync(request: HttpRequest) -> JsonResponse:
     """
     try:
         payload = json.loads(request.body)
+        from core.validation import validate_payload, FHIRSyncSchema
+        validate_payload(FHIRSyncSchema, payload)
         time.sleep(0.5)
         
         fhir_id = f"fhir-enc-{random.randint(100000, 999999)}"

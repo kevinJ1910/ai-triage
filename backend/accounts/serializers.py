@@ -6,6 +6,15 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, AuthVerificationCode, UserPermission, AuditLog
 from .emails import send_verification_email, send_password_reset_email
+from core.validation import (
+    validate_payload,
+    RegisterSchema,
+    LoginSchema,
+    VerifyCodeSchema,
+    ResendCodeSchema,
+    PasswordResetRequestSchema,
+    PasswordResetConfirmSchema,
+)
 
 class UserPermissionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,6 +66,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
+        validate_payload(RegisterSchema, getattr(self, 'initial_data', data))
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Las contrasenas no coinciden"})
         return data
@@ -106,6 +116,7 @@ class VerifyCodeSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
 
     def validate(self, data):
+        validate_payload(VerifyCodeSchema, getattr(self, 'initial_data', data))
         try:
             user = User.objects.get(email=data['email'])
         except User.DoesNotExist:
@@ -132,6 +143,7 @@ class ResendCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate(self, data):
+        validate_payload(ResendCodeSchema, getattr(self, 'initial_data', data))
         try:
             user = User.objects.get(email=data['email'])
         except User.DoesNotExist:
@@ -147,6 +159,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate(self, data):
+        validate_payload(PasswordResetRequestSchema, getattr(self, 'initial_data', data))
         try:
             user = User.objects.get(email=data['email'])
         except User.DoesNotExist:
@@ -161,6 +174,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(min_length=6)
 
     def validate(self, data):
+        validate_payload(PasswordResetConfirmSchema, getattr(self, 'initial_data', data))
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Las contrasenas no coinciden"})
 
@@ -185,6 +199,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        validate_payload(LoginSchema, getattr(self, 'initial_data', attrs))
         data = super().validate(attrs)
 
         if not self.user.is_verified and not self.user.is_superuser:

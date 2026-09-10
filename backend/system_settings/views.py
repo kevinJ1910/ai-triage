@@ -46,6 +46,12 @@ class SystemConfigView(APIView):
         if not (request.user.role == 'admin' or request.user.is_superuser or getattr(request.user.permissions, 'can_manage_config', False)):
             return Response({"detail": "Permiso denegado. Solo administradores pueden modificar la configuracion global."}, status=status.HTTP_403_FORBIDDEN)
 
+        from core.validation import validate_payload, SystemConfigUpdateSchema
+        try:
+            validate_payload(SystemConfigUpdateSchema, request.data)
+        except Exception as e:
+            return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
+
         config = SystemConfiguration.get_solo()
         serializer = SystemConfigurationSerializer(config, data=request.data, partial=True)
         if serializer.is_valid():
@@ -75,6 +81,12 @@ class APIKeyListView(APIView):
     def post(self, request):
         if not (request.user.role == 'admin' or request.user.is_superuser or getattr(request.user.permissions, 'can_manage_config', False)):
             return Response({"detail": "Solo administradores pueden registrar llaves API cifradas."}, status=status.HTTP_403_FORBIDDEN)
+
+        from core.validation import validate_payload, APIKeyCreateSchema
+        try:
+            validate_payload(APIKeyCreateSchema, request.data)
+        except Exception as e:
+            return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         serializer = CreateAPIKeySerializer(data=request.data)
         if serializer.is_valid():
