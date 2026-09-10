@@ -1,22 +1,34 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables
 load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR.parent / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+# FIX-SEC-001: SECRET_KEY sin fallback inseguro.
+_secret_key = os.getenv('SECRET_KEY')
+if not _secret_key:
+    import sys
+    if 'test' in sys.argv or 'pytest' in sys.modules:
+        _secret_key = 'test-insecure-key-only-for-testing-purposes'
+    else:
+        raise RuntimeError(
+            "SECRET_KEY no esta configurada en las variables de entorno. "
+            "Configure SECRET_KEY en el archivo .env antes de iniciar el servidor."
+        )
+SECRET_KEY = _secret_key
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-triage-prototype-key-3289139')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# FIX-SEC-002: ALLOWED_HOSTS via variable de entorno. Sin comodin '*' en produccion.
+_allowed_hosts_raw = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_raw.split(',') if h.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -27,6 +39,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
+    # FIX-SEC-003: Lista negra de tokens JWT para invalidar refresh tokens rotados.
+    'rest_framework_simplejwt.token_blacklist',
     'transcription',
     'accounts',
     'patients',
@@ -36,6 +50,7 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = 'accounts.User'
 
+# FIX-SEC-004: Rate limiting global para prevenir brute-force en auth y OTP.
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -43,6 +58,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/minute',
+        'user': '300/minute',
+        'auth': '10/minute',
+        'otp': '5/minute',
+    }
 }
 
 MIDDLEWARE = [
@@ -77,8 +102,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database
-# Use dj-database-url to parse DATABASE_URL environment variable
 import dj_database_url
 
 DATABASES = {
@@ -89,63 +112,45 @@ DATABASES = {
     )
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
 LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS configurations
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if origin.strip()
 ]
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # For development purposes
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
-# Custom upload limits for audio files (10 MB)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
-# Faster-Whisper configurations
 WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'large-v3-turbo')
 WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'auto')
 WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
 WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '3'))
 WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
 
-from datetime import timedelta
+# FIX-SEC-003: BLACKLIST_AFTER_ROTATION habilitado para invalidar tokens rotados.
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Configuración de correo electrónico (Mailpit SMTP Local)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', '127.0.0.1')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 1025))
@@ -153,3 +158,35 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() in ('true', '1', 't'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'AI-Triage <no-reply@hospital.com>')
+
+# FIX-TEC-007: Logging centralizado â€” elimina FileHandler manual en cada modulo.
+_log_dir = BASE_DIR / 'logs'
+_log_dir.mkdir(exist_ok=True)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {name} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': str(_log_dir / 'backend_debug.log'),
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['file', 'console'],
+        'level': 'DEBUG',
+    },
+}

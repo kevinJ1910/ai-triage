@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TriageSessionViewSet(viewsets.ModelViewSet):
     queryset = TriageSession.objects.all().order_by('-created_at')
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticatedOrReadOnly]
     
     @action(detail=False, methods=['POST'])
     def analyze(self, request):
@@ -116,8 +116,8 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 details=f'Triaje inicial guardado. AI Nivel: {ai_level_val}, Final: {final_level_val}, Paciente: {patient.document_id}',
                 ip_address=request.META.get('REMOTE_ADDR')
             )
-        except Exception:
-            pass
+        except Exception as audit_err:
+            logger.error(f"AuditLog write failed for TRIAGE_CREATED: {audit_err}", exc_info=True)
         
         return Response({
             "session_id": triage_session.id,
@@ -173,8 +173,8 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 details=f'Nivel modificado de {old_level} a {new_level} (AI: {session.ai_level}). Motivo: {override_reason or "Revision clinica"}',
                 ip_address=request.META.get('REMOTE_ADDR')
             )
-        except Exception:
-            pass
+        except Exception as audit_err:
+            logger.error(f"AuditLog write failed for TRIAGE_OVERRIDE: {audit_err}", exc_info=True)
 
         return Response({
             "message": "Nivel de triaje actualizado exitosamente",
@@ -322,9 +322,9 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 "document_id": pat.document_id,
                 "name": pat.full_name or f"Paciente {pat.document_id}",
                 "gender": pat.gender,
-                "birth_date": pat.birth_date or "1985-05-12",
+                "birth_date": pat.birth_date,
                 "phone": pat.phone or "N/A",
-                "insurance": pat.insurance or "EPS Sanitas",
+                "insurance": pat.insurance,
                 "level": s.final_level,
                 "ai_level": s.ai_level,
                 "assigned_box": box_num,
@@ -360,7 +360,7 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
         user = request.user if request.user.is_authenticated else session.user
         AuditLog.objects.create(
             user=user,
-            action="ASSIGN_EMR_BOX",
+            action="EMR_BOX_ASSIGNED",
             resource=f"TriageSession:{session.id}",
             status="SUCCESS",
             ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
@@ -407,8 +407,6 @@ def fhir_sync(request: HttpRequest) -> JsonResponse:
         payload = json.loads(request.body)
         from core.validation import validate_payload, FHIRSyncSchema
         validate_payload(FHIRSyncSchema, payload)
-        time.sleep(0.5)
-        
         fhir_id = f"fhir-enc-{random.randint(100000, 999999)}"
         
         session_id = None

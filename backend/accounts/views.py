@@ -18,12 +18,14 @@ from .serializers import (
     UserPermissionSerializer
 )
 from .emails import send_verification_email, send_password_reset_email
+from .throttles import AuthThrottle, OTPThrottle
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AuthThrottle]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -38,6 +40,7 @@ class RegisterView(APIView):
 
 class VerifyCodeView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = VerifyCodeSerializer(data=request.data)
@@ -73,6 +76,7 @@ class VerifyCodeView(APIView):
 
 class ResendCodeView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = ResendCodeSerializer(data=request.data)
@@ -96,6 +100,7 @@ class ResendCodeView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [AuthThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
