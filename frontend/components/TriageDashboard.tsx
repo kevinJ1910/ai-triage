@@ -65,6 +65,7 @@ export default function TriageDashboard() {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
   const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
 
   const handleUpdateLine = (index: number, field: 'speaker' | 'text', value: string) => {
     setTranscript(prev => prev.map((line, i) => i === index ? { ...line, [field]: value } : line));
@@ -307,6 +308,41 @@ export default function TriageDashboard() {
     }
   }, [isRecording, isTranscribing, liveTranscript]);
 
+  const handleUpdateTriageLevel = async (newLevel: number) => {
+    if (newLevel < 1 || newLevel > 5) return;
+    const aiLvl = analysisResult?.triage?.ai_level || analysisResult?.triage?.level || 5;
+    
+    setAnalysisResult((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        triage: {
+          ...prev.triage,
+          level: newLevel,
+          final_level: newLevel,
+          ai_level: aiLvl,
+          is_modified: newLevel !== aiLvl,
+        }
+      };
+    });
+
+    if (activeSessionId) {
+      try {
+        await fetchWithAuth(`/api/triage/sessions/${activeSessionId}/override_level/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            final_level: newLevel,
+            override_reason: 'Ajuste manual de triaje por personal clinico'
+          })
+        });
+        toast.success(`Nivel de triaje ajustado a Nivel ${ROMAN_LEVELS[newLevel] || newLevel}`);
+      } catch (e) {
+        console.error('Error sincronizando nivel con el servidor:', e);
+      }
+    }
+  };
+
   const handleAnalyze = async (fullTranscript: {speaker: string, text: string}[]) => {
     setIsAnalyzing(true);
     try {
@@ -317,6 +353,7 @@ export default function TriageDashboard() {
         body: JSON.stringify({ transcript: text })
       });
       const data = await res.json();
+      if (data.session_id) setActiveSessionId(data.session_id);
       const aiAnalysis = data.analysis || data;
       setAnalysisResult(aiAnalysis);
       if (aiAnalysis.entities) setEditedEntities(aiAnalysis.entities);
@@ -945,14 +982,61 @@ export default function TriageDashboard() {
                   </div>
                 ) : (
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
-                      <div className={`flex flex-col items-center justify-center p-4 rounded shadow-lg shrink-0 w-32 sm:w-40 ${getLevelGradient(analysisResult.triage?.level)}`}>
-                         <span className="text-[9px] font-bold uppercase tracking-widest text-white/70 mb-1">Prioridad</span>
-                         <span className="text-6xl sm:text-7xl font-black text-white leading-none">
-                           {analysisResult.triage?.level || "?"}
-                         </span>
-                         <span className={`mt-2 text-[10px] sm:text-xs font-bold text-white uppercase italic text-center`}>
+                      <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
+                         <div className="flex items-center justify-between w-full px-1 mb-1">
+                           <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">Prioridad</span>
+                           {analysisResult.triage?.is_modified || (analysisResult.triage?.ai_level && analysisResult.triage.level !== analysisResult.triage.ai_level) ? (
+                             <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-400/40">
+                               Ajustado
+                             </span>
+                           ) : (
+                             <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/40">
+                               IA Concordante
+                             </span>
+                           )}
+                         </div>
+
+                         {/* Stepper controls */}
+                         <div className="flex items-center justify-between w-full px-1 py-1">
+                           <button
+                             type="button"
+                             onClick={() => handleUpdateTriageLevel(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
+                             disabled={analysisResult.triage?.level <= 1}
+                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                             title="Aumentar Urgencia (Nivel mas critico)"
+                           >
+                             -
+                           </button>
+                           
+                           <div className="flex flex-col items-center">
+                             <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
+                               {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
+                             </span>
+                             <span className="text-[9px] font-mono text-white/70">
+                               Nivel {analysisResult.triage?.level || "?"}
+                             </span>
+                           </div>
+
+                           <button
+                             type="button"
+                             onClick={() => handleUpdateTriageLevel(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
+                             disabled={analysisResult.triage?.level >= 5}
+                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                             title="Disminuir Urgencia (Nivel menos critico)"
+                           >
+                             +
+                           </button>
+                         </div>
+
+                         <span className="mt-1 text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider text-center">
                             {getLevelLabel(analysisResult.triage?.level)}
                          </span>
+
+                         {analysisResult.triage?.ai_level && analysisResult.triage.level !== analysisResult.triage.ai_level && (
+                           <span className="mt-1 text-[8px] text-white/80 italic text-center">
+                             Sugerido IA: Nivel {ROMAN_LEVELS[analysisResult.triage.ai_level]}
+                           </span>
+                         )}
                       </div>
                       <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto">
                          <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5">
@@ -1065,14 +1149,16 @@ function EntityGroup({
   )
 }
 
+const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
+
 function getLevelGradient(level?: number) {
   switch (level) {
-    case 1: return 'bg-gradient-to-br from-red-600 to-red-900 border border-red-500 shadow-red-900/50';
-    case 2: return 'bg-gradient-to-br from-orange-600 to-orange-900 border border-orange-500 shadow-orange-900/50';
-    case 3: return 'bg-gradient-to-br from-yellow-600 to-yellow-900 border border-yellow-500 shadow-yellow-900/50';
-    case 4: return 'bg-gradient-to-br from-emerald-600 to-emerald-900 border border-emerald-500 shadow-emerald-900/50';
-    case 5: return 'bg-gradient-to-br from-blue-600 to-blue-900 border border-blue-500 shadow-blue-900/50';
-    default: return 'bg-slate-800 border-slate-700 border text-slate-400';
+    case 1: return 'bg-gradient-to-br from-red-600 to-red-950 border-red-500 shadow-red-900/50';
+    case 2: return 'bg-gradient-to-br from-orange-600 to-orange-950 border-orange-500 shadow-orange-900/50';
+    case 3: return 'bg-gradient-to-br from-amber-500 to-amber-950 border-amber-500 shadow-amber-900/50';
+    case 4: return 'bg-gradient-to-br from-emerald-600 to-emerald-950 border-emerald-500 shadow-emerald-900/50';
+    case 5: return 'bg-gradient-to-br from-blue-600 to-blue-950 border-blue-500 shadow-blue-900/50';
+    default: return 'bg-slate-800 border-slate-700 text-slate-400';
   }
 }
 
