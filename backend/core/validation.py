@@ -143,12 +143,9 @@ class FHIRSyncSchema(BaseModel):
 
 class SystemConfigUpdateSchema(BaseModel):
     model_config = {"extra": "forbid"}
-    active_nlp_provider: Optional[Literal['gemini', 'local_nlp', 'openai']] = None
     active_asr_model: Optional[str] = None
     active_llm_engine: Optional[str] = None
     active_ner_model: Optional[str] = None
-    session_timeout_seconds: Optional[int] = Field(default=None, ge=10, le=86400)
-    max_daily_triages: Optional[int] = Field(default=None, ge=1, le=100000)
     snomed_version: Optional[str] = None
     icd10_version: Optional[str] = None
 
@@ -157,6 +154,13 @@ class APIKeyCreateSchema(BaseModel):
     provider: Optional[Literal['gemini', 'openai', 'anthropic', 'deepseek', 'custom']] = None
     api_key: str = Field(min_length=4, max_length=500)
     description: Optional[str] = Field(default="", max_length=500)
+
+    @field_validator('provider', mode='before')
+    @classmethod
+    def normalize_provider(cls, v):
+        if v == "" or (isinstance(v, str) and not v.strip()) or v is None:
+            return None
+        return v
 
 # ==========================================
 # ESQUEMAS: TRANSCRIPCIÓN Y NORMALIZACIÓN

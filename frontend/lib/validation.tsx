@@ -131,8 +131,12 @@ export function validatePhone(value: string): ValidationResult {
     return { isValid: true }; // Campo opcional
   }
   const clean = value.trim();
-  if (!/^\+?[0-9\s-]{7,20}$/.test(clean)) {
-    return { isValid: false, warning: 'Formato de telefono invalido (debe contener entre 7 y 20 caracteres: digitos, espacios o guiones).' };
+  const digitsCount = (clean.match(/\d/g) || []).length;
+  if (!/^\+?[0-9\s-]{7,20}$/.test(clean) || digitsCount < 7) {
+    return {
+      isValid: false,
+      warning: 'Formato de telefono invalido (debe contener entre 7 y 20 caracteres: digitos, espacios, guiones o prefijo + opcional).'
+    };
   }
   return { isValid: true };
 }

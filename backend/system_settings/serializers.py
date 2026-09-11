@@ -34,7 +34,7 @@ class APIKeyCredentialSerializer(serializers.ModelSerializer):
 class CreateAPIKeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100)
     api_key = serializers.CharField(write_only=True, min_length=10)
-    provider = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    provider = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True)
 
     def create(self, validated_data):
         raw_key = validated_data['api_key'].strip()

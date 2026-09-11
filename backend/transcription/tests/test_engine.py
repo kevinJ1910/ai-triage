@@ -1,6 +1,8 @@
 import json
 import time
+from unittest.mock import patch
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework import status
 from transcription.whisper_engine import WhisperEngine
@@ -99,3 +101,38 @@ class TestWhisperEngineAndEndpoints:
         medical_terms = [m["medical_term"].lower() for m in data["mappings"]]
         assert any("opresi" in mt for mt in medical_terms)
         assert any("disnea" in mt for mt in medical_terms)
+
+    def test_transcribe_chunk_failure_path_redacts_details(self):
+        audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+        with patch.object(WhisperEngine, "transcribe_chunk", side_effect=RuntimeError("Internal core dump stack trace")):
+            response = self.client.post(
+                "/api/transcribe/",
+                {"audio": audio_file, "session_id": "err-session-uuid"},
+                format="multipart"
+            )
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            data = response.json()
+            assert data == {"error": "Internal transcription failure"}
+            assert "details" not in data
+            assert "Internal core dump stack trace" not in response.content.decode()
+
+    def test_reset_session_failure_path_redacts_details(self):
+        with patch.object(WhisperEngine, "reset_session", side_effect=RuntimeError("Sensitive memory lock deadlock")):
+            response = self.client.post(
+                "/api/transcribe/reset/",
+                {"session_id": "err-session-uuid"}
+            )
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            data = response.json()
+            assert data == {"error": "Failed to reset session"}
+            assert "details" not in data
+            assert "Sensitive memory lock deadlock" not in response.content.decode()
+
+    def test_health_check_failure_path_redacts_details(self):
+        with patch.object(WhisperEngine, "get_status", side_effect=RuntimeError("Hardware GPU driver crash")):
+            response = self.client.get("/api/health_check/")
+            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            data = response.json()
+            assert data == {"status": "unhealthy", "error": "Failed to get Whisper Engine status"}
+            assert "details" not in data
+            assert "Hardware GPU driver crash" not in response.content.decode()

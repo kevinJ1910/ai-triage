@@ -143,11 +143,19 @@ describe('Frontend Validation Module', () => {
     it('rejects too short or invalid phone formats', () => {
       const resShort = validatePhone('12345');
       expect(resShort.isValid).toBe(false);
-      expect(resShort.warning).toContain('entre 7 y 20 caracteres');
+      expect(resShort.warning).toContain('prefijo + opcional');
 
       const resInvalid = validatePhone('phone-with-letters');
       expect(resInvalid.isValid).toBe(false);
-      expect(resInvalid.warning).toContain('entre 7 y 20 caracteres');
+      expect(resInvalid.warning).toContain('prefijo + opcional');
+
+      const resOnlyHyphens = validatePhone('-------');
+      expect(resOnlyHyphens.isValid).toBe(false);
+      expect(resOnlyHyphens.warning).toContain('prefijo + opcional');
+
+      const resFewDigits = validatePhone('---123---');
+      expect(resFewDigits.isValid).toBe(false);
+      expect(resFewDigits.warning).toContain('prefijo + opcional');
     });
   });
 });

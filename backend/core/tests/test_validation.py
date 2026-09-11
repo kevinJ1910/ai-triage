@@ -73,14 +73,48 @@ class TestPydanticValidationLayer:
         with pytest.raises(serializers.ValidationError):
             validate_payload(UserPermissionUpdateSchema, {"can_use_transcriber": "not-a-bool"})
 
-    def test_system_config_timeout_constraints(self):
-        # Valid timeout
-        result = validate_payload(SystemConfigUpdateSchema, {"session_timeout_seconds": 3600})
-        assert result.session_timeout_seconds == 3600
+    def test_system_config_fields_and_extra_forbid(self):
+        # Campos validos alineados con SystemConfiguration
+        result = validate_payload(SystemConfigUpdateSchema, {
+            "active_asr_model": "large-v3-turbo",
+            "active_llm_engine": "gemini-2.5-flash"
+        })
+        assert result.active_asr_model == "large-v3-turbo"
+        assert result.active_llm_engine == "gemini-2.5-flash"
 
-        # Out of bounds timeout (< 10s)
+        # Campo no soportado/desconocido debe ser rechazado por extra='forbid'
         with pytest.raises(serializers.ValidationError):
-            validate_payload(SystemConfigUpdateSchema, {"session_timeout_seconds": 2})
+            validate_payload(SystemConfigUpdateSchema, {"session_timeout_seconds": 3600})
+
+        with pytest.raises(serializers.ValidationError):
+            validate_payload(SystemConfigUpdateSchema, {"active_nlp_provider": "gemini"})
+
+    def test_api_key_create_provider_normalization(self):
+        from core.validation import APIKeyCreateSchema
+
+        # Proveedor vacio (autodeteccion desde frontend) debe normalizarse a None
+        res_empty = validate_payload(APIKeyCreateSchema, {
+            "name": "Gemini Key Auto",
+            "api_key": "AIzaSyDummyKeyForTesting123",
+            "provider": ""
+        })
+        assert res_empty.provider is None
+
+        # Proveedor null debe aceptarse como None
+        res_null = validate_payload(APIKeyCreateSchema, {
+            "name": "Gemini Key Null",
+            "api_key": "AIzaSyDummyKeyForTesting123",
+            "provider": None
+        })
+        assert res_null.provider is None
+
+        # Proveedor especifico valido
+        res_valid = validate_payload(APIKeyCreateSchema, {
+            "name": "OpenAI Key",
+            "api_key": "sk-proj-DummyTestingKey123456",
+            "provider": "openai"
+        })
+        assert res_valid.provider == "openai"
 
     def test_fhir_sync_flexible_payload(self):
         # Valid bundle with flexible dynamic entry items
