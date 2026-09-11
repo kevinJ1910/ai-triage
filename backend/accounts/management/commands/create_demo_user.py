@@ -1,6 +1,6 @@
 import os
 import secrets
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from accounts.models import UserPermission
@@ -19,9 +19,13 @@ class Command(BaseCommand):
         secret = os.getenv(env_var_name)
         if secret and secret.strip():
             return secret.strip()
+        if not getattr(settings, 'DEBUG', False):
+            raise CommandError(
+                f"Variable {env_var_name} es obligatoria fuera de desarrollo para actualizar la contrasena de {user_label}."
+            )
         generated = secrets.token_urlsafe(16) + "!A1"
         self.stdout.write(self.style.WARNING(
-            f"Variable {env_var_name} no configurada. Generada contrasena de un solo uso para {user_label}: {generated}"
+            f"Variable {env_var_name} no configurada. Generada contrasena de un solo uso para {user_label}."
         ))
         return generated
 
