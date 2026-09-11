@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import {
   validateEmail,
   validateNumeric,
@@ -129,6 +128,33 @@ describe('Frontend Validation Module', () => {
       const resMismatch = validatePassword('Password123!', 'DifferentPass123!');
       expect(resMismatch.isValid).toBe(false);
       expect(resMismatch.warning).toContain('no coinciden');
+    });
+  });
+
+  describe('validatePhone', () => {
+    it('accepts valid phone formats and empty optional values', () => {
+      expect(validatePhone('').isValid).toBe(true);
+      expect(validatePhone('+57 300 123 4567').isValid).toBe(true);
+      expect(validatePhone('3001234567').isValid).toBe(true);
+      expect(validatePhone('123-456-7890').isValid).toBe(true);
+    });
+
+    it('rejects too short or invalid phone formats', () => {
+      const resShort = validatePhone('12345');
+      expect(resShort.isValid).toBe(false);
+      expect(resShort.warning).toContain('prefijo + opcional');
+
+      const resInvalid = validatePhone('phone-with-letters');
+      expect(resInvalid.isValid).toBe(false);
+      expect(resInvalid.warning).toContain('prefijo + opcional');
+
+      const resOnlyHyphens = validatePhone('-------');
+      expect(resOnlyHyphens.isValid).toBe(false);
+      expect(resOnlyHyphens.warning).toContain('prefijo + opcional');
+
+      const resFewDigits = validatePhone('---123---');
+      expect(resFewDigits.isValid).toBe(false);
+      expect(resFewDigits.warning).toContain('prefijo + opcional');
     });
   });
 });

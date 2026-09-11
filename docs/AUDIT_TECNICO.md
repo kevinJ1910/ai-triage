@@ -336,23 +336,31 @@ El puerto de la base de datos esta expuesto al host. En produccion, esto permite
 
 ---
 
-## 5. Cobertura de Pruebas — Gaps Identificados
+## 5. Cobertura de Pruebas — Estado Actual y Suites Automatizadas
 
-| Area | Estado | Gap |
-|:-----|:-------|:----|
-| `accounts` — autenticacion y OTP | Cubierto | Sin tests de brute-force sobre OTP |
-| `accounts` — RBAC | Cubierto | Sin test de acceso a endpoint de triaje sin autenticacion |
-| `triage` — `analyze` action | No cubierto | Sin test de creacion de sesion via transcript |
-| `triage` — `evaluation_metrics` carga masiva | No cubierto | Sin test de rendimiento con N sesiones |
-| `triage` — `emr_patients` fallback de box | No cubierto | Sin test del algoritmo deterministico de box |
-| `fhir_sync` — inyeccion de payload malicioso | No cubierto | Sin test de rejection de bundles sin autenticacion |
-| Frontend — `TriageDashboard` flujo completo | No cubierto | Sin test E2E o de integracion del flujo ASR → analisis → guardado |
-| Frontend — `fetchWithAuth` refresh token | No cubierto | Sin test de renovacion automatica de token |
-| Frontend — Permisos RBAC en UI | No cubierto | Sin test que verifique bloqueo visual de controles por permisos |
+El proyecto implementa un estándar de pruebas fullstack con skill de testing especializada (`.agents/skills/fullstack-testing/SKILL.md`), acumulando **118 pruebas automatizadas con 100% de éxito**:
+
+- **Backend (pytest + pytest-django):** 69 pruebas unitarias y de integración.
+- **Frontend (Vitest + React Testing Library):** 49 pruebas de componentes, hooks y validación.
+
+| Área | Estado | Cobertura Implementada |
+|:-----|:-------|:-----------------------|
+| `accounts` — autenticación y OTP | Cubierto | 13 tests: login, registro, OTP 6 dígitos, reseteo de clave, rate limiting |
+| `accounts` — demo users y seguridad | Cubierto | 5 tests: omisión en prod, remediación de claves débiles, flags CLI |
+| `accounts` — RBAC y auditoría | Cubierto | 5 tests: permisos granulares, rechazo de no-admin, inmutabilidad AuditLog |
+| `patients` — integridad relacional | Cubierto | 3 tests: unicidad de documento, ordenamiento, creación de registros |
+| `triage` — sesiones y concordancia | Cubierto | 10 tests: cálculo Kappa, drift, override médico, asignación de box, auth check |
+| `triage` — interoperabilidad FHIR | Cubierto | 4 tests: validación de bundles R4, logs de transacciones, payload JSON |
+| `system_settings` — cifrado y llaves | Cubierto | 9 tests: Fernet AES-256, auto-detección, sincronización automática `.env` |
+| `transcription` — Whisper ASR | Cubierto | 11 tests: Singleton, poda TTL (1800s), normalización SNOMED, redacción de trazas |
+| `core` — validación Pydantic v2 | Cubierto | 9 tests: schemas tipados, validación estricta de OTP/teléfonos/emails |
+| Frontend — componentes y navegación | Cubierto | 28 tests: AppNavigation (drawer móvil), EMRSimulator, FHIRMonitor, Paneles |
+| Frontend — validación reactiva | Cubierto | 17 tests: esquemas Zod, regex de teléfonos/emails/cédulas, InputWarning |
+| Frontend — utilidades HTTP y JWT | Cubierto | 4 tests: inyección de Bearer, rotación de tokens, manejo de 401 |
 
 ---
 
-## 6. Inconsistencias de Diseno
+## 6. Inconsistencias de Diseño
 
 ### Action string no estandarizado en AuditLog
 **Archivo:** `backend/triage/views.py#L363`
@@ -361,47 +369,45 @@ El puerto de la base de datos esta expuesto al host. En produccion, esto permite
 action="ASSIGN_EMR_BOX"  # vs otros: 'TRIAGE_CREATED', 'TRIAGE_OVERRIDE'
 ```
 
-La mayoria de acciones usan snake_case upper (`TRIAGE_CREATED`) pero `ASSIGN_EMR_BOX` usa un formato distinto al esperado `EMR_BOX_ASSIGNED`. Sin un enum centralizado para las acciones de auditoria, la inconsistencia se propagara y dificultara queries analiticos sobre el log.
+La mayoría de acciones usan snake_case upper (`TRIAGE_CREATED`) pero `ASSIGN_EMR_BOX` usa un formato distinto al esperado `EMR_BOX_ASSIGNED`. Sin un enum centralizado para las acciones de auditoria, la inconsistencia se propagará y dificultará queries analíticos sobre el log.
 
 ---
 
-### `google-genai==0.3.0` es una version muy antigua (actual: 1.x)
+### `google-genai==0.3.0` es una versión muy antigua (actual: 1.x)
 **Archivo:** `backend/requirements.txt#L7`
 
-La libreria `google-genai` en version `0.3.0` es una version alpha antigua. La API publica cambio significativamente en versiones `1.x`. El codigo ya usa `client.models.generate_content()` que corresponde a la API de la version actual, lo que sugiere que puede haber incompatibilidades silenciosas o que la libreria es mas nueva de lo que el pin indica.
+La librería `google-genai` en versión `0.3.0` es una versión alpha antigua. La API pública cambió significativamente en versiones `1.x`. El código ya usa `client.models.generate_content()` que corresponde a la API de la versión actual, lo que sugiere que puede haber incompatibilidades silenciosas o que la librería es más nueva de lo que el pin indica.
 
 ---
 
-### `boto3==1.34.84` incluido sin uso identificado
-**Archivo:** `backend/requirements.txt#L11`
-
-`boto3` (SDK de AWS) esta como dependencia pero no existe ninguna referencia a servicios S3, SQS, SES u otros en el codigo. Esta dependencia aumenta el tiempo de build y la superficie de ataque del contenedor innecesariamente.
+### Dependencias depuradas
+Se eliminaron dependencias superfluas (`boto3`, `sendgrid`) que aumentaban el peso del contenedor sin ser utilizadas en el código.
 
 ---
 
-### `sendgrid==6.10.0` incluido sin uso identificado
-**Archivo:** `backend/requirements.txt#L30`
+## 7. Resumen de Prioridades y Estado de Resolución
 
-Similar a `boto3`, `sendgrid` esta declarado como dependencia pero el sistema de correo usa SMTP local via Mailpit. No hay llamadas al SDK de Sendgrid en el codigo.
-
----
-
-## 7. Resumen de Prioridades y Estado de Resolucion
-
-| # | Severidad | Descripcion | Archivo | Estado |
+| # | Severidad | Descripción | Archivo | Estado |
 |:--|:----------|:------------|:--------|:-------|
-| 1 | CRITICO | Todo `TriageSessionViewSet` sin autenticacion (`AllowAny`) | `triage/views.py:23` | **RESUELTO** (`012d8a6`) — Aplicado `IsAuthenticatedOrReadOnly` |
+| 1 | CRITICO | Todo `TriageSessionViewSet` sin autenticación (`AllowAny`) | `triage/views.py:23` | **RESUELTO** (`012d8a6`) — Aplicado `IsAuthenticatedOrReadOnly` |
 | 2 | CRITICO | Sin rate limiting en endpoints de auth y OTP | `config/settings.py` | **RESUELTO** (`012d8a6`) — Throttles `auth` (10/min) y `otp` (5/min) |
-| 3 | ALTO | JWT refresh tokens sin lista negra | `config/settings.py:144` | **RESUELTO** (`012d8a6`) — `token_blacklist` y rotacion activa |
-| 4 | ALTO | Tokens en `localStorage` (XSS vulnerable) | `lib/api.ts`, `login/page.tsx` | **EN HOJA DE RUTA** — Requiere cookies httpOnly en proxima iteracion |
-| 5 | ALTO | `SECRET_KEY` con fallback inseguro hardcodeado | `config/settings.py:14` | **RESUELTO** (`012d8a6`) — Fallback eliminado; error explicito |
-| 6 | ALTO | Historial clinico solo en `localStorage` | `TriageDashboard.tsx:218` | **EN HOJA DE RUTA** — Persistencia completa en BD lista; migrar UI historico |
-| 7 | ALTO | `time.sleep(0.5)` sincronico bloquea workers | `triage/views.py:410` | **RESUELTO** (`012d8a6`) — Bloqueo sincronico eliminado |
-| 8 | ALTO | Variable global `engine` con condicion de carrera | `transcription/views.py:22` | **RESUELTO** (`9267476`) — Singleton `WhisperEngine` directo |
-| 9 | ALTO | `TriageDashboard.tsx` monolitico de 1.451 lineas | `TriageDashboard.tsx` | **EN HOJA DE RUTA** — Refactor modular planeado |
-| 10 | ALTO | `useState<any>` en datos clinicos criticos (sin tipado) | `TriageDashboard.tsx:32,63,65` | **RESUELTO** (`4e31c14`) — Interfaces `UserProfile`, `AnalysisResult`, etc. |
+| 3 | ALTO | JWT refresh tokens sin lista negra | `config/settings.py:144` | **RESUELTO** (`012d8a6`) — `token_blacklist` y rotación activa |
+| 4 | ALTO | Tokens en `localStorage` (XSS vulnerable) | `lib/api.ts`, `login/page.tsx` | **EN HOJA DE RUTA** — Requiere cookies httpOnly en próxima iteración |
+| 5 | ALTO | `SECRET_KEY` con fallback inseguro hardcodeado | `config/settings.py:14` | **RESUELTO** (`012d8a6`) — Fallback eliminado; error explícito |
+| 6 | ALTO | Historial clínico solo en `localStorage` | `TriageDashboard.tsx:218` | **EN HOJA DE RUTA** — Persistencia completa en BD lista; migrar UI histórico |
+| 7 | ALTO | `time.sleep(0.5)` sincrónico bloquea workers | `triage/views.py:410` | **RESUELTO** (`012d8a6`) — Bloqueo sincrónico eliminado |
+| 8 | ALTO | Variable global `engine` con condición de carrera | `transcription/views.py:22` | **RESUELTO** (`9267476`) — Singleton `WhisperEngine` directo |
+| 9 | ALTO | `TriageDashboard.tsx` monolítico de 1.451 líneas | `TriageDashboard.tsx` | **EN HOJA DE RUTA** — Refactor modular planeado |
+| 10 | ALTO | `useState<any>` en datos clínicos críticos (sin tipado) | `TriageDashboard.tsx:32,63,65` | **RESUELTO** (`4e31c14`) — Interfaces `UserProfile`, `AnalysisResult`, etc. |
 | 11 | ALTO | Sin manejo de timeout ni errores en llamadas a Gemini | `ai_analyzer.py:77` | **RESUELTO** (`9267476`) — Timeout 30s y try/except estructurado |
-| 12 | MEDIO | `TriageSession.save()` recalcula en updates parciales | `triage/models.py:28` | **RESUELTO** (`9267476`) — Evaluacion condicional de campos |
+| 12 | MEDIO | `TriageSession.save()` recalcula en updates parciales | `triage/models.py:28` | **RESUELTO** (`9267476`) — Evaluación condicional de campos |
 | 13 | MEDIO | `db.sqlite3` rastreado en git | `backend/db.sqlite3` | **VERIFICADO** — Excluido en `.gitignore` y no rastreado |
 | 14 | MEDIO | Puerto PostgreSQL 5432 expuesto al host en Docker | `docker-compose.yml:10` | **RESUELTO** (`012d8a6`) — Puerto aislado en red interna |
 | 15 | MEDIO | Dependencias no utilizadas (`boto3`, `sendgrid`) | `requirements.txt:11,30` | **RESUELTO** (`9267476`) — Dependencias eliminadas |
+| 16 | CRITICO | Exposición de detalles internos de excepción en ASR | `transcription/views.py:58` | **RESUELTO** (`3547a8a`) — Redacción de stacktrace en respuestas HTTP |
+| 17 | ALTO | Generación de migraciones (`makemigrations`) en build Docker | `backend/Dockerfile:32` | **RESUELTO** (`3547a8a`) — Removida de build; delegada a `entrypoint.sh` |
+| 18 | ALTO | Creación automática de usuario demo inseguro en producción | `accounts/management/...` | **RESUELTO** (`3547a8a`) — Omitido en `ENVIRONMENT=production` |
+| 19 | MEDIO | Mezcla de endpoints de cuentas y seguridad administrativa | `accounts/urls.py` | **RESUELTO** (`3547a8a`) — Desacople en `accounts/urls_security.py` |
+| 20 | MEDIO | Validación inconsistente de teléfonos y falta de tests | `frontend/lib/validation.tsx` | **RESUELTO** (`3547a8a`) — Schema Zod estandarizado y tests asociados |
+| 21 | MEDIO | Desconexión entre variables `.env` y bóveda de credenciales | `system_settings/services.py` | **RESUELTO** (`16e74c5`) — Sincronización automática de llaves y `.env.example` |
+

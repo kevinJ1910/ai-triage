@@ -46,7 +46,7 @@ def transcribe_chunk(request: HttpRequest) -> JsonResponse:
         
     except Exception as e:
         logger.error(f"Error in transcribe_chunk view: {e}", exc_info=True)
-        return JsonResponse({"error": "Internal transcription failure", "details": str(e)}, status=500)
+        return JsonResponse({"error": "Internal transcription failure"}, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -75,7 +75,7 @@ def reset_session(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "Invalid JSON format in body"}, status=400)
     except Exception as e:
         logger.error(f"Error in reset_session view: {e}", exc_info=True)
-        return JsonResponse({"error": "Failed to reset session", "details": str(e)}, status=500)
+        return JsonResponse({"error": "Failed to reset session"}, status=500)
 
 @require_http_methods(["GET"])
 def health_check(request: HttpRequest) -> JsonResponse:
@@ -85,8 +85,7 @@ def health_check(request: HttpRequest) -> JsonResponse:
         logger.critical(f"Could not initialize WhisperEngine in health check: {engine_err}", exc_info=True)
         return JsonResponse({
             "status": "unhealthy", 
-            "error": "Whisper Engine could not be initialized",
-            "details": str(engine_err)
+            "error": "Whisper Engine could not be initialized"
         }, status=503)
         
     try:
@@ -94,9 +93,10 @@ def health_check(request: HttpRequest) -> JsonResponse:
         status_info["status"] = "healthy"
         return JsonResponse(status_info)
     except Exception as e:
+        logger.error(f"Error in health_check view: {e}", exc_info=True)
         return JsonResponse({
             "status": "unhealthy",
-            "details": str(e)
+            "error": "Failed to get Whisper Engine status"
         }, status=500)
 
 

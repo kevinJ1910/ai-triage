@@ -93,3 +93,42 @@ class TestSystemSettingsAndEncryption:
         del_res = self.client.delete(f"/api/config/keys/{key_id}/")
         assert del_res.status_code == status.HTTP_200_OK
         assert not APIKeyCredential.objects.filter(id=key_id).exists()
+
+    def test_create_api_key_whitespace_provider_triggers_autodetection(self):
+        self.client.force_authenticate(user=self.admin)
+        post_res = self.client.post("/api/config/keys/", {
+            "name": "Gemini Auto Key",
+            "api_key": "AIzaSyDummyGeminiKey12345678901234567890",
+            "provider": "   "
+        }, format="json")
+        assert post_res.status_code == status.HTTP_201_CREATED
+        assert post_res.data["credential"]["provider"] == "gemini"
+
+    def test_create_api_key_invalid_provider_rejected(self):
+        self.client.force_authenticate(user=self.admin)
+        post_res = self.client.post("/api/config/keys/", {
+            "name": "Invalid Provider Key",
+            "api_key": "sk-proj-1234567890abcdef1234567890abcdef12",
+            "provider": "unsupported_provider_xyz"
+        }, format="json")
+        assert post_res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_sync_environment_api_keys_registers_env_vars(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyTestFromEnv1234567890")
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-TestFromEnv1234567890abcdef")
+        monkeypatch.setenv("GROQ_API_KEY", "gsk_TestDynamicFromEnv1234567890")
+
+        self.client.force_authenticate(user=self.admin)
+        get_res = self.client.get("/api/config/")
+        assert get_res.status_code == status.HTTP_200_OK
+
+        api_keys = get_res.data["api_keys"]
+        key_names = [k["name"] for k in api_keys]
+        assert any("Google Gemini (Entorno .env)" in name for name in key_names)
+        assert any("OpenAI (Entorno .env)" in name for name in key_names)
+        assert any("Groq (Entorno .env)" in name for name in key_names)
+
+        gemini_cred = APIKeyCredential.objects.filter(provider="gemini").first()
+        assert gemini_cred is not None
+        assert gemini_cred.get_key() == "AIzaSyTestFromEnv1234567890"
+        assert gemini_cred.masked_key.endswith("7890")

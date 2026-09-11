@@ -340,7 +340,7 @@ export default function ConfigPanel() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-md bg-slate-800 flex items-center justify-center text-slate-300 text-xs font-mono font-bold">
-                      {key.provider === 'gemini' ? 'G' : key.provider === 'openai' ? 'OA' : 'K'}
+                      {key.provider === 'gemini' ? 'G' : key.provider === 'openai' ? 'OA' : key.provider === 'anthropic' ? 'CL' : key.provider === 'deepseek' ? 'DS' : 'K'}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -348,6 +348,11 @@ export default function ConfigPanel() {
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
                           {key.provider_display}
                         </span>
+                        {key.name.includes('.env') && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            .env
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] font-mono text-emerald-400 tracking-wider">

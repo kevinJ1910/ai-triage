@@ -23,8 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN pip install --no-cache-dir gunicorn
 
 COPY . .
-
-RUN python manage.py makemigrations accounts patients triage
+# Las migraciones deben estar versionadas en el repo; en runtime el entrypoint ejecuta migrate
 
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 

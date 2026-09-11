@@ -19,7 +19,7 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 
 ### 2.1. Autenticacion Institucional y Servicio SMTP Local (Mailpit)
 - **Servicio Mailpit**: Desplegado en `docker-compose.yml` (puerto SMTP 1025, Web UI 8025) para captura local y trazabilidad de trafico de correos transaccionales sin requerir proveedores de pago en desarrollo.
-- **Modelo de Usuario Extendido (`accounts.User`)**: Incorpora campos de identificacion clinica (`document_type`, `document_number`, `phone_number`, `role`, `is_verified`).
+- **Modelo de Usuario Extendido (`accounts.User`)**: Incorpora campos de identificación clínica (`document_id`, `phone`, `role`, `is_verified`, `first_name`, `last_name`).
 - **Verificacion OTP y Restablecimiento**:
   - Generacion criptografica segura de tokens OTP de 6 digitos (`AuthVerificationCode`) con validez de 15 minutos e invalidacion tras un unico uso.
   - Correos HTML corporativos con la paleta clinica oscura institucional generados mediante plantillas en `accounts/emails.py`.
@@ -109,11 +109,12 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 
 ### 2.10. Suites de Pruebas Automatizadas Fullstack
 - **Frontend (Vitest + React Testing Library)**:
-  - 10 archivos de prueba y 47 tests unitarios/componentes ejecutandose al 100% de exito (~3.3s).
-  - Cobertura: navegacion de la app, apertura y conmutacion del drawer movil, asignacion EMR y vistas adaptativas, monitores FHIR y Normalizacion, paneles de Seguridad y Metricas, y logica de validaciones tipadas.
-- **Backend (Pytest + pytest-django)**:
-  - 54 tests unitarios y de integracion ejecutandose al 100% de exito (~26s).
-  - Cobertura: ciclo de vida de autenticacion y verificacion OTP, seguridad RBAC y registros de auditoria, modelos criptograficos de credenciales, motor Whisper y limpieza TTL, endpoints FHIR R4, calculo matematico de concordancia de triaje y esquemas de validacion Pydantic.
+  - 10 archivos de prueba y 49 tests unitarios/componentes ejecutándose al 100% de éxito (~3.4s).
+  - Cobertura: navegación de la app, apertura y conmutación del drawer móvil, asignación EMR y vistas adaptativas, monitores FHIR y Normalización, paneles de Seguridad y Métricas, utilidades de autenticación JWT y lógica reactiva de validaciones tipadas Zod.
+- **Backend (pytest + pytest-django)**:
+  - 69 tests unitarios y de integración ejecutándose al 100% de éxito (~69s).
+  - Cobertura: ciclo de vida de autenticación y verificación OTP, demo users y omisión en producción, seguridad RBAC y registros de auditoría inmutables, modelos criptográficos de credenciales, motor Whisper con poda TTL y redacción de trazas de excepción, endpoints FHIR R4, cálculo matemático de concordancia de triaje y esquemas de validación Pydantic v2.
+- **Total:** 118 pruebas fullstack automatizadas con reporte de cero regresiones.
 
 ### 2.11. Responsividad Movil Integral y Adaptabilidad de Interfaz
 - **Encabezado Superior Movil y Drawer Deslizante (`AppNavigation.tsx`)**:
@@ -127,20 +128,23 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 ### 2.12. Orquestacion Contenerizada con Docker Compose
 - **Despliegue Multi-Contenedor Saludable**:
   - `ai_triage_nginx`: Proxy inverso unificado en puerto 80 con reescritura de URLs hacia API y Frontend.
-  - `ai_triage_backend`: Imagen multi-etapa basada en Python 3.12-slim, servidor Gunicorn en puerto 8000, scripts de entrypoint con migraciones automaticas y healthcheck activo contra `/api/health_check/`.
-  - `ai_triage_frontend`: Imagen multi-etapa optimizada basada en Node 20 Alpine y Next.js Standalone en puerto 3000.
-  - `ai_triage_postgres`: Base de datos PostgreSQL 16 Alpine persistente.
+  - `ai_triage_backend`: Imagen multi-etapa basada en Python 3.12-slim, servidor Gunicorn en puerto 8000, scripts de entrypoint con migraciones automáticas en tiempo de arranque runtime (eliminando `makemigrations` en build-time), ejecución con usuario no-root `appuser` (UID 10001) y healthcheck activo contra `/api/health_check/`.
+  - `ai_triage_frontend`: Imagen multi-etapa optimizada basada en Node 20 Alpine y Next.js Standalone en puerto 3000 con usuario `nextjs` (UID 1001).
+  - `ai_triage_postgres`: Base de datos PostgreSQL 16 Alpine persistente con puerto interno aislado.
   - `ai_triage_redis`: Cola y almacenamiento temporal Redis 7 Alpine.
-  - `ai_triage_mailpit`: Servidor SMTP y visor web de correos transaccionales.
+  - `ai_triage_mailpit`: Servidor SMTP y visor web de correos transaccionales para OTP y recuperación.
 
 ### 2.13. Fortalecimiento de Seguridad, Concurrencia y Resolucion de Auditoria
-- **Control de Acceso en Triaje**: Se blindo `TriageSessionViewSet` con `IsAuthenticatedOrReadOnly`, bloqueando creaciones y sobreescrituras no autenticadas con codigo 401.
-- **Defensa contra Fuerza Bruta (Rate Limiting)**: Se configuraron clases de throttle especificas (`AuthThrottle`: 10 peticiones/minuto, `OTPThrottle`: 5 peticiones/minuto) en endpoints de login, registro, verificacion OTP y recuperacion de clave, complementadas con politicas globales en `REST_FRAMEWORK`.
-- **Lista Negra de Tokens JWT**: Se integro `rest_framework_simplejwt.token_blacklist` y se configuro `BLACKLIST_AFTER_ROTATION: True`, invalidando de inmediato refresh tokens tras su renovacion o cierre de sesion.
-- **Proteccion de Llaves Criptograficas**: Se elimino el fallback inseguro hardcodeado de `SECRET_KEY`, forzando excepciones explicitas en startup si no se suministra via variables de entorno, con soporte de carga jerarquica de `.env`.
-- **Concurrencia en Backend**: Se erradico la variable global mutable en `transcription/views.py` aprovechando el patron Singleton con candado `threading.Lock` de `WhisperEngine`, y se removio el bloqueo sincrono `time.sleep(0.5)` en el endpoint FHIR.
-- **Aislamiento de Red Docker**: Se cerro la exposicion directa del puerto `5432` de PostgreSQL al host en `docker-compose.yml`, restringiendo su trafico a la red interna `ai_triage_network`.
-- **Resiliencia en Cliente Frontend**: Se implemento la renovacion silenciosa automatica de access tokens via `tryRefreshToken` en `fetchWithAuth` ante respuestas HTTP 401 previniendo interrupciones abruptas de sesion, y se sustituyo `useState<any>` por interfaces clinicas tipadas (`UserProfile`, `TriageEntities`, `TriageLevelInfo`, `AnalysisResult`).
+- **Control de Acceso en Triaje**: Se blindó `TriageSessionViewSet` con `IsAuthenticatedOrReadOnly`, bloqueando creaciones y sobreescrituras no autenticadas con código 401.
+- **Defensa contra Fuerza Bruta (Rate Limiting)**: Se configuraron clases de throttle específicas (`AuthThrottle`: 10 peticiones/minuto, `OTPThrottle`: 5 peticiones/minuto) en endpoints de login, registro, verificación OTP y recuperación de clave, complementadas con políticas globales en `REST_FRAMEWORK`.
+- **Lista Negra de Tokens JWT**: Se integró `rest_framework_simplejwt.token_blacklist` y se configuró `BLACKLIST_AFTER_ROTATION: True`, invalidando de inmediato refresh tokens tras su renovación o cierre de sesión.
+- **Protección de Llaves Criptográficas**: Se eliminó el fallback inseguro hardcodeado de `SECRET_KEY`, forzando excepciones explícitas en startup si no se suministra vía variables de entorno, con soporte de carga jerárquica de `.env`.
+- **Redacción de Trazas de Excepción**: En `transcription/views.py` se redactaron los detalles internos de excepción (rutas del sistema de archivos, trazas internas de CUDA/ctranslate2), retornando mensajes genéricos de error HTTP 500 y registrando el detalle en logs de backend.
+- **Desacoplamiento de Rutas de Seguridad**: Separación explícita de endpoints de gestión administrativa de usuarios y auditoría en `accounts/urls_security.py` bajo `/api/security/`, preservando `/api/auth/` exclusivamente para flujos de sesión.
+- **Inicialización Controlada de Cuentas Demo**: En `create_demo_user.py` se omite por completo la creación de cuentas de demostración si `ENVIRONMENT=production`, y se exige contraseña explícita en `development`.
+- **Sincronización de Llaves de Entorno**: Se desarrolló `sync_env_api_keys` y plantilla `.env.example` para sincronizar automáticamente credenciales de múltiples proveedores de IA (`gemini`, `openai`, `anthropic`, `deepseek`, `groq`, `cohere`, `mistral`) con la bóveda cifrada en arranque.
+- **Aislamiento de Red Docker**: Se cerró la exposición directa del puerto `5432` de PostgreSQL al host en `docker-compose.yml`, restringiendo su tráfico a la red interna `ai_triage_network`.
+- **Resiliencia en Cliente Frontend**: Se implementó la renovación silenciosa automática de access tokens vía `tryRefreshToken` en `fetchWithAuth` ante respuestas HTTP 401 previniendo interrupciones abruptas de sesión, y se sustituyó `useState<any>` por interfaces clínicas tipadas (`UserProfile`, `TriageEntities`, `TriageLevelInfo`, `AnalysisResult`).
 
 ---
 
@@ -175,7 +179,7 @@ A pesar de que el sistema cumple a cabalidad con la funcionalidad logica, valida
 | `POST` | `/api/auth/register/` | Registro de personal clinico con envio de OTP | `RegisterSchema` (Pydantic) | Publico (Rate Limit: 10/min) |
 | `POST` | `/api/auth/verify/` | Validacion de codigo OTP de 6 digitos | `VerifyCodeSchema` (Pydantic) | Publico (Rate Limit: 5/min) |
 | `POST` | `/api/auth/password-reset/` | Solicitud y confirmacion de recuperacion | `PasswordResetRequest/Confirm` | Publico (Rate Limit: 10/min) |
-| `POST` | `/api/auth/token/refresh/` | Renovacion de tokens JWT (Blacklist activo) | N/A | Publico / Refresh Token |
+| `POST` | `/api/auth/refresh/` | Renovación de tokens JWT (Blacklist activo) | N/A | Público / Refresh Token |
 | `GET` | `/api/auth/me/` | Perfil del usuario autenticado y roles | N/A | Bearer JWT Requerido |
 | `GET` | `/api/security/users/` | Directorio de usuarios y permisos | N/A | Bearer JWT Requerido |
 | `PATCH`| `/api/security/users/<id>/permissions/` | Modificacion de matriz RBAC | `UserPermissionUpdateSchema` | Bearer JWT (Solo Admin) |

@@ -14,6 +14,9 @@ class SystemConfigView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        from .services import sync_environment_api_keys
+        sync_environment_api_keys()
+
         config = SystemConfiguration.get_solo()
         keys = APIKeyCredential.objects.filter(is_active=True).order_by('-created_at')
         
@@ -75,6 +78,9 @@ class APIKeyListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        from .services import sync_environment_api_keys
+        sync_environment_api_keys()
+
         keys = APIKeyCredential.objects.filter(is_active=True).order_by('-created_at')
         return Response(APIKeyCredentialSerializer(keys, many=True).data)
 
@@ -84,11 +90,11 @@ class APIKeyListView(APIView):
 
         from core.validation import validate_payload, APIKeyCreateSchema
         try:
-            validate_payload(APIKeyCreateSchema, request.data)
+            validated = validate_payload(APIKeyCreateSchema, request.data)
         except Exception as e:
             return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = CreateAPIKeySerializer(data=request.data)
+        serializer = CreateAPIKeySerializer(data=validated.model_dump())
         if serializer.is_valid():
             credential = serializer.save()
 
