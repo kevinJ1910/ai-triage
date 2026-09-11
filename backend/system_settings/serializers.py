@@ -36,10 +36,19 @@ class CreateAPIKeySerializer(serializers.Serializer):
     api_key = serializers.CharField(write_only=True, min_length=10)
     provider = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True)
 
+    def validate_provider(self, value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        clean_provider = value.strip().lower()
+        valid_choices = [c[0] for c in APIKeyCredential.PROVIDER_CHOICES]
+        if clean_provider not in valid_choices:
+            raise serializers.ValidationError(f"Proveedor '{value}' no es valido. Opciones: {valid_choices}")
+        return clean_provider
+
     def create(self, validated_data):
         raw_key = validated_data['api_key'].strip()
         provider = validated_data.get('provider')
-        if not provider:
+        if not provider or (isinstance(provider, str) and not provider.strip()):
             provider = detect_key_provider(raw_key)
 
         credential = APIKeyCredential(

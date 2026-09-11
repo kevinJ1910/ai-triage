@@ -84,11 +84,11 @@ class APIKeyListView(APIView):
 
         from core.validation import validate_payload, APIKeyCreateSchema
         try:
-            validate_payload(APIKeyCreateSchema, request.data)
+            validated = validate_payload(APIKeyCreateSchema, request.data)
         except Exception as e:
             return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = CreateAPIKeySerializer(data=request.data)
+        serializer = CreateAPIKeySerializer(data=validated.model_dump())
         if serializer.is_valid():
             credential = serializer.save()
 

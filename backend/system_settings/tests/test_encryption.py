@@ -93,3 +93,22 @@ class TestSystemSettingsAndEncryption:
         del_res = self.client.delete(f"/api/config/keys/{key_id}/")
         assert del_res.status_code == status.HTTP_200_OK
         assert not APIKeyCredential.objects.filter(id=key_id).exists()
+
+    def test_create_api_key_whitespace_provider_triggers_autodetection(self):
+        self.client.force_authenticate(user=self.admin)
+        post_res = self.client.post("/api/config/keys/", {
+            "name": "Gemini Auto Key",
+            "api_key": "AIzaSyDummyGeminiKey12345678901234567890",
+            "provider": "   "
+        }, format="json")
+        assert post_res.status_code == status.HTTP_201_CREATED
+        assert post_res.data["credential"]["provider"] == "gemini"
+
+    def test_create_api_key_invalid_provider_rejected(self):
+        self.client.force_authenticate(user=self.admin)
+        post_res = self.client.post("/api/config/keys/", {
+            "name": "Invalid Provider Key",
+            "api_key": "sk-proj-1234567890abcdef1234567890abcdef12",
+            "provider": "unsupported_provider_xyz"
+        }, format="json")
+        assert post_res.status_code == status.HTTP_400_BAD_REQUEST

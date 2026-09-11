@@ -102,9 +102,42 @@ class TestWhisperEngineAndEndpoints:
         assert any("opresi" in mt for mt in medical_terms)
         assert any("disnea" in mt for mt in medical_terms)
 
+    def test_whisper_engine_constructor_failure_redacts_details(self):
+        with patch("transcription.views.WhisperEngine", side_effect=RuntimeError("GPU driver missing CudaLib.so")):
+            res_health = self.client.get("/api/health_check/")
+            assert res_health.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+            data_health = res_health.json()
+            assert data_health["status"] == "unhealthy"
+            assert data_health["error"] == "Whisper Engine could not be initialized"
+            assert "details" not in data_health
+            assert "GPU driver missing CudaLib.so" not in res_health.content.decode()
+
+            audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+            res_transcribe = self.client.post(
+                "/api/transcribe/",
+                {"audio": audio_file, "session_id": "err-session-uuid"},
+                format="multipart"
+            )
+            assert res_transcribe.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+            data_transcribe = res_transcribe.json()
+            assert data_transcribe["error"] == "Whisper Engine could not be initialized"
+            assert "details" not in data_transcribe
+            assert "GPU driver missing CudaLib.so" not in res_transcribe.content.decode()
+
+            res_reset = self.client.post(
+                "/api/transcribe/reset/",
+                {"session_id": "err-session-uuid"}
+            )
+            assert res_reset.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+            data_reset = res_reset.json()
+            assert data_reset["error"] == "Whisper Engine is not initialized"
+            assert "details" not in data_reset
+            assert "GPU driver missing CudaLib.so" not in res_reset.content.decode()
+
     def test_transcribe_chunk_failure_path_redacts_details(self):
         audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
-        with patch.object(WhisperEngine, "transcribe_chunk", side_effect=RuntimeError("Internal core dump stack trace")):
+        with patch("transcription.views.WhisperEngine") as mock_cls:
+            mock_cls.return_value.transcribe_chunk.side_effect = RuntimeError("Internal core dump stack trace")
             response = self.client.post(
                 "/api/transcribe/",
                 {"audio": audio_file, "session_id": "err-session-uuid"},
@@ -117,7 +150,8 @@ class TestWhisperEngineAndEndpoints:
             assert "Internal core dump stack trace" not in response.content.decode()
 
     def test_reset_session_failure_path_redacts_details(self):
-        with patch.object(WhisperEngine, "reset_session", side_effect=RuntimeError("Sensitive memory lock deadlock")):
+        with patch("transcription.views.WhisperEngine") as mock_cls:
+            mock_cls.return_value.reset_session.side_effect = RuntimeError("Sensitive memory lock deadlock")
             response = self.client.post(
                 "/api/transcribe/reset/",
                 {"session_id": "err-session-uuid"}
@@ -129,7 +163,8 @@ class TestWhisperEngineAndEndpoints:
             assert "Sensitive memory lock deadlock" not in response.content.decode()
 
     def test_health_check_failure_path_redacts_details(self):
-        with patch.object(WhisperEngine, "get_status", side_effect=RuntimeError("Hardware GPU driver crash")):
+        with patch("transcription.views.WhisperEngine") as mock_cls:
+            mock_cls.return_value.get_status.side_effect = RuntimeError("Hardware GPU driver crash")
             response = self.client.get("/api/health_check/")
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
             data = response.json()
