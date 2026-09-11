@@ -14,6 +14,9 @@ class SystemConfigView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        from .services import sync_environment_api_keys
+        sync_environment_api_keys()
+
         config = SystemConfiguration.get_solo()
         keys = APIKeyCredential.objects.filter(is_active=True).order_by('-created_at')
         
@@ -75,6 +78,9 @@ class APIKeyListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        from .services import sync_environment_api_keys
+        sync_environment_api_keys()
+
         keys = APIKeyCredential.objects.filter(is_active=True).order_by('-created_at')
         return Response(APIKeyCredentialSerializer(keys, many=True).data)
 
