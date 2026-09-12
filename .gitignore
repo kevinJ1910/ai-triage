@@ -90,7 +90,6 @@ credentials/
 # Docker
 # ===========================================
 docker-compose.override.yml
-.dockerignore
 
 # ===========================================
 # Misc

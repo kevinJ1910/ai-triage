@@ -1,0 +1,15 @@
+# Override opcional para hosts con GPU NVIDIA y nvidia-container-toolkit instalado.
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+services:
+  backend:
+    environment:
+      - WHISPER_DEVICE=cuda
+      - WHISPER_COMPUTE_TYPE=float16
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
