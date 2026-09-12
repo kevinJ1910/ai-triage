@@ -93,10 +93,7 @@ services:
           memory: 8G
         reservations:
           memory: 4G
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU opcional: usar docker-compose.gpu.yml como override en hosts con NVIDIA + nvidia-container-toolkit.
 
   frontend:
     build:
