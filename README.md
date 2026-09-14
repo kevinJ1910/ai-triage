@@ -92,7 +92,8 @@ ai-triage/
 │   ├── INFORME_IMPLEMENTACION_Y_BRECHAS.md # Informe técnico integral y brechas del sistema
 │   └── AUDIT_TECNICO.md                  # Auditoría técnica, matriz de riesgos y resolución
 │
-├── docker-compose.yml                    # Orquestación de infraestructura multi-contenedor
+├── docker-compose.yml                    # Orquestación de infraestructura multi-contenedor (CPU por defecto)
+├── docker-compose.gpu.yml                # Override opcional: reserva NVIDIA CUDA para el backend
 ├── .env                                  # Variables de entorno locales
 ├── .env.example                          # Plantilla documentada de variables
 └── README.md                             # Documento principal del repositorio
@@ -197,8 +198,24 @@ WHISPER_COMPUTE_TYPE=default        # int8 (CPU), float16 (GPU), default
 
 ### 2. Desplegar los servicios
 
+**Sin GPU (CPU, funciona en cualquier equipo):**
+
 ```bash
 docker compose up --build -d
+```
+
+Con `WHISPER_DEVICE=auto`, Faster-Whisper detecta que no hay GPU NVIDIA disponible y ejecuta el modelo en CPU automáticamente (con fallback interno a `compute_type=int8` si la carga inicial falla). El resto de servicios (Postgres, Redis, Mailpit, nginx, frontend) es idéntico en ambos escenarios; solo cambia el rendimiento de la transcripción ASR.
+
+**Con GPU (host con NVIDIA + `nvidia-container-toolkit` instalado):**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+
+El archivo `docker-compose.gpu.yml` añade al servicio `backend` la reserva de dispositivo `driver: nvidia` y fuerza `WHISPER_DEVICE=cuda` / `WHISPER_COMPUTE_TYPE=float16` para aceleración por hardware. Usa los mismos flags `-f` al detener el stack:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
 ```
 
 ### 3. Verificar el estado de salud de la plataforma
