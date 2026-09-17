@@ -160,8 +160,17 @@ Debes responder UNICAMENTE en formato JSON con la siguiente estructura:
   ]
 }}
 """
+            active_engine = 'gemini-2.5-flash'
+            try:
+                from system_settings.models import SystemConfiguration
+                cfg = SystemConfiguration.get_solo()
+                if cfg.active_llm_engine:
+                    active_engine = cfg.active_llm_engine
+            except Exception:
+                pass
+
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=active_engine,
                 contents=prompt,
                 config={'response_mime_type': 'application/json'}
             )

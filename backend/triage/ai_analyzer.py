@@ -82,9 +82,18 @@ def analyze_triage_transcript(transcript: str) -> dict:
     "{transcript}"
     """
 
+    active_model = 'gemini-2.5-flash'
+    try:
+        from system_settings.models import SystemConfiguration
+        config = SystemConfiguration.get_solo()
+        if config.active_llm_engine:
+            active_model = config.active_llm_engine
+    except Exception as cfg_err:
+        logger.debug(f"Could not read active_llm_engine from DB: {cfg_err}")
+
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model=active_model,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
