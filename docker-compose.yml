@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: ai_triage_postgres
     restart: unless-stopped
     environment:
@@ -67,8 +67,8 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-nginx,localhost,127.0.0.1}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost}
       - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-large-v3-turbo}
-      - WHISPER_DEVICE=${WHISPER_DEVICE:-auto}
-      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-default}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
@@ -93,7 +93,10 @@ services:
           memory: 8G
         reservations:
           memory: 4G
-    # GPU opcional: usar docker-compose.gpu.yml como override en hosts con NVIDIA + nvidia-container-toolkit.
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   frontend:
     build:

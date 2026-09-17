@@ -117,11 +117,15 @@ export default function TriageDashboard() {
     resumeRecording,
     abortTranscription,
     resetTranscript,
+    asrError,
+    clearAsrError,
   } = useWhisperASR();
 
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [triageError, setTriageError] = useState<string | null>(null);
+  const [triageWarning, setTriageWarning] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
@@ -407,6 +411,8 @@ export default function TriageDashboard() {
 
   const handleAnalyze = async (fullTranscript: {speaker: string, text: string}[]) => {
     setIsAnalyzing(true);
+    setTriageError(null);
+    setTriageWarning(null);
     try {
       const text = fullTranscript.map(t => `${t.speaker}: ${t.text}`).join('\n');
       const res = await fetchWithAuth('/api/triage/sessions/analyze/', {
@@ -415,11 +421,23 @@ export default function TriageDashboard() {
         body: JSON.stringify({ transcript: text })
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        const errorMsg = data.error || `Error en el servicio de triaje (HTTP ${res.status})`;
+        setTriageError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
       if (data.session_id) setActiveSessionId(data.session_id);
       const aiAnalysis = data.analysis || data;
       setAnalysisResult(aiAnalysis);
+      if (data.warning || aiAnalysis.warning) {
+        setTriageWarning(data.warning || aiAnalysis.warning);
+      }
       if (aiAnalysis.entities) setEditedEntities(aiAnalysis.entities);
     } catch (err) {
+      const msg = "Fallo de conexión: La API de IA o el servidor de triaje no está respondiendo.";
+      setTriageError(msg);
+      toast.error(msg);
       console.error(err);
     } finally {
       setIsAnalyzing(false);
@@ -449,6 +467,9 @@ export default function TriageDashboard() {
       setTranscript([]);
       resetTranscript();
       setAnalysisResult(null);
+      setTriageError(null);
+      setTriageWarning(null);
+      clearAsrError();
       setEditedEntities(null);
       setIsEditMode(false);
       setIsVerifyingTranscript(false);
@@ -625,6 +646,26 @@ export default function TriageDashboard() {
             style={isDesktop ? { width: `${colRatio}%` } : undefined}
             className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-auto"
           >
+            {/* ASR Error Banner */}
+            {asrError && (
+              <div className="shrink-0 p-3 bg-red-950/80 border border-red-500/80 rounded-lg flex items-start justify-between gap-2 text-red-200">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold block text-red-300">Aviso de Motor de Transcripción (ASR):</span>
+                    <span className="text-slate-300">{asrError}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={clearAsrError} 
+                  className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors"
+                  title="Cerrar aviso"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* ASR Transcription Box */}
             <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0">
               <div className="flex justify-between items-center mb-3 shrink-0">
@@ -1035,17 +1076,61 @@ export default function TriageDashboard() {
 
             {/* Triage Output */}
             <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700">
-                <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-1 shrink-0">
-                  <ShieldAlert className="w-4 h-4 text-orange-400" />
-                  Motor de Triaje Inteligente
-                </h2>
+                <div className="flex items-center justify-between gap-2 mb-1 shrink-0 flex-wrap">
+                  <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-orange-400" />
+                    Motor de Triaje Clínico
+                  </h2>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold uppercase tracking-wider">
+                      Christus Sinergia Salud
+                    </span>
+                    {analysisResult?.engine_used && (
+                      <span className="px-2 py-0.5 rounded bg-slate-700/80 border border-slate-600 text-slate-300 text-[9px] font-mono">
+                        {analysisResult.engine_used}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Error Banner if triage failed */}
+                {triageError && (
+                  <div className="shrink-0 p-3 bg-red-950/70 border border-red-500/70 rounded-lg flex flex-col gap-2 text-red-200">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
+                        <span className="text-slate-300">{triageError}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-1">
+                      <button
+                        onClick={() => handleAnalyze(transcript)}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Reintentar Diagnóstico
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Warning Banner if Fallback Rules Engine was triggered */}
+                {triageWarning && (
+                  <div className="shrink-0 p-2.5 bg-amber-950/60 border border-amber-500/60 rounded-lg flex items-start gap-2 text-amber-200">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-relaxed">
+                      <span className="font-bold block text-amber-300">Respaldo Asistencial Activo:</span>
+                      <span className="text-amber-200/90">{triageWarning}</span>
+                    </div>
+                  </div>
+                )}
 
                 {isAnalyzing ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest gap-3 py-4">
                      <div className="w-5 h-5 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
-                     Calculando gravedad...
+                     Calculando gravedad con protocolo institucional...
                   </div>
-                ) : analysisResult ? (
+                ) : analysisResult && analysisResult.triage && analysisResult.triage.level ? (
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
                       <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
                          <div className="flex items-center justify-between w-full px-1 mb-1">
@@ -1097,26 +1182,36 @@ export default function TriageDashboard() {
                             {getLevelLabel(analysisResult.triage?.level)}
                          </span>
 
+                         <span className="mt-0.5 px-2 py-0.5 rounded-full bg-black/40 text-[8px] sm:text-[9px] font-bold text-white/90 uppercase tracking-tight text-center">
+                            {getAttentionTime(analysisResult.triage?.level)}
+                         </span>
+
                          {analysisResult.triage?.ai_level && analysisResult.triage.level !== analysisResult.triage.ai_level && (
                            <span className="mt-1 text-[8px] text-white/80 italic text-center">
                              Sugerido IA: Nivel {ROMAN_LEVELS[analysisResult.triage.ai_level]}
                            </span>
                          )}
                       </div>
-                      <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto">
-                         <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5">
-                            Justificación Clínica (LLM)
-                         </h3>
-                         <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300">
-                            {analysisResult.triage?.justification}
-                         </p>
+                      <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto flex flex-col justify-between">
+                         <div>
+                           <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5">
+                              Justificación Clínica ({analysisResult.engine_used || 'Protocolo Christus Sinergia'})
+                           </h3>
+                           <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300">
+                              {analysisResult.triage?.justification}
+                           </p>
+                         </div>
+                         <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-400 font-mono">
+                           <span>Confianza: {Math.round((analysisResult.confidence || 0.95) * 100)}%</span>
+                           <span>Protocolo: Christus Sinergia Salud</span>
+                         </div>
                       </div>
                     </div>
-                ) : (
+                ) : !triageError ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
-                    Esperando datos de la consulta...
+                    Esperando datos de la consulta para análisis...
                   </div>
-                )}
+                ) : null}
 
             </div>
 
@@ -1234,12 +1329,23 @@ function getLevelGradient(level?: number) {
 
 function getLevelLabel(level?: number) {
   switch (level) {
-    case 1: return 'Resucitación';
+    case 1: return 'Reanimación';
     case 2: return 'Emergencia';
     case 3: return 'Urgencia';
-    case 4: return 'Urgencia Menor';
-    case 5: return 'No Urgente';
-    default: return 'Desconocido';
+    case 4: return 'Consulta Prioritaria';
+    case 5: return 'Consulta Externa';
+    default: return 'Sin Clasificar';
+  }
+}
+
+function getAttentionTime(level?: number) {
+  switch (level) {
+    case 1: return 'Atención Inmediata';
+    case 2: return 'Atención < 30 min';
+    case 3: return 'Atención < 120 min';
+    case 4: return 'Direccionamiento EPS';
+    case 5: return 'Direccionamiento EPS';
+    default: return '';
   }
 }
 

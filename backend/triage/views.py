@@ -131,7 +131,10 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "final_level": final_level_val,
             "is_level_modified": triage_session.is_level_modified,
             "agreement_score": triage_session.agreement_score,
-            "analysis": analysis
+            "analysis": analysis,
+            "warning": analysis.get('warning'),
+            "protocol": analysis.get('protocol', 'Christus Sinergia Salud'),
+            "engine_used": analysis.get('engine_used')
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['PATCH'])

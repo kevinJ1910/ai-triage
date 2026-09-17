@@ -190,3 +190,11 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+# --- Whisper ASR Configuration ---
+WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'large-v3-turbo')
+WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'auto')
+WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
+WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
+WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '1'))
+
