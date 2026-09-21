@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import tempfile
 import logging
@@ -52,8 +52,14 @@ class WhisperEngine:
             return cls._instance
 
     def _initialize(self) -> None:
-        logger.info("Inicializando modelo Faster-Whisper para ASR clinico...")
         model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')
+        try:
+            from system_settings.models import SystemConfiguration
+            cfg = SystemConfiguration.get_solo()
+            if cfg.active_asr_model:
+                model_size = cfg.active_asr_model
+        except Exception:
+            pass
         device = getattr(settings, 'WHISPER_DEVICE', 'auto')
         compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
         cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)

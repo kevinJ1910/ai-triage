@@ -41,6 +41,47 @@ interface ConfigData {
   icd10_updated_at: string;
 }
 
+interface ModelOption {
+  id: string;
+  name: string;
+  recommended?: boolean;
+  type?: string;
+  provider?: string;
+  description?: string;
+}
+
+interface AvailableOptions {
+  asr_models: ModelOption[];
+  llm_engines: ModelOption[];
+  ner_models: ModelOption[];
+}
+
+interface RuntimeStatus {
+  cuda_available: boolean;
+  hardware_device: string;
+  gemini_configured: boolean;
+  active_keys_count: number;
+  system_timezone: string;
+}
+
+interface VocabItem {
+  code: string;
+  title: string;
+  provider: string;
+  updated_at: string;
+  total_terms: number;
+  indexed_emergency_terms: number;
+  status: string;
+  update_available: boolean;
+  latest_release: string;
+  token_notice: string;
+}
+
+interface VocabulariesData {
+  snomed: VocabItem;
+  icd10: VocabItem;
+}
+
 export default function ConfigPanel() {
   const [config, setConfig] = useState<ConfigData>({
     active_asr_model: 'large-v3-turbo',
@@ -53,9 +94,13 @@ export default function ConfigPanel() {
   });
 
   const [apiKeys, setApiKeys] = useState<APIKeyItem[]>([]);
+  const [availableOptions, setAvailableOptions] = useState<AvailableOptions | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [vocabularies, setVocabularies] = useState<VocabulariesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [syncingVocab, setSyncingVocab] = useState<'snomed' | 'icd10' | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState<'snomed' | 'icd10' | null>(null);
 
   // Modal Agregar Llave
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -73,6 +118,9 @@ export default function ConfigPanel() {
       const data = await res.json();
       if (data.config) setConfig(data.config);
       if (data.api_keys) setApiKeys(data.api_keys);
+      if (data.available_options) setAvailableOptions(data.available_options);
+      if (data.runtime_status) setRuntimeStatus(data.runtime_status);
+      if (data.vocabularies) setVocabularies(data.vocabularies);
     } catch (err: any) {
       toast.error(err.message || 'No se pudo conectar con el servicio de configuracion');
     } finally {
@@ -168,13 +216,43 @@ export default function ConfigPanel() {
     }
   };
 
+  const handleCheckUpdate = async (type: 'snomed' | 'icd10') => {
+    setCheckingUpdate(type);
+    try {
+      const res = await fetchWithAuth('/api/config/vocabulary/sync/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, action: 'check_update' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Fallo al verificar catalogo remoto');
+
+      toast.info(data.message || 'Verificacion completada con exito');
+      if (vocabularies) {
+        setVocabularies(prev => prev ? ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            update_available: data.update_available,
+            latest_release: data.latest_release,
+          }
+        }) : null);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error al comprobar actualizaciones');
+    } finally {
+      setCheckingUpdate(null);
+    }
+  };
+
   const handleSyncVocab = async (type: 'snomed' | 'icd10') => {
     setSyncingVocab(type);
     try {
       const res = await fetchWithAuth('/api/config/vocabulary/sync/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type, action: 'sync' }),
       });
 
       const data = await res.json();
@@ -185,6 +263,18 @@ export default function ConfigPanel() {
         setConfig(prev => ({ ...prev, snomed_updated_at: data.snomed_updated_at }));
       } else {
         setConfig(prev => ({ ...prev, icd10_updated_at: data.icd10_updated_at }));
+      }
+
+      if (vocabularies) {
+        setVocabularies(prev => prev ? ({
+          ...prev,
+          [type]: {
+            ...prev[type],
+            updated_at: data[type === 'snomed' ? 'snomed_updated_at' : 'icd10_updated_at'],
+            indexed_emergency_terms: data.indexed_emergency_terms || prev[type].indexed_emergency_terms,
+            update_available: false,
+          }
+        }) : null);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error en sincronizacion');
@@ -249,20 +339,33 @@ export default function ConfigPanel() {
 
           <div className="space-y-3.5">
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Motor ASR de Transcripcion (Faster-Whisper)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Motor ASR de Transcripcion (Faster-Whisper)
+                </label>
+                {runtimeStatus && (
+                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${runtimeStatus.cuda_available ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                    {runtimeStatus.hardware_device}
+                  </span>
+                )}
+              </div>
               <select
                 value={config.active_asr_model}
                 onChange={(e) => setConfig({ ...config, active_asr_model: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="large-v3-turbo">Faster-Whisper (large-v3-turbo) - Alta Precision GPU/CPU (Recomendado)</option>
-                <option value="large-v3">Whisper Large V3 - Modelo Completo (Requiere GPU dedicada)</option>
-                <option value="medium">Faster-Whisper Medium - Balance Precision/Velocidad</option>
-                <option value="small">Faster-Whisper Small - Liviano / Baja Latencia</option>
-                <option value="base">Faster-Whisper Base - Modo Ahorro Recursos</option>
-                <option value="tiny">Faster-Whisper Tiny - Ultra Rapido</option>
+                {(availableOptions?.asr_models || [
+                  { id: 'large-v3-turbo', name: 'Faster-Whisper (large-v3-turbo) - Alta Precision GPU/CPU (Recomendado)' },
+                  { id: 'large-v3', name: 'Whisper Large V3 - Modelo Completo (Requiere GPU dedicada)' },
+                  { id: 'medium', name: 'Faster-Whisper Medium - Balance Precision/Velocidad' },
+                  { id: 'small', name: 'Faster-Whisper Small - Liviano / Baja Latencia' },
+                  { id: 'base', name: 'Faster-Whisper Base - Modo Ahorro Recursos' },
+                  { id: 'tiny', name: 'Faster-Whisper Tiny - Ultra Rapido' },
+                ]).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
               </select>
               <span className="text-[10px] text-slate-500 mt-1 block">
                 Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8.
@@ -270,18 +373,32 @@ export default function ConfigPanel() {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Motor de Explicabilidad y Triaje (LLM)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Motor de Explicabilidad y Triaje (LLM)
+                </label>
+                {runtimeStatus?.gemini_configured && (
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Credencial Activa
+                  </span>
+                )}
+              </div>
               <select
                 value={config.active_llm_engine}
                 onChange={(e) => setConfig({ ...config, active_llm_engine: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="gemini-2.5-flash">Google Gemini 2.5 Flash - Baja Latencia Clinica (Recomendado)</option>
-                <option value="gemini-1.5-pro">Google Gemini 1.5 Pro - Razonamiento Extendido</option>
-                <option value="gpt-4o-mini">OpenAI GPT-4o-mini - Soporte Multimodal</option>
-                <option value="claude-3-5-sonnet">Anthropic Claude 3.5 Sonnet - Precision Diagnostica</option>
+                {(availableOptions?.llm_engines || [
+                  { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash - Baja Latencia Clinica (Recomendado)' },
+                  { id: 'gemini-1.5-pro', name: 'Google Gemini 1.5 Pro - Razonamiento Extendido' },
+                  { id: 'gpt-4o-mini', name: 'OpenAI GPT-4o-mini - Soporte Multimodal' },
+                  { id: 'gpt-4o', name: 'OpenAI GPT-4o - Modelo de Referencia' },
+                  { id: 'claude-3-5-sonnet', name: 'Anthropic Claude 3.5 Sonnet - Precision Diagnostica' },
+                ]).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
               </select>
               <span className="text-[10px] text-slate-500 mt-1 block">
                 El motor analiza la conversacion medica para extraer sintomas, signos vitales y escala ESI/Manchester.
@@ -297,9 +414,15 @@ export default function ConfigPanel() {
                 onChange={(e) => setConfig({ ...config, active_ner_model: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="ClinicalBERT (v2.1 - Recomendado)">ClinicalBERT (v2.1 - Recomendado)</option>
-                <option value="BioBERT (v1.5 - Legacy)">BioBERT (v1.5 - Legacy)</option>
-                <option value="PubMedBERT (Experimental)">PubMedBERT (Experimental)</option>
+                {(availableOptions?.ner_models || [
+                  { id: 'ClinicalBERT (v2.1 - Recomendado)', name: 'ClinicalBERT (v2.1 - Recomendado)' },
+                  { id: 'BioBERT (v1.5 - Legacy)', name: 'BioBERT (v1.5 - Legacy)' },
+                  { id: 'PubMedBERT (Experimental)', name: 'PubMedBERT (Experimental)' },
+                ]).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -385,60 +508,152 @@ export default function ConfigPanel() {
 
         {/* CARD 3: Vocabularies */}
         <div className="lg:col-span-2 bg-slate-950/60 rounded-xl border border-slate-800 p-4 space-y-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-300 pb-2 border-b border-slate-800">
-            <Database className="w-4 h-4 text-purple-400" />
-            <h3 className="text-xs uppercase font-bold tracking-wider text-slate-200">
-              Estandares de Interoperabilidad Clinica (Vocabularios)
-            </h3>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Database className="w-4 h-4 text-purple-400" />
+              <h3 className="text-xs uppercase font-bold tracking-wider text-slate-200">
+                Estandares de Interoperabilidad Clinica (Vocabularios)
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400">
+              Mapeo Semantico Activo
+            </span>
+          </div>
+
+          {/* Token consumption notice banner */}
+          <div className="p-3 rounded-lg bg-indigo-950/20 border border-indigo-500/30 flex items-start gap-2.5 text-[11px] text-indigo-300">
+            <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-white block mb-0.5">Control de Consumo de Tokens (Filtrado Semantico LLM):</span>
+              <p className="text-slate-300 leading-relaxed text-[10px] sm:text-[11px]">
+                El motor realiza busqueda determinista y RAG semantico para vocabulario clinico. Cuando se activa el LLM para disambiguar lenguaje coloquial, cada consulta consume un promedio de <strong>~120 a 180 tokens</strong> (entrada: ~100 tokens, salida estructurada: ~40 tokens). Mantener vocabularios sincronizados permite maximizar el acierto local y reducir llamadas a API de terceros.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-3.5 bg-slate-900 rounded-lg border border-slate-800">
+            {/* SNOMED CT Card */}
+            <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
-                <span className="text-xs font-semibold block text-slate-200">{config.snomed_version}</span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.snomed_updated_at)}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-200">{config.snomed_version}</span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    {vocabularies?.snomed?.status || 'OPERACIONAL'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-1">
+                  Proveedor: {vocabularies?.snomed?.provider || 'IHTSDO / SNOMED International (Edicion Espanol)'}
                 </span>
-                <span className="text-[9px] text-purple-400 uppercase font-bold tracking-wider mt-1 block">
-                  Ontologia de sintomas y hallazgos
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Ultima actualizacion: {formatDate(config.snomed_updated_at)} • Ultimo release: {vocabularies?.snomed?.latest_release || '2026-09-01'}
+                </span>
+
+                <div className="mt-2.5 grid grid-cols-2 gap-2 p-2 rounded bg-slate-950/60 border border-slate-800/80 text-[10px]">
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Terminos del Catalogo:</span>
+                    <span className="font-mono font-bold text-slate-300">{(vocabularies?.snomed?.total_terms || 352267).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Prioritarios Urgencias:</span>
+                    <span className="font-mono font-bold text-emerald-400">{(vocabularies?.snomed?.indexed_emergency_terms || 24500).toLocaleString('es-CO')}</span>
+                  </div>
+                </div>
+
+                <span className="text-[9px] text-purple-400 uppercase font-bold tracking-wider mt-2 block">
+                  Ontologia de sintomas, signos y hallazgos
                 </span>
               </div>
-              <button
-                onClick={() => handleSyncVocab('snomed')}
-                disabled={syncingVocab === 'snomed'}
-                className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-              >
-                {syncingVocab === 'snomed' ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Upload className="w-3 h-3" />
-                )}
-                Sincronizar
-              </button>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+                <button
+                  onClick={() => handleCheckUpdate('snomed')}
+                  disabled={checkingUpdate === 'snomed'}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                >
+                  {checkingUpdate === 'snomed' ? (
+                    <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3 text-slate-400" />
+                  )}
+                  Comprobar
+                </button>
+
+                <button
+                  onClick={() => handleSyncVocab('snomed')}
+                  disabled={syncingVocab === 'snomed'}
+                  className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  {syncingVocab === 'snomed' ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Upload className="w-3 h-3" />
+                  )}
+                  Sincronizar
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 bg-slate-900 rounded-lg border border-slate-800">
+            {/* ICD-10 Card */}
+            <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 flex flex-col justify-between space-y-3">
               <div>
-                <span className="text-xs font-semibold block text-slate-200">{config.icd10_version}</span>
-                <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.icd10_updated_at)}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-200">{config.icd10_version}</span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    {vocabularies?.icd10?.status || 'OPERACIONAL'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-1">
+                  Proveedor: {vocabularies?.icd10?.provider || 'OMS / Catalogo Oficial CIE-10 (Edicion Clinica)'}
                 </span>
-                <span className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider mt-1 block">
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Ultima actualizacion: {formatDate(config.icd10_updated_at)} • Ultimo release: {vocabularies?.icd10?.latest_release || '2026-08-15'}
+                </span>
+
+                <div className="mt-2.5 grid grid-cols-2 gap-2 p-2 rounded bg-slate-950/60 border border-slate-800/80 text-[10px]">
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Codigos del Catalogo:</span>
+                    <span className="font-mono font-bold text-slate-300">{(vocabularies?.icd10?.total_terms || 14200).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Prioritarios Urgencias:</span>
+                    <span className="font-mono font-bold text-indigo-400">{(vocabularies?.icd10?.indexed_emergency_terms || 4200).toLocaleString('es-CO')}</span>
+                  </div>
+                </div>
+
+                <span className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider mt-2 block">
                   Clasificacion Internacional de Enfermedades
                 </span>
               </div>
-              <button
-                onClick={() => handleSyncVocab('icd10')}
-                disabled={syncingVocab === 'icd10'}
-                className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-              >
-                {syncingVocab === 'icd10' ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Upload className="w-3 h-3" />
-                )}
-                Sincronizar
-              </button>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+                <button
+                  onClick={() => handleCheckUpdate('icd10')}
+                  disabled={checkingUpdate === 'icd10'}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                >
+                  {checkingUpdate === 'icd10' ? (
+                    <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3 text-slate-400" />
+                  )}
+                  Comprobar
+                </button>
+
+                <button
+                  onClick={() => handleSyncVocab('icd10')}
+                  disabled={syncingVocab === 'icd10'}
+                  className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  {syncingVocab === 'icd10' ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Upload className="w-3 h-3" />
+                  )}
+                  Sincronizar
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -113,8 +113,9 @@ class PatientCreateSchema(BaseModel):
 # ==========================================
 
 class TriageOverrideSchema(BaseModel):
-    final_level: int = Field(ge=1, le=5, description="Nivel de triaje del 1 al 5")
+    final_level: Optional[int] = Field(default=None, ge=1, le=5, description="Nivel de triaje del 1 al 5")
     override_reason: Optional[str] = Field(default="", max_length=1000)
+    justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
 
 class EMRBoxAssignSchema(BaseModel):

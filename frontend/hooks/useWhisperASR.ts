@@ -13,6 +13,8 @@ interface UseWhisperASRReturn {
   resetTranscript: () => void;
   sessionId: string;
   isTranscribing: boolean;
+  asrError: string | null;
+  clearAsrError: () => void;
 }
 
 export function useWhisperASR(): UseWhisperASRReturn {
@@ -22,6 +24,11 @@ export function useWhisperASR(): UseWhisperASRReturn {
   const [transcript, setTranscript] = useState<{ speaker: string; text: string }[]>([]);
   const [interimText, setInterimText] = useState('');
   const [sessionId, setSessionId] = useState('');
+  const [asrError, setAsrError] = useState<string | null>(null);
+
+  const clearAsrError = useCallback(() => {
+    setAsrError(null);
+  }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -72,7 +79,20 @@ export function useWhisperASR(): UseWhisperASRReturn {
         });
 
         if (!response.ok) {
-          throw new Error(`ASR response error: ${response.statusText}`);
+          let errorMsg = `Error en el servicio de transcripción (HTTP ${response.status})`;
+          try {
+            const errData = await response.json();
+            if (errData && errData.error) {
+              errorMsg = errData.error;
+            }
+          } catch {
+            // keep default errorMsg
+          }
+          if (response.status === 503 || errorMsg.toLowerCase().includes('whisper')) {
+            errorMsg = 'El motor de transcripción Faster-Whisper no pudo iniciar o está temporalmente no disponible.';
+          }
+          setAsrError(errorMsg);
+          throw new Error(errorMsg);
         }
 
         const data = await response.json();
@@ -81,7 +101,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
           const formattedText = data.text.trim();
           setTranscript(prev => [...prev, { speaker: 'Usuario', text: formattedText }]);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error sending audio chunk to ASR backend:', error);
       } finally {
         setInterimText('');
@@ -159,9 +179,12 @@ export function useWhisperASR(): UseWhisperASRReturn {
         }
       }, 4000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start MediaRecorder:', error);
-      alert('No se pudo acceder al micrófono. Por favor verifica los permisos.');
+      const msg = error.name === 'NotAllowedError'
+        ? 'Acceso denegado: Por favor permite el acceso al micrófono en el navegador.'
+        : `No se pudo iniciar la captura de audio: ${error.message || 'Error desconocido'}`;
+      setAsrError(msg);
       setIsRecording(false);
       setIsPaused(false);
     }
@@ -225,6 +248,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
   const resetTranscript = useCallback(() => {
     setTranscript([]);
     setInterimText('');
+    setAsrError(null);
   }, []);
 
   // Cleanup on unmount
@@ -255,5 +279,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
     resetTranscript,
     sessionId,
     isTranscribing,
+    asrError,
+    clearAsrError,
   };
 }
