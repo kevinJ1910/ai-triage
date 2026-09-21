@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
 import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
+import { generateFHIRBundle, downloadFHIRJson, downloadHL7v2Message } from '@/lib/hl7';
 
 
 // FIX-TEC-008: Interfaces tipadas para datos clinicos criticos.
@@ -128,6 +129,8 @@ export default function TriageDashboard() {
   const [triageWarning, setTriageWarning] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
+  const [isEditingJustification, setIsEditingJustification] = useState(false);
+  const [editedJustification, setEditedJustification] = useState('');
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
   const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
@@ -335,17 +338,66 @@ export default function TriageDashboard() {
     doc.save(`triaje_${session.patientName.replace(/\s+/g, '_')}_${session.id}.pdf`);
   };
 
-  const handleDownloadJSON = (session: TriageSession, e: React.MouseEvent) => {
+  const handleStartEditJustification = () => {
+    setEditedJustification(analysisResult?.triage?.justification || '');
+    setIsEditingJustification(true);
+  };
+
+  const handleCancelEditJustification = () => {
+    setIsEditingJustification(false);
+    setEditedJustification('');
+  };
+
+  const handleSaveJustification = async () => {
+    const newJustification = editedJustification.trim();
+    if (!newJustification) {
+      toast.error('La justificación clínica no puede estar vacía.');
+      return;
+    }
+
+    setAnalysisResult((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        triage: {
+          ...prev.triage,
+          justification: newJustification,
+        }
+      };
+    });
+
+    if (activeSessionId) {
+      try {
+        await fetchWithAuth(`/api/triage/sessions/${activeSessionId}/override_level/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            justification: newJustification,
+            override_reason: 'Actualización de justificación clínica por criterio médico'
+          })
+        });
+        toast.success('Justificación clínica actualizada');
+      } catch (e) {
+        console.error('Error sincronizando justificación con el servidor:', e);
+        toast.error('Error al sincronizar con el servidor, guardado localmente.');
+      }
+    } else {
+      toast.success('Justificación clínica actualizada');
+    }
+
+    setIsEditingJustification(false);
+  };
+
+  const handleDownloadFHIR = (session: TriageSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    const fhirBundle = generateFHIRBundle(session);
-    const jsonStr = JSON.stringify(fhirBundle, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `triaje_fhir_${session.patientName.replace(/\s+/g, '_')}_${session.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFHIRJson(session);
+    toast.success('Descargando HL7 FHIR Release 4 JSON');
+  };
+
+  const handleDownloadHL7v2 = (session: TriageSession, e: React.MouseEvent) => {
+    e.stopPropagation();
+    downloadHL7v2Message(session);
+    toast.success('Descargando Mensaje HL7 v2.5.1 ER7');
   };
 
   const handleSaveSession = () => {
@@ -434,6 +486,7 @@ export default function TriageDashboard() {
         setTriageWarning(data.warning || aiAnalysis.warning);
       }
       if (aiAnalysis.entities) setEditedEntities(aiAnalysis.entities);
+      setIsEditingJustification(false);
     } catch (err) {
       const msg = "Fallo de conexión: La API de IA o el servidor de triaje no está respondiendo.";
       setTriageError(msg);
@@ -472,6 +525,7 @@ export default function TriageDashboard() {
       clearAsrError();
       setEditedEntities(null);
       setIsEditMode(false);
+      setIsEditingJustification(false);
       setIsVerifyingTranscript(false);
       setSyncStatus('idle');
       setPatientInfo({
@@ -587,6 +641,7 @@ export default function TriageDashboard() {
                       setAnalysisResult(session.analysisResult); 
                       setShowHistory(false); 
                       setSelectedSessionId(session.id); 
+                      setIsEditingJustification(false);
                       if (session.patientInfo) {
                         setPatientInfo(session.patientInfo);
                       } else {
@@ -610,22 +665,29 @@ export default function TriageDashboard() {
                       <p className="text-[10px] sm:text-xs text-slate-300 line-clamp-3 leading-relaxed opacity-80 mb-3 flex-1">
                         {session.analysisResult?.triage?.justification || "Sin justificación"}
                       </p>
-                      <div className="flex items-center gap-2 mt-auto">
+                      <div className="flex items-center gap-1.5 mt-auto">
                         <button 
                           onClick={(e) => handleDownloadPDF(session, e)}
                           className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-slate-200"
-                          title="Descargar PDF"
+                          title="Descargar PDF Asistencial"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={(e) => handleDownloadJSON(session, e)}
-                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-slate-200"
-                          title="Descargar JSON / HL-7 Simulado"
+                          onClick={(e) => handleDownloadFHIR(session, e)}
+                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-cyan-400"
+                          title="Exportar HL7 FHIR R4 (JSON)"
                         >
                           <Code className="w-3.5 h-3.5" />
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold uppercase tracking-widest transition-colors text-slate-200">
+                        <button 
+                          onClick={(e) => handleDownloadHL7v2(session, e)}
+                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-blue-400"
+                          title="Exportar HL7 v2.5.1 (ER7)"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                        <button className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold uppercase tracking-widest transition-colors text-slate-200">
                           Cargar <ChevronRight className="w-3 h-3" />
                         </button>
                       </div>
@@ -1194,12 +1256,57 @@ export default function TriageDashboard() {
                       </div>
                       <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto flex flex-col justify-between">
                          <div>
-                           <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5">
-                              Justificación Clínica ({analysisResult.engine_used || 'Protocolo Christus Sinergia'})
-                           </h3>
-                           <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300">
-                              {analysisResult.triage?.justification}
-                           </p>
+                           <div className="flex items-center justify-between gap-2 mb-1.5">
+                             <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                Justificación Clínica ({analysisResult.engine_used || 'Protocolo Christus Sinergia'})
+                             </h3>
+                             {!isEditingJustification ? (
+                               <button
+                                 type="button"
+                                 onClick={handleStartEditJustification}
+                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-blue-400 hover:bg-slate-700 hover:text-blue-300 border border-slate-700 transition-colors"
+                                 title="Editar justificación clínica"
+                               >
+                                 <Edit3 className="w-2.5 h-2.5" />
+                                 <span>Editar</span>
+                               </button>
+                             ) : (
+                               <div className="flex items-center gap-1">
+                                 <button
+                                   type="button"
+                                   onClick={handleSaveJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50 border border-emerald-500/50 transition-colors"
+                                   title="Guardar justificación"
+                                 >
+                                   <Check className="w-2.5 h-2.5" />
+                                   <span>Guardar</span>
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={handleCancelEditJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700 transition-colors"
+                                   title="Cancelar edición"
+                                 >
+                                   <X className="w-2.5 h-2.5" />
+                                   <span>Cancelar</span>
+                                 </button>
+                               </div>
+                             )}
+                           </div>
+
+                           {isEditingJustification ? (
+                             <textarea
+                               value={editedJustification}
+                               onChange={(e) => setEditedJustification(e.target.value)}
+                               rows={4}
+                               className="w-full bg-slate-950/80 border border-blue-500/50 focus:border-blue-400 rounded p-2 text-xs text-slate-200 focus:outline-none transition-colors leading-relaxed resize-y font-sans"
+                               placeholder="Escriba o ajuste el criterio médico y la justificación clínica del triaje..."
+                             />
+                           ) : (
+                             <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+                                {analysisResult.triage?.justification}
+                             </p>
+                           )}
                          </div>
                          <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-400 font-mono">
                            <span>Confianza: {Math.round((analysisResult.confidence || 0.95) * 100)}%</span>
@@ -1221,7 +1328,244 @@ export default function TriageDashboard() {
                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
                  <span className="truncate">Estado: {syncStatus === 'success' ? 'Guardado Exitoso' : 'Esperando'}</span>
               </div>
-              <div className="flex w-full sm:w-auto gap-2 shrink-0">
+              <div className="flex w-full sm:w-auto gap-2 shrink-0 flex-wrap">
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadFHIRJson(currentSession);
+                     toast.success('Descargando HL7 FHIR R4 JSON');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
+                >
+                   <Code className="w-3 h-3 text-cyan-400" />
+                   FHIR R4
+                </button>
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadHL7v2Message(currentSession);
+                     toast.success('Descargando HL7 v2.5.1 ER7');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-blue-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
+                >
+                   <FileText className="w-3 h-3 text-blue-400" />
+                   HL7 v2.5.1
+                </button>
+                <button
+                   disabled={!analysisResult}
+                   onClick={handleSaveSession}
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                      !analysisResult 
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border border-slate-600'
+                   }`}
+                >
+                   <Save className="w-3 h-3" />
+                   Guardar Local
+                </button>
+                <button
+                   disabled={!analysisResult || syncStatus === 'syncing' || syncStatus === 'success'}
+                   onClick={handleSyncFHIR}
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                      !analysisResult 
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
+                      : syncStatus === 'success'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                      : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500 shadow-md'
+                   }`}
+                >
+                   {syncStatus === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <Send className="w-3 h-3" />}
+                   {syncStatus === 'success' ? 'SINCRONIZADO' : syncStatus === 'syncing' ? 'SINCRONIZANDO...' : 'SINCRONIZAR FHIR R4'}
+                </button>
+              </div>
+            </div>
+
+          </section>
+        </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function EntityGroup({
+  title, icon, color, bg, border, entities, loading, isEditMode, onAdd, onRemove
+}: {
+  title: string, icon: React.ReactNode, color: string, bg: string, border: string, 
+  entities?: string[], loading: boolean, isEditMode?: boolean, 
+  onAdd?: (val: string) => void, onRemove?: (idx: number) => void
+}) {
+  const [newVal, setNewVal] = useState("");
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <h3 className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${color}`}>
+        {icon} {title}
+      </h3>
+      <div className={`flex flex-col gap-1 min-h-[40px] bg-slate-900/30 p-1.5 rounded-md border border-slate-700/50`}>
+        {!entities && !loading && <span className="text-[10px] text-slate-600 italic px-2 py-1">Pendiente...</span>}
+        {loading && (
+            <div className="w-full flex flex-col gap-1.5 opacity-70">
+                <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm`}></div>
+                <div className={`h-6 w-3/4 ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm delay-75`}></div>
+            </div>
+        )}
+        {!loading && entities?.map((e, idx) => (
+          <div key={idx} className={`flex items-center justify-between p-1.5 bg-slate-900 rounded-sm border-l-2 ${border}`}>
+            <span className="text-[10px] sm:text-xs font-medium text-slate-200 truncate">{e}</span>
+            {isEditMode && (
+              <button onClick={() => onRemove?.(idx)} className="text-red-400 hover:text-red-300 ml-2 shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        ))}
+        {!loading && isEditMode && (
+          <div className="flex gap-1 mt-1">
+            <input 
+              type="text" 
+              value={newVal} 
+              onChange={e => setNewVal(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newVal.trim()) {
+                      </div>
+                      <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto flex flex-col justify-between">
+                         <div>
+                           <div className="flex items-center justify-between gap-2 mb-1.5">
+                             <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                Justificación Clínica ({analysisResult.engine_used || 'Protocolo Christus Sinergia'})
+                             </h3>
+                             {!isEditingJustification ? (
+                               <button
+                                 type="button"
+                                 onClick={handleStartEditJustification}
+                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-blue-400 hover:bg-slate-700 hover:text-blue-300 border border-slate-700 transition-colors"
+                                 title="Editar justificación clínica"
+                               >
+                                 <Edit3 className="w-2.5 h-2.5" />
+                                 <span>Editar</span>
+                               </button>
+                             ) : (
+                               <div className="flex items-center gap-1">
+                                 <button
+                                   type="button"
+                                   onClick={handleSaveJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50 border border-emerald-500/50 transition-colors"
+                                   title="Guardar justificación"
+                                 >
+                                   <Check className="w-2.5 h-2.5" />
+                                   <span>Guardar</span>
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={handleCancelEditJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700 transition-colors"
+                                   title="Cancelar edición"
+                                 >
+                                   <X className="w-2.5 h-2.5" />
+                                   <span>Cancelar</span>
+                                 </button>
+                               </div>
+                             )}
+                           </div>
+
+                           {isEditingJustification ? (
+                             <textarea
+                               value={editedJustification}
+                               onChange={(e) => setEditedJustification(e.target.value)}
+                               rows={4}
+                               className="w-full bg-slate-950/80 border border-blue-500/50 focus:border-blue-400 rounded p-2 text-xs text-slate-200 focus:outline-none transition-colors leading-relaxed resize-y font-sans"
+                               placeholder="Escriba o ajuste el criterio médico y la justificación clínica del triaje..."
+                             />
+                           ) : (
+                             <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+                                {analysisResult.triage?.justification}
+                             </p>
+                           )}
+                         </div>
+                         <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-400 font-mono">
+                           <span>Confianza: {Math.round((analysisResult.confidence || 0.95) * 100)}%</span>
+                           <span>Protocolo: Christus Sinergia Salud</span>
+                         </div>
+                      </div>
+                    </div>
+                ) : !triageError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
+                    Esperando datos de la consulta para análisis...
+                  </div>
+                ) : null}
+
+            </div>
+
+            {/* Sync Module */}
+            <div className="shrink-0 bg-slate-800/50 rounded-lg border border-slate-700 p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-slate-400 flex items-center gap-2 truncate">
+                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
+                 <span className="truncate">Estado: {syncStatus === 'success' ? 'Guardado Exitoso' : 'Esperando'}</span>
+              </div>
+              <div className="flex w-full sm:w-auto gap-2 shrink-0 flex-wrap">
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadFHIRJson(currentSession);
+                     toast.success('Descargando HL7 FHIR R4 JSON');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
+                >
+                   <Code className="w-3 h-3 text-cyan-400" />
+                   FHIR R4
+                </button>
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadHL7v2Message(currentSession);
+                     toast.success('Descargando HL7 v2.5.1 ER7');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-blue-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
+                >
+                   <FileText className="w-3 h-3 text-blue-400" />
+                   HL7 v2.5.1
+                </button>
                 <button
                    disabled={!analysisResult}
                    onClick={handleSaveSession}
@@ -1311,7 +1655,7 @@ function EntityGroup({
         {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-500 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
       </div>
     </div>
-  )
+  );
 }
 
 const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
@@ -1347,272 +1691,4 @@ function getAttentionTime(level?: number) {
     case 5: return 'Direccionamiento EPS';
     default: return '';
   }
-}
-
-function generateFHIRBundle(session: TriageSession): any {
-  const patientId = "pat-" + session.id;
-  const encounterId = "enc-" + session.id;
-  
-  const patInfo = session.patientInfo || {
-    name: session.patientName,
-    documentId: '',
-    birthDate: '',
-    gender: 'unknown',
-    phone: '',
-    insurance: ''
-  };
-
-  // 1. Patient Resource
-  const patientResource: any = {
-    resourceType: "Patient",
-    id: patientId,
-    active: true,
-    name: [
-      {
-        use: "official",
-        text: patInfo.name || "Paciente Desconocido"
-      }
-    ]
-  };
-
-  if (patInfo.documentId) {
-    patientResource.identifier = [
-      {
-        use: "official",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MC",
-              display: "Identificación del Paciente"
-            }
-          ]
-        },
-        value: patInfo.documentId
-      }
-    ];
-  }
-
-  if (patInfo.gender && patInfo.gender !== 'unknown') {
-    patientResource.gender = patInfo.gender;
-  }
-
-  if (patInfo.birthDate) {
-    patientResource.birthDate = patInfo.birthDate;
-  }
-
-  if (patInfo.phone) {
-    patientResource.telecom = [
-      {
-        system: "phone",
-        value: patInfo.phone,
-        use: "mobile"
-      }
-    ];
-  }
-
-  if (patInfo.insurance) {
-    patientResource.extension = [
-      {
-        url: "http://hl7.org/fhir/StructureDefinition/patient-insurance",
-        valueString: patInfo.insurance
-      }
-    ];
-  }
-
-  // 2. Encounter Resource
-  const triageLevel = session.analysisResult?.triage?.level;
-  let triageLabel = "Desconocido";
-  switch (triageLevel) {
-    case 1: triageLabel = "Resucitación"; break;
-    case 2: triageLabel = "Emergencia"; break;
-    case 3: triageLabel = "Urgencia"; break;
-    case 4: triageLabel = "Urgencia Menor"; break;
-    case 5: triageLabel = "No Urgente"; break;
-  }
-
-  const encounterResource: any = {
-    resourceType: "Encounter",
-    id: encounterId,
-    status: "triaged",
-    class: {
-      system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-      code: "EMER",
-      display: "emergency"
-    },
-    subject: {
-      reference: `Patient/${patientId}`,
-      display: patInfo.name || "Paciente Desconocido"
-    },
-    priority: {
-      coding: [
-        {
-          system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
-          code: triageLevel ? `L${triageLevel}` : "unknown",
-          display: triageLabel
-        }
-      ]
-    }
-  };
-
-  const symptoms = session.analysisResult?.entities?.symptoms || [];
-  if (symptoms.length > 0) {
-    encounterResource.reasonCode = symptoms.map((symptom: string) => ({
-      text: symptom
-    }));
-  }
-
-  if (session.analysisResult?.triage?.justification) {
-    encounterResource.text = {
-      status: "generated",
-      div: `<div xmlns="http://www.w3.org/1999/xhtml"><h3>Justificación de Triaje:</h3><p>${session.analysisResult.triage.justification}</p></div>`
-    };
-  }
-
-  const entries: any[] = [
-    {
-      fullUrl: `urn:uuid:${patientId}`,
-      resource: patientResource
-    },
-    {
-      fullUrl: `urn:uuid:${encounterId}`,
-      resource: encounterResource
-    }
-  ];
-
-  // 3. Condition Resources (Symptoms and History)
-  const history = session.analysisResult?.entities?.history || [];
-  symptoms.forEach((symptom: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:cond-symptom-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Condition",
-        id: `cond-symptom-${idx}-${session.id}`,
-        clinicalStatus: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
-              code: "active"
-            }
-          ]
-        },
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/condition-category",
-                code: "encounter-diagnosis",
-                display: "Encounter Diagnosis"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: symptom
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        encounter: {
-          reference: `Encounter/${encounterId}`
-        }
-      }
-    });
-  });
-
-  history.forEach((hist: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:cond-history-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Condition",
-        id: `cond-history-${idx}-${session.id}`,
-        clinicalStatus: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
-              code: "active"
-            }
-          ]
-        },
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/condition-category",
-                code: "problem-list-item",
-                display: "Problem List Item"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: hist
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        }
-      }
-    });
-  });
-
-  // 4. Observation Resources (Vitals)
-  const vitals = session.analysisResult?.entities?.vitals || [];
-  vitals.forEach((vital: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:obs-vital-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Observation",
-        id: `obs-vital-${idx}-${session.id}`,
-        status: "final",
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/observation-category",
-                code: "vital-signs",
-                display: "Vital Signs"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: vital
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        encounter: {
-          reference: `Encounter/${encounterId}`
-        },
-        valueString: vital
-      }
-    });
-  });
-
-  // 5. MedicationStatement Resources (Medications)
-  const medications = session.analysisResult?.entities?.medications || [];
-  medications.forEach((med: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:med-${idx}-${session.id}`,
-      resource: {
-        resourceType: "MedicationStatement",
-        id: `med-${idx}-${session.id}`,
-        status: "active",
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        medicationCodeableConcept: {
-          text: med
-        }
-      }
-    });
-  });
-
-  return {
-    resourceType: "Bundle",
-    id: `bundle-${session.id}`,
-    type: "collection",
-    timestamp: new Date(session.date).toISOString(),
-    entry: entries
-  };
 }

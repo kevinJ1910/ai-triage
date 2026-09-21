@@ -153,13 +153,17 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             return Response(getattr(e, 'detail', {"error": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         old_level = session.final_level
-        session.final_level = new_level
-        session.level = new_level
-        session.is_level_modified = (session.final_level != session.ai_level)
-        dist = abs(session.final_level - session.ai_level)
-        session.agreement_score = max(0.0, 1.0 - (dist / 4.0))
+        if validated.final_level is not None:
+            new_level = validated.final_level
+            session.final_level = new_level
+            session.level = new_level
+            session.is_level_modified = (session.final_level != session.ai_level)
+            dist = abs(session.final_level - session.ai_level)
+            session.agreement_score = max(0.0, 1.0 - (dist / 4.0))
 
-        if override_reason:
+        if validated.justification is not None and validated.justification.strip():
+            session.justification = validated.justification.strip()
+        elif override_reason:
             session.justification += f"\n[Ajuste Medico]: {override_reason}"
 
         if isinstance(final_symptoms, list):
