@@ -33,9 +33,7 @@ def analyze_triage_transcript(transcript: str) -> dict:
         logger.error("No GEMINI_API_KEY found in database or environment variables.")
         return {"error": "No se encontro una GEMINI_API_KEY valida."}
 
-    client = genai.Client(api_key=api_key, http_options={'timeout': 15000})
-
-    from .clinical_protocol import CHRISTUS_SINERGIA_LEVELS, evaluate_christus_sinergia_triage
+    client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
 
     prompt = f"""
     Eres un Especialista Medico de Triaje de Urgencias del sistema CHRISTUS SINERGIA Salud (conforme a la Resolucion 5596 del Ministerio de Salud de Colombia).
