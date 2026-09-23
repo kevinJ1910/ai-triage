@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
@@ -126,6 +126,9 @@ export default function TriageDashboard() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [triageError, setTriageError] = useState<string | null>(null);
   const [triageWarning, setTriageWarning] = useState<string | null>(null);
+  const [isWarningMinimized, setIsWarningMinimized] = useState(false);
+  const [showNewConsultModal, setShowNewConsultModal] = useState(false);
+  const [pendingLevelChange, setPendingLevelChange] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
   const [isEditingJustification, setIsEditingJustification] = useState(false);
@@ -134,6 +137,53 @@ export default function TriageDashboard() {
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
   const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+
+  const handlePromptNewConsultation = () => {
+    if (transcript.length > 0 || analysisResult) {
+      setShowNewConsultModal(true);
+    } else {
+      executeResetConsultation();
+    }
+  };
+
+  const executeResetConsultation = () => {
+    setTranscript([]);
+    resetTranscript();
+    setAnalysisResult(null);
+    setTriageError(null);
+    setTriageWarning(null);
+    clearAsrError();
+    setEditedEntities(null);
+    setIsEditMode(false);
+    setIsEditingJustification(false);
+    setIsVerifyingTranscript(false);
+    setSyncStatus('idle');
+    setActiveSessionId(null);
+    setPatientInfo({
+      name: '',
+      documentId: '',
+      birthDate: '',
+      gender: 'unknown',
+      phone: '',
+      insurance: ''
+    });
+    setShowNewConsultModal(false);
+    toast.success('Nueva consulta médica iniciada.');
+  };
+
+  const handleRequestTriageLevelChange = (newLevel: number) => {
+    if (newLevel < 1 || newLevel > 5) return;
+    const currentLvl = analysisResult?.triage?.level || 5;
+    if (newLevel === currentLvl) return;
+    setPendingLevelChange(newLevel);
+  };
+
+  const handleConfirmTriageLevelChange = () => {
+    if (pendingLevelChange !== null) {
+      handleUpdateTriageLevel(pendingLevelChange);
+      setPendingLevelChange(null);
+    }
+  };
 
   const handleUpdateLine = (index: number, field: 'speaker' | 'text', value: string) => {
     setTranscript(prev => prev.map((line, i) => i === index ? { ...line, [field]: value } : line));
@@ -587,7 +637,18 @@ export default function TriageDashboard() {
             Triaje Clínico Interactivo
           </h2>
         </div>
-        <div className="flex items-center gap-4 lg:gap-6 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <Tooltip text="Reiniciar para evaluar un nuevo paciente" position="bottom">
+            <button 
+              type="button"
+              onClick={handlePromptNewConsultation}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 shadow-sm"
+              title="Iniciar nueva evaluación de paciente"
+            >
+              <Plus className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Nueva Consulta</span>
+            </button>
+          </Tooltip>
           <button 
             onClick={() => { setShowHistory(!showHistory); setSelectedSessionId(null); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest ${showHistory ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
@@ -1177,12 +1238,44 @@ export default function TriageDashboard() {
 
                 {/* Warning Banner if Fallback Rules Engine was triggered */}
                 {triageWarning && (
-                  <div className="shrink-0 p-2.5 bg-amber-950/60 border border-amber-500/60 rounded-lg flex items-start gap-2 text-amber-200">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div className="text-[11px] leading-relaxed">
-                      <span className="font-bold block text-amber-300">Respaldo Asistencial Activo:</span>
-                      <span className="text-amber-200/90">{triageWarning}</span>
-                    </div>
+                  <div className="shrink-0 transition-all duration-200">
+                    {isWarningMinimized ? (
+                      <div className="p-1.5 px-2.5 bg-amber-950/60 border border-amber-500/50 rounded-lg flex items-center justify-between gap-2 text-amber-200 text-[10px]">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="font-bold text-amber-300">Respaldo Asistencial Activo:</span>
+                          <span className="text-amber-200/80 truncate">Protocolo Christus Sinergia Salud</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsWarningMinimized(false)}
+                          className="text-[9px] font-bold text-amber-400 hover:text-amber-200 uppercase tracking-wider px-2 py-0.5 rounded hover:bg-amber-900/40 transition-colors flex items-center gap-1 shrink-0"
+                          title="Expandir detalle del respaldo asistencial"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                          <span>Ver Detalle</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-amber-950/60 border border-amber-500/60 rounded-lg flex items-start justify-between gap-2 text-amber-200">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <div className="text-[11px] leading-relaxed">
+                            <span className="font-bold block text-amber-300">Respaldo Asistencial Activo:</span>
+                            <span className="text-amber-200/90">{triageWarning}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsWarningMinimized(true)}
+                          className="text-[9px] font-bold text-amber-400/90 hover:text-amber-200 uppercase tracking-wider px-2 py-0.5 rounded border border-amber-500/30 hover:bg-amber-900/40 transition-colors flex items-center gap-1 shrink-0"
+                          title="Minimizar aviso"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                          <span>Minimizar</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1207,37 +1300,41 @@ export default function TriageDashboard() {
                            )}
                          </div>
 
-                         {/* Stepper controls */}
-                         <div className="flex items-center justify-between w-full px-1 py-1">
-                           <button
-                             type="button"
-                             onClick={() => handleUpdateTriageLevel(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
-                             disabled={(analysisResult.triage?.level || 1) <= 1}
-                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
-                             title="Aumentar Urgencia (Nivel mas critico)"
-                           >
-                             -
-                           </button>
-                           
-                           <div className="flex flex-col items-center">
-                             <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
-                               {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
-                             </span>
-                             <span className="text-[9px] font-mono text-white/70">
-                               Nivel {analysisResult.triage?.level || "?"}
-                             </span>
-                           </div>
+                          {/* Stepper controls */}
+                          <div className="flex items-center justify-between w-full px-1 py-1">
+                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top">
+                              <button
+                                type="button"
+                                onClick={() => handleRequestTriageLevelChange(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
+                                disabled={(analysisResult.triage?.level || 1) <= 1}
+                                className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                              >
+                                -
+                              </button>
+                            </Tooltip>
+                            
+                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top">
+                              <div className="flex flex-col items-center cursor-help">
+                                <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
+                                  {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
+                                </span>
+                                <span className="text-[9px] font-mono text-white/70">
+                                  Nivel {analysisResult.triage?.level || "?"}
+                                </span>
+                              </div>
+                            </Tooltip>
 
-                           <button
-                             type="button"
-                             onClick={() => handleUpdateTriageLevel(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
-                             disabled={(analysisResult.triage?.level || 5) >= 5}
-                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
-                             title="Disminuir Urgencia (Nivel menos critico)"
-                           >
-                             +
-                           </button>
-                         </div>
+                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top">
+                              <button
+                                type="button"
+                                onClick={() => handleRequestTriageLevelChange(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
+                                disabled={(analysisResult.triage?.level || 5) >= 5}
+                                className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                              >
+                                +
+                              </button>
+                            </Tooltip>
+                          </div>
 
                          <span className="mt-1 text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider text-center">
                             {getLevelLabel(analysisResult.triage?.level)}
@@ -1403,6 +1500,49 @@ export default function TriageDashboard() {
         </div>
         )}
       </main>
+
+      {/* Modal de Confirmacion: Nueva Consulta */}
+      <ConfirmModal
+        isOpen={showNewConsultModal}
+        title="¿Iniciar Nueva Consulta Médica?"
+        message="Se descartarán la transcripción, los signos vitales y el diagnóstico de la sesión actual no guardada. ¿Deseas continuar?"
+        confirmText="Iniciar Nueva Consulta"
+        cancelText="Continuar en Consulta Actual"
+        confirmVariant="danger"
+        onConfirm={executeResetConsultation}
+        onCancel={() => setShowNewConsultModal(false)}
+      />
+
+      {/* Modal de Confirmacion: Ajuste Manual de Nivel */}
+      <ConfirmModal
+        isOpen={pendingLevelChange !== null}
+        title="Confirmar Ajuste Clínico de Nivel"
+        message={
+          <div className="space-y-2">
+            <p>
+              Estás modificando el nivel de triaje clínico asignado:
+            </p>
+            <div className="p-2 rounded bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
+              <div>
+                <span className="text-slate-400">Nivel actual: </span>
+                <span className="font-bold text-white">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Nuevo nivel propuesto: </span>
+                <span className="font-bold text-amber-300">Nivel {ROMAN_LEVELS[pendingLevelChange || 5]} ({getLevelLabel(pendingLevelChange || 5)})</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              Esta modificación quedará registrada en el log de auditoría médica hospitalaria.
+            </p>
+          </div>
+        }
+        confirmText="Confirmar Nivel"
+        cancelText="Mantener Nivel Actual"
+        confirmVariant="warning"
+        onConfirm={handleConfirmTriageLevelChange}
+        onCancel={() => setPendingLevelChange(null)}
+      />
     </div>
   );
 }
@@ -1495,4 +1635,82 @@ function getAttentionTime(level?: number) {
     case 5: return 'Direccionamiento EPS';
     default: return '';
   }
+}
+
+function Tooltip({ children, text, position = 'top' }: { children: React.ReactNode; text: string; position?: 'top' | 'bottom' | 'left' | 'right' }) {
+  const positionClasses = {
+    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+  }[position];
+
+  return (
+    <div className="relative group/tooltip inline-flex items-center">
+      {children}
+      <div className={`absolute ${positionClasses} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  confirmVariant = "danger",
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  title: string;
+  message: React.ReactNode;
+  confirmText?: string;
+  cancelText?: string;
+  confirmVariant?: "danger" | "warning" | "primary";
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  const btnClasses = {
+    danger: "bg-red-600 hover:bg-red-500 text-white shadow-red-900/30",
+    warning: "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/30",
+    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30",
+  }[confirmVariant];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+            <div className="text-xs text-slate-400 leading-relaxed">{message}</div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md ${btnClasses}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

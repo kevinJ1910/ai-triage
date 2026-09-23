@@ -1,45 +1,50 @@
-# AI-Triage: Asistente Inteligente de Voz para la Clasificación Médica Automatizada en Entornos Hospitalarios y de Telemedicina
+# AI-Triage: Frontend Web App (Next.js 15)
 
-**AI-Triage** es una aplicación inteligente basada en voz que aprovecha la inteligencia artificial (IA) y las tecnologías de procesamiento de lenguaje natural (NLP) para automatizar el triaje médico utilizando el análisis de voz en tiempo real. El sistema busca reducir la carga administrativa del personal de salud y mejorar la precisión en la clasificación de pacientes en servicios de urgencias y atención primaria.
+Aplicación web cliente desarrollada con **Next.js 15**, **React 19**, **TailwindCSS** y **TypeScript** para la asistencia interactiva de triaje clínico hospitalario en tiempo real.
 
-## 🚀 Características Principales
+## Características Principales del Frontend
 
-*   **Reconocimiento Automático de Voz (ASR) Médico:** Transcripción en tiempo real adaptada al vocabulario clínico en español utilizando tecnologías como OpenAI Whisper.
-*   **Procesamiento de Lenguaje Natural (NLP) Clínico:** Identificación y extracción automática de entidades como síntomas, diagnósticos, medicamentos y signos vitales mediante modelos NER (Named Entity Recognition).
-*   **Triaje Inteligente:** Clasificación de la gravedad del paciente basada en modelos de decisión de IA y criterios médicos estandarizados como ESI o el Sistema Manchester.
-*   **Interoperabilidad:** Generación de fichas clínicas estructuradas sincronizables con sistemas de Historia Clínica Electrónica (HCE) mediante estándares FHIR R4 y HL7 v3.
-*   **Explicabilidad:** Generación de justificaciones en lenguaje natural sobre las decisiones de triaje para facilitar la validación por parte del personal médico.
+* **Triaje Clínico Interactivo:** Panel visual con transcripción ASR en vivo, extracción NER, asignación de nivel (I a V), justificación médica editable y telemetría de confianza.
+* **Priorización Institucional Christus Sinergia Salud:** Escala oficial con tiempos máximos de espera según la Resolución 5596 del Ministerio de Salud de Colombia.
+* **Gobernanza y UX Hospitalaria:**
+  - Modales de confirmación para inicio de nueva consulta y discrepancias clínicas en ajuste manual de nivel.
+  - Tooltips interactivos con ventanas terapéuticas de espera y estados operativos.
+  - Banner minimizable/colapsable para avisos de respaldo asistencial determinista.
+* **Simulador EMR Hospitalario:** Cola de espera de pacientes clasificados y asignación persistente de boxes de atención médica.
+* **Monitor Ontológico y Normalización:** Mapeo de quejas coloquiales a conceptos formales de SNOMED-CT y CIE-10.
+* **Monitor de Interoperabilidad FHIR:** Inspección y descarga de Bundles HL7 FHIR Release 4 y mensajes HL7 v2.5.1 ER7.
+* **Dashboard de Métricas y Gobernanza de Tokens:** Monitoreo de tasa de concordancia clínica, índice Kappa de Cohen, y telemetría de tokens LLM consumidos y ahorrados por caché semántico.
+* **Diseño Responsivo:** Soporte adaptativo para terminales desktop de urgencias y dispositivos móviles mediante Drawer deslizante.
 
-## 🛠️ Stack Tecnológico
+## Ejecución y Pruebas
 
-*   **Lenguaje y Backend:** Python con el framework Django.
-*   **Inteligencia Artificial:**
-    *   **ASR:** OpenAI Whisper.
-    *   **NLP/NER:** Transformers (Hugging Face), modelos BERT (ClinicalBERT, BioBERT).
-    *   **Modelos de Lenguaje:** OpenAI API para fine-tuning de modelos médicos.
-*   **Bases de Datos:** PostgreSQL para datos estructurados y Redis para caché.
-*   **Infraestructura:** Docker para despliegue y contenedores.
-*   **Hardware Sugerido:** Estación de trabajo con GPU (NVIDIA RTX 4070 o superior) para entrenamiento e inferencia eficiente.
+```bash
+# Instalación de dependencias
+pnpm install
 
-## 📂 Estructura Modular del Proyecto
+# Servidor de desarrollo
+pnpm dev
 
-El sistema está diseñado bajo una arquitectura de microservicios dividida en los siguientes módulos:
+# Suite de pruebas automatizadas (Vitest)
+pnpm test
 
-1.  **Módulo de Transcripción:** Captura audio y lo convierte en texto clínico estructurado.
-2.  **Módulo de Normalización:** Limpieza de texto, corrección de errores fonéticos y mapeo a vocabularios controlados (SNOMED CT, ICD-10).
-3.  **Módulo de Extracción NER:** Identificación automática de entidades clínicas críticas.
-4.  **Módulo de Triaje Inteligente:** Evaluación de la gravedad y asignación de prioridad preliminar.
-5.  **Módulo de Sincronización:** Conexión segura con sistemas HCE/HIS mediante APIs FHIR/HL7.
+# Verificación de tipos TypeScript
+pnpm tsc --noEmit
 
-## 🔒 Seguridad y Ética
+# Linting de código
+pnpm lint
 
-El desarrollo de AI-Triage se rige por la **Ley de Protección de Datos Personales de Colombia**, asegurando el cifrado de información y el uso de datos sintéticos o anonimizados durante las fases de prueba para proteger la privacidad del paciente.
+# Compilación de producción
+pnpm build
+```
 
-## 👥 Autores y Créditos
+## Estructura de Componentes
 
-*   **Kevin Jordan Alzate** - [kevin.jordan@correounivalle.edu.co](mailto:kevin.jordan@correounivalle.edu.co)
-*   **Junior Orlando Cantor Arevalo** - [junior.cantor@correounivalle.edu.co](mailto:junior.cantor@correounivalle.edu.co)
-*   **Director de Proyecto:** Carlos Mauricio Gaona Cuevas
-
----
-*Proyecto desarrollado en la Escuela de Ingeniería de Sistemas y Computación de la **Universidad del Valle**, Cali, Colombia (2026)*.
+* `components/TriageDashboard.tsx`: Motor de triaje clínico interactivo, ASR en tiempo real, modales y exportaciones.
+* `components/EMRSimulator.tsx`: Simulador de Historia Clínica Electrónica y asignación de box persistente.
+* `components/MetricsDashboard.tsx`: Monitor de concordancia clínica y gobernanza de tokens LLM.
+* `components/NormalizationMonitor.tsx`: Tabla y filtros de ontologías SNOMED-CT / CIE-10.
+* `components/FHIRMonitor.tsx`: Visor e historial transaccional de interoperabilidad FHIR R4.
+* `components/ConfigPanel.tsx`: Gestión de motores de IA y bóveda cifrada de credenciales API.
+* `components/SecurityPanel.tsx`: Administración de usuarios, roles hospitalarios y auditoría forense.
+* `components/AppNavigation.tsx`: Barra superior, navegación adaptativa y drawer móvil.
