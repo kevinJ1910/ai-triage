@@ -9,6 +9,7 @@ from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
 from .ai_analyzer import analyze_triage_transcript
+from .clinical_cache import ClinicalQueryCache
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
@@ -96,7 +97,12 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             clinical_entities=entities,
             ai_symptoms=extracted_symptoms,
             final_symptoms=extracted_symptoms,
-            confidence_score=confidence
+            confidence_score=confidence,
+            prompt_tokens=analysis.get('prompt_tokens', 0),
+            completion_tokens=analysis.get('completion_tokens', 0),
+            total_tokens=analysis.get('total_tokens', 0),
+            is_cached=analysis.get('cached', False),
+            rag_context=analysis.get('rag_context', [])
         )
         
         # Create Transcription record
@@ -218,6 +224,9 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 "unmodified_count": 0,
                 "distribution_ai": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
                 "distribution_physician": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+                "total_tokens_consumed": 0,
+                "cached_triages_count": 0,
+                "clinical_cache_stats": ClinicalQueryCache.stats(),
                 "recent_evaluations": []
             })
 
@@ -292,6 +301,9 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "unmodified_count": concordant_count,
             "distribution_ai": dist_ai,
             "distribution_physician": dist_phy,
+            "total_tokens_consumed": sum(s.total_tokens for s in sessions),
+            "cached_triages_count": sessions.filter(is_cached=True).count(),
+            "clinical_cache_stats": ClinicalQueryCache.stats(),
             "recent_evaluations": recent
         })
 
