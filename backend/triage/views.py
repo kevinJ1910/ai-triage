@@ -9,6 +9,7 @@ from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
 from .ai_analyzer import analyze_triage_transcript
+from .clinical_cache import ClinicalQueryCache
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
@@ -96,7 +97,12 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             clinical_entities=entities,
             ai_symptoms=extracted_symptoms,
             final_symptoms=extracted_symptoms,
-            confidence_score=confidence
+            confidence_score=confidence,
+            prompt_tokens=analysis.get('prompt_tokens', 0),
+            completion_tokens=analysis.get('completion_tokens', 0),
+            total_tokens=analysis.get('total_tokens', 0),
+            is_cached=analysis.get('cached', False),
+            rag_context=analysis.get('rag_context', [])
         )
         
         # Create Transcription record
@@ -131,7 +137,10 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "final_level": final_level_val,
             "is_level_modified": triage_session.is_level_modified,
             "agreement_score": triage_session.agreement_score,
-            "analysis": analysis
+            "analysis": analysis,
+            "warning": analysis.get('warning'),
+            "protocol": analysis.get('protocol', 'Christus Sinergia Salud'),
+            "engine_used": analysis.get('engine_used')
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['PATCH'])
@@ -150,13 +159,17 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             return Response(getattr(e, 'detail', {"error": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         old_level = session.final_level
-        session.final_level = new_level
-        session.level = new_level
-        session.is_level_modified = (session.final_level != session.ai_level)
-        dist = abs(session.final_level - session.ai_level)
-        session.agreement_score = max(0.0, 1.0 - (dist / 4.0))
+        if validated.final_level is not None:
+            new_level = validated.final_level
+            session.final_level = new_level
+            session.level = new_level
+            session.is_level_modified = (session.final_level != session.ai_level)
+            dist = abs(session.final_level - session.ai_level)
+            session.agreement_score = max(0.0, 1.0 - (dist / 4.0))
 
-        if override_reason:
+        if validated.justification is not None and validated.justification.strip():
+            session.justification = validated.justification.strip()
+        elif override_reason:
             session.justification += f"\n[Ajuste Medico]: {override_reason}"
 
         if isinstance(final_symptoms, list):
@@ -211,6 +224,9 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
                 "unmodified_count": 0,
                 "distribution_ai": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
                 "distribution_physician": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+                "total_tokens_consumed": 0,
+                "cached_triages_count": 0,
+                "clinical_cache_stats": ClinicalQueryCache.stats(),
                 "recent_evaluations": []
             })
 
@@ -285,6 +301,9 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "unmodified_count": concordant_count,
             "distribution_ai": dist_ai,
             "distribution_physician": dist_phy,
+            "total_tokens_consumed": sum(s.total_tokens for s in sessions),
+            "cached_triages_count": sessions.filter(is_cached=True).count(),
+            "clinical_cache_stats": ClinicalQueryCache.stats(),
             "recent_evaluations": recent
         })
 

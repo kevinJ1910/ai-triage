@@ -1,14 +1,14 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
 import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
+import { generateFHIRBundle, downloadFHIRJson, downloadHL7v2Message } from '@/lib/hl7';
 
 
 // FIX-TEC-008: Interfaces tipadas para datos clinicos criticos.
@@ -117,17 +117,73 @@ export default function TriageDashboard() {
     resumeRecording,
     abortTranscription,
     resetTranscript,
+    asrError,
+    clearAsrError,
   } = useWhisperASR();
 
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [triageError, setTriageError] = useState<string | null>(null);
+  const [triageWarning, setTriageWarning] = useState<string | null>(null);
+  const [isWarningMinimized, setIsWarningMinimized] = useState(false);
+  const [showNewConsultModal, setShowNewConsultModal] = useState(false);
+  const [pendingLevelChange, setPendingLevelChange] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
+  const [isEditingJustification, setIsEditingJustification] = useState(false);
+  const [editedJustification, setEditedJustification] = useState('');
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
   const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+
+  const handlePromptNewConsultation = () => {
+    if (transcript.length > 0 || analysisResult) {
+      setShowNewConsultModal(true);
+    } else {
+      executeResetConsultation();
+    }
+  };
+
+  const executeResetConsultation = () => {
+    setTranscript([]);
+    resetTranscript();
+    setAnalysisResult(null);
+    setTriageError(null);
+    setTriageWarning(null);
+    clearAsrError();
+    setEditedEntities(null);
+    setIsEditMode(false);
+    setIsEditingJustification(false);
+    setIsVerifyingTranscript(false);
+    setSyncStatus('idle');
+    setActiveSessionId(null);
+    setPatientInfo({
+      name: '',
+      documentId: '',
+      birthDate: '',
+      gender: 'unknown',
+      phone: '',
+      insurance: ''
+    });
+    setShowNewConsultModal(false);
+    toast.success('Nueva consulta médica iniciada.');
+  };
+
+  const handleRequestTriageLevelChange = (newLevel: number) => {
+    if (newLevel < 1 || newLevel > 5) return;
+    const currentLvl = analysisResult?.triage?.level || 5;
+    if (newLevel === currentLvl) return;
+    setPendingLevelChange(newLevel);
+  };
+
+  const handleConfirmTriageLevelChange = () => {
+    if (pendingLevelChange !== null) {
+      handleUpdateTriageLevel(pendingLevelChange);
+      setPendingLevelChange(null);
+    }
+  };
 
   const handleUpdateLine = (index: number, field: 'speaker' | 'text', value: string) => {
     setTranscript(prev => prev.map((line, i) => i === index ? { ...line, [field]: value } : line));
@@ -206,7 +262,7 @@ export default function TriageDashboard() {
   };
 
   const [colRatio, setColRatio] = useState(41.6);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -331,17 +387,66 @@ export default function TriageDashboard() {
     doc.save(`triaje_${session.patientName.replace(/\s+/g, '_')}_${session.id}.pdf`);
   };
 
-  const handleDownloadJSON = (session: TriageSession, e: React.MouseEvent) => {
+  const handleStartEditJustification = () => {
+    setEditedJustification(analysisResult?.triage?.justification || '');
+    setIsEditingJustification(true);
+  };
+
+  const handleCancelEditJustification = () => {
+    setIsEditingJustification(false);
+    setEditedJustification('');
+  };
+
+  const handleSaveJustification = async () => {
+    const newJustification = editedJustification.trim();
+    if (!newJustification) {
+      toast.error('La justificación clínica no puede estar vacía.');
+      return;
+    }
+
+    setAnalysisResult((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        triage: {
+          ...prev.triage,
+          justification: newJustification,
+        }
+      };
+    });
+
+    if (activeSessionId) {
+      try {
+        await fetchWithAuth(`/api/triage/sessions/${activeSessionId}/override_level/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            justification: newJustification,
+            override_reason: 'Actualización de justificación clínica por criterio médico'
+          })
+        });
+        toast.success('Justificación clínica actualizada');
+      } catch (e) {
+        console.error('Error sincronizando justificación con el servidor:', e);
+        toast.error('Error al sincronizar con el servidor, guardado localmente.');
+      }
+    } else {
+      toast.success('Justificación clínica actualizada');
+    }
+
+    setIsEditingJustification(false);
+  };
+
+  const handleDownloadFHIR = (session: TriageSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    const fhirBundle = generateFHIRBundle(session);
-    const jsonStr = JSON.stringify(fhirBundle, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `triaje_fhir_${session.patientName.replace(/\s+/g, '_')}_${session.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFHIRJson(session);
+    toast.success('Descargando HL7 FHIR Release 4 JSON');
+  };
+
+  const handleDownloadHL7v2 = (session: TriageSession, e: React.MouseEvent) => {
+    e.stopPropagation();
+    downloadHL7v2Message(session);
+    toast.success('Descargando Mensaje HL7 v2.5.1 ER7');
   };
 
   const handleSaveSession = () => {
@@ -407,6 +512,8 @@ export default function TriageDashboard() {
 
   const handleAnalyze = async (fullTranscript: {speaker: string, text: string}[]) => {
     setIsAnalyzing(true);
+    setTriageError(null);
+    setTriageWarning(null);
     try {
       const text = fullTranscript.map(t => `${t.speaker}: ${t.text}`).join('\n');
       const res = await fetchWithAuth('/api/triage/sessions/analyze/', {
@@ -415,11 +522,24 @@ export default function TriageDashboard() {
         body: JSON.stringify({ transcript: text })
       });
       const data = await res.json();
+      if (!res.ok || data.error) {
+        const errorMsg = data.error || `Error en el servicio de triaje (HTTP ${res.status})`;
+        setTriageError(errorMsg);
+        toast.error(errorMsg);
+        return;
+      }
       if (data.session_id) setActiveSessionId(data.session_id);
       const aiAnalysis = data.analysis || data;
       setAnalysisResult(aiAnalysis);
+      if (data.warning || aiAnalysis.warning) {
+        setTriageWarning(data.warning || aiAnalysis.warning);
+      }
       if (aiAnalysis.entities) setEditedEntities(aiAnalysis.entities);
+      setIsEditingJustification(false);
     } catch (err) {
+      const msg = "Fallo de conexión: La API de IA o el servidor de triaje no está respondiendo.";
+      setTriageError(msg);
+      toast.error(msg);
       console.error(err);
     } finally {
       setIsAnalyzing(false);
@@ -449,8 +569,12 @@ export default function TriageDashboard() {
       setTranscript([]);
       resetTranscript();
       setAnalysisResult(null);
+      setTriageError(null);
+      setTriageWarning(null);
+      clearAsrError();
       setEditedEntities(null);
       setIsEditMode(false);
+      setIsEditingJustification(false);
       setIsVerifyingTranscript(false);
       setSyncStatus('idle');
       setPatientInfo({
@@ -513,7 +637,18 @@ export default function TriageDashboard() {
             Triaje Clínico Interactivo
           </h2>
         </div>
-        <div className="flex items-center gap-4 lg:gap-6 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <Tooltip text="Reiniciar para evaluar un nuevo paciente" position="bottom">
+            <button 
+              type="button"
+              onClick={handlePromptNewConsultation}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 shadow-sm"
+              title="Iniciar nueva evaluación de paciente"
+            >
+              <Plus className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Nueva Consulta</span>
+            </button>
+          </Tooltip>
           <button 
             onClick={() => { setShowHistory(!showHistory); setSelectedSessionId(null); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest ${showHistory ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
@@ -528,7 +663,7 @@ export default function TriageDashboard() {
           <div className="px-3 py-1 bg-slate-700 rounded text-[10px] sm:text-xs font-medium text-slate-300 truncate max-w-[120px] sm:max-w-none">
               <User className="w-3.5 h-3.5 text-blue-400 shrink-0 inline mr-1" />
               <span>Usuario: {currentUser?.full_name || "Dr. Rodriguez"}</span>
-              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] uppercase font-bold tracking-wider">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-900/60 border border-blue-500/40 text-blue-200 text-[9px] uppercase font-bold tracking-wider">
                 {currentUser?.role || "Medico"}
               </span>
           </div>
@@ -566,6 +701,7 @@ export default function TriageDashboard() {
                       setAnalysisResult(session.analysisResult); 
                       setShowHistory(false); 
                       setSelectedSessionId(session.id); 
+                      setIsEditingJustification(false);
                       if (session.patientInfo) {
                         setPatientInfo(session.patientInfo);
                       } else {
@@ -589,22 +725,29 @@ export default function TriageDashboard() {
                       <p className="text-[10px] sm:text-xs text-slate-300 line-clamp-3 leading-relaxed opacity-80 mb-3 flex-1">
                         {session.analysisResult?.triage?.justification || "Sin justificación"}
                       </p>
-                      <div className="flex items-center gap-2 mt-auto">
+                      <div className="flex items-center gap-1.5 mt-auto">
                         <button 
                           onClick={(e) => handleDownloadPDF(session, e)}
                           className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-slate-200"
-                          title="Descargar PDF"
+                          title="Descargar PDF Asistencial"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={(e) => handleDownloadJSON(session, e)}
-                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-slate-200"
-                          title="Descargar JSON / HL-7 Simulado"
+                          onClick={(e) => handleDownloadFHIR(session, e)}
+                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-cyan-400"
+                          title="Exportar HL7 FHIR R4 (JSON)"
                         >
                           <Code className="w-3.5 h-3.5" />
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold uppercase tracking-widest transition-colors text-slate-200">
+                        <button 
+                          onClick={(e) => handleDownloadHL7v2(session, e)}
+                          className="flex items-center justify-center p-1.5 rounded bg-slate-700 hover:bg-slate-600 transition-colors text-blue-400"
+                          title="Exportar HL7 v2.5.1 (ER7)"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                        <button className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-[10px] font-bold uppercase tracking-widest transition-colors text-slate-200">
                           Cargar <ChevronRight className="w-3 h-3" />
                         </button>
                       </div>
@@ -623,10 +766,30 @@ export default function TriageDashboard() {
           <section 
             ref={leftContainerRef} 
             style={isDesktop ? { width: `${colRatio}%` } : undefined}
-            className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-auto"
+            className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-[41.6%]"
           >
+            {/* ASR Error Banner */}
+            {asrError && (
+              <div className="shrink-0 p-3 bg-red-950/80 border border-red-500/80 rounded-lg flex items-start justify-between gap-2 text-red-200">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold block text-red-300">Aviso de Motor de Transcripción (ASR):</span>
+                    <span className="text-slate-300">{asrError}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={clearAsrError} 
+                  className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors"
+                  title="Cerrar aviso"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* ASR Transcription Box */}
-            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0 lg:h-[55%]">
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Mic className="w-4 h-4 text-blue-400" />
@@ -767,7 +930,7 @@ export default function TriageDashboard() {
               
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                 {transcript.length === 0 && !isRecording && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
                         <Mic className="w-6 h-6 mb-2 opacity-30" />
                         Esperando entrada de audio...
                     </div>
@@ -813,7 +976,7 @@ export default function TriageDashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         className={`flex flex-col ${line.speaker === 'Doctor' ? 'items-start' : 'items-end'}`}
                       >
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{line.speaker}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">{line.speaker}</span>
                         <div className={`px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border ${
                           line.speaker === 'Doctor' 
                           ? 'bg-slate-800 border-l-2 border-slate-500 border-y-slate-700 border-r-slate-700 text-slate-300'
@@ -830,7 +993,7 @@ export default function TriageDashboard() {
                       animate={{ opacity: 1, y: 0 }}
                       className="flex flex-col items-start"
                     >
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">Usuario (Escuchando...)</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Usuario (Escuchando...)</span>
                       <div className="px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border border-dashed border-slate-600 bg-slate-800/30 text-slate-400">
                         {interimText}
                       </div>
@@ -863,7 +1026,7 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleLeftResizeStart}
-              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
+              className="hidden lg:flex h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1"
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-blue-300 rounded"></div>
             </div>
@@ -876,8 +1039,10 @@ export default function TriageDashboard() {
               </h3>
               <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Nombre Completo</label>
+                  <label htmlFor="patient-name" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Nombre Completo</label>
                   <input
+                    id="patient-name"
+                    aria-label="Nombre Completo"
                     type="text"
                     value={patientInfo.name}
                     onChange={e => setPatientInfo({ ...patientInfo, name: e.target.value })}
@@ -886,8 +1051,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Documento Identidad</label>
+                  <label htmlFor="patient-document-id" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Documento Identidad</label>
                   <input
+                    id="patient-document-id"
+                    aria-label="Documento Identidad"
                     type="text"
                     value={patientInfo.documentId}
                     onChange={e => setPatientInfo({ ...patientInfo, documentId: e.target.value })}
@@ -900,8 +1067,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Fecha Nacimiento</label>
+                  <label htmlFor="patient-birth-date" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Fecha Nacimiento</label>
                   <input
+                    id="patient-birth-date"
+                    aria-label="Fecha Nacimiento"
                     type="date"
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
@@ -913,8 +1082,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Género</label>
+                  <label htmlFor="patient-gender" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Género</label>
                   <select
+                    id="patient-gender"
+                    aria-label="Género"
                     value={patientInfo.gender}
                     onChange={e => setPatientInfo({ ...patientInfo, gender: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
@@ -926,8 +1097,10 @@ export default function TriageDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Teléfono</label>
+                  <label htmlFor="patient-phone" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Teléfono</label>
                   <input
+                    id="patient-phone"
+                    aria-label="Teléfono"
                     type="text"
                     value={patientInfo.phone}
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
@@ -940,8 +1113,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Aseguradora / EPS</label>
+                  <label htmlFor="patient-insurance" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Aseguradora / EPS</label>
                   <input
+                    id="patient-insurance"
+                    aria-label="Aseguradora / EPS"
                     type="text"
                     value={patientInfo.insurance}
                     onChange={e => setPatientInfo({ ...patientInfo, insurance: e.target.value })}
@@ -968,7 +1143,7 @@ export default function TriageDashboard() {
           >
             
             {/* NER Module */}
-            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0 lg:h-[60%]">
               <div className="flex justify-between items-center shrink-0 mb-3">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -1028,24 +1203,100 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleRightResizeStart}
-              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
+              className="hidden lg:flex h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1"
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-emerald-300 rounded"></div>
             </div>
 
             {/* Triage Output */}
             <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700">
-                <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-1 shrink-0">
-                  <ShieldAlert className="w-4 h-4 text-orange-400" />
-                  Motor de Triaje Inteligente
-                </h2>
+                <div className="flex items-center justify-between gap-2 mb-1 shrink-0 flex-wrap">
+                  <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-orange-400" />
+                    Motor de Triaje Clínico
+                  </h2>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold uppercase tracking-wider">
+                      Christus Sinergia Salud
+                    </span>
+                    {analysisResult?.engine_used && (
+                      <span className="px-2 py-0.5 rounded bg-slate-700/80 border border-slate-600 text-slate-300 text-[9px] font-mono">
+                        {analysisResult.engine_used}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Error Banner if triage failed */}
+                {triageError && (
+                  <div className="shrink-0 p-3 bg-red-950/70 border border-red-500/70 rounded-lg flex flex-col gap-2 text-red-200">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
+                        <span className="text-slate-300">{triageError}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-1">
+                      <button
+                        onClick={() => handleAnalyze(transcript)}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Reintentar Diagnóstico
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Warning Banner if Fallback Rules Engine was triggered */}
+                {triageWarning && (
+                  <div className="shrink-0 transition-all duration-200">
+                    {isWarningMinimized ? (
+                      <div className="p-1.5 px-2.5 bg-amber-950/60 border border-amber-500/50 rounded-lg flex items-center justify-between gap-2 text-amber-200 text-[10px]">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="font-bold text-amber-300">Respaldo Asistencial Activo:</span>
+                          <span className="text-amber-200/80 truncate">Protocolo Christus Sinergia Salud</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsWarningMinimized(false)}
+                          className="text-[9px] font-bold text-amber-400 hover:text-amber-200 uppercase tracking-wider px-2 py-0.5 rounded hover:bg-amber-900/40 transition-colors flex items-center gap-1 shrink-0"
+                          title="Expandir detalle del respaldo asistencial"
+                        >
+                          <ChevronDown className="w-3 h-3" />
+                          <span>Ver Detalle</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-amber-950/60 border border-amber-500/60 rounded-lg flex items-start justify-between gap-2 text-amber-200">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <div className="text-[11px] leading-relaxed">
+                            <span className="font-bold block text-amber-300">Respaldo Asistencial Activo:</span>
+                            <span className="text-amber-200/90">{triageWarning}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsWarningMinimized(true)}
+                          className="text-[9px] font-bold text-amber-400/90 hover:text-amber-200 uppercase tracking-wider px-2 py-0.5 rounded border border-amber-500/30 hover:bg-amber-900/40 transition-colors flex items-center gap-1 shrink-0"
+                          title="Minimizar aviso"
+                        >
+                          <ChevronUp className="w-3 h-3" />
+                          <span>Minimizar</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {isAnalyzing ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest gap-3 py-4">
                      <div className="w-5 h-5 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
-                     Calculando gravedad...
+                     Calculando gravedad con protocolo institucional...
                   </div>
-                ) : analysisResult ? (
+                ) : analysisResult && analysisResult.triage && analysisResult.triage.level ? (
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
                       <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
                          <div className="flex items-center justify-between w-full px-1 mb-1">
@@ -1061,40 +1312,48 @@ export default function TriageDashboard() {
                            )}
                          </div>
 
-                         {/* Stepper controls */}
-                         <div className="flex items-center justify-between w-full px-1 py-1">
-                           <button
-                             type="button"
-                             onClick={() => handleUpdateTriageLevel(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
-                             disabled={(analysisResult.triage?.level || 1) <= 1}
-                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
-                             title="Aumentar Urgencia (Nivel mas critico)"
-                           >
-                             -
-                           </button>
-                           
-                           <div className="flex flex-col items-center">
-                             <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
-                               {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
-                             </span>
-                             <span className="text-[9px] font-mono text-white/70">
-                               Nivel {analysisResult.triage?.level || "?"}
-                             </span>
-                           </div>
+                          {/* Stepper controls */}
+                          <div className="flex items-center justify-between w-full px-1 py-1">
+                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top">
+                              <button
+                                type="button"
+                                onClick={() => handleRequestTriageLevelChange(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
+                                disabled={(analysisResult.triage?.level || 1) <= 1}
+                                className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                              >
+                                -
+                              </button>
+                            </Tooltip>
+                            
+                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top">
+                              <div className="flex flex-col items-center cursor-help">
+                                <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
+                                  {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
+                                </span>
+                                <span className="text-[9px] font-mono text-white/70">
+                                  Nivel {analysisResult.triage?.level || "?"}
+                                </span>
+                              </div>
+                            </Tooltip>
 
-                           <button
-                             type="button"
-                             onClick={() => handleUpdateTriageLevel(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
-                             disabled={(analysisResult.triage?.level || 5) >= 5}
-                             className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
-                             title="Disminuir Urgencia (Nivel menos critico)"
-                           >
-                             +
-                           </button>
-                         </div>
+                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top">
+                              <button
+                                type="button"
+                                onClick={() => handleRequestTriageLevelChange(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
+                                disabled={(analysisResult.triage?.level || 5) >= 5}
+                                className="w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 text-white font-bold text-base flex items-center justify-center border border-white/20 transition-all disabled:opacity-30 disabled:hover:bg-black/30"
+                              >
+                                +
+                              </button>
+                            </Tooltip>
+                          </div>
 
                          <span className="mt-1 text-[10px] sm:text-xs font-bold text-white uppercase tracking-wider text-center">
                             {getLevelLabel(analysisResult.triage?.level)}
+                         </span>
+
+                         <span className="mt-0.5 px-2 py-0.5 rounded-full bg-black/40 text-[8px] sm:text-[9px] font-bold text-white/90 uppercase tracking-tight text-center">
+                            {getAttentionTime(analysisResult.triage?.level)}
                          </span>
 
                          {analysisResult.triage?.ai_level && analysisResult.triage.level !== analysisResult.triage.ai_level && (
@@ -1103,20 +1362,71 @@ export default function TriageDashboard() {
                            </span>
                          )}
                       </div>
-                      <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto">
-                         <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5 flex items-center gap-1.5">
-                            Justificación Clínica (LLM)
-                         </h3>
-                         <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300">
-                            {analysisResult.triage?.justification}
-                         </p>
+                      <div className="flex-1 min-w-0 bg-slate-900/50 rounded p-3 border border-slate-700 w-full overflow-y-auto flex flex-col justify-between">
+                         <div>
+                           <div className="flex items-center justify-between gap-2 mb-1.5">
+                             <h3 className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                Justificación Clínica ({analysisResult.engine_used || 'Protocolo Christus Sinergia'})
+                             </h3>
+                             {!isEditingJustification ? (
+                               <button
+                                 type="button"
+                                 onClick={handleStartEditJustification}
+                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-blue-400 hover:bg-slate-700 hover:text-blue-300 border border-slate-700 transition-colors"
+                                 title="Editar justificación clínica"
+                               >
+                                 <Edit3 className="w-2.5 h-2.5" />
+                                 <span>Editar</span>
+                               </button>
+                             ) : (
+                               <div className="flex items-center gap-1">
+                                 <button
+                                   type="button"
+                                   onClick={handleSaveJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50 border border-emerald-500/50 transition-colors"
+                                   title="Guardar justificación"
+                                 >
+                                   <Check className="w-2.5 h-2.5" />
+                                   <span>Guardar</span>
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={handleCancelEditJustification}
+                                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700 transition-colors"
+                                   title="Cancelar edición"
+                                 >
+                                   <X className="w-2.5 h-2.5" />
+                                   <span>Cancelar</span>
+                                 </button>
+                               </div>
+                             )}
+                           </div>
+
+                           {isEditingJustification ? (
+                             <textarea
+                               value={editedJustification}
+                               onChange={(e) => setEditedJustification(e.target.value)}
+                               rows={4}
+                               className="w-full bg-slate-950/80 border border-blue-500/50 focus:border-blue-400 rounded p-2 text-xs text-slate-200 focus:outline-none transition-colors leading-relaxed resize-y font-sans"
+                               placeholder="Escriba o ajuste el criterio médico y la justificación clínica del triaje..."
+                             />
+                           ) : (
+                             <p className="text-[11px] sm:text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+                                {analysisResult.triage?.justification}
+                             </p>
+                           )}
+                         </div>
+                         <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-400 font-mono">
+                           <span>Confianza: {Math.round((analysisResult.confidence || 0.95) * 100)}%</span>
+                           <span>Protocolo: Christus Sinergia Salud</span>
+                         </div>
                       </div>
                     </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
-                    Esperando datos de la consulta...
+                ) : !triageError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
+                    Esperando datos de la consulta para análisis...
                   </div>
-                )}
+                ) : null}
 
             </div>
 
@@ -1126,7 +1436,49 @@ export default function TriageDashboard() {
                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
                  <span className="truncate">Estado: {syncStatus === 'success' ? 'Guardado Exitoso' : 'Esperando'}</span>
               </div>
-              <div className="flex w-full sm:w-auto gap-2 shrink-0">
+              <div className="flex w-full sm:w-auto gap-2 shrink-0 flex-wrap">
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadFHIRJson(currentSession);
+                     toast.success('Descargando HL7 FHIR R4 JSON');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
+                >
+                   <Code className="w-3 h-3 text-cyan-400" />
+                   FHIR R4
+                </button>
+                <button
+                   disabled={!analysisResult}
+                   onClick={() => {
+                     if (!analysisResult) return;
+                     const currentSession: TriageSession = {
+                       id: activeSessionId?.toString() || Date.now().toString(),
+                       date: new Date().toISOString(),
+                       patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
+                       patientInfo: { ...patientInfo },
+                       transcript: [...transcript],
+                       analysisResult: analysisResult,
+                     };
+                     downloadHL7v2Message(currentSession);
+                     toast.success('Descargando HL7 v2.5.1 ER7');
+                   }}
+                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-blue-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
+                >
+                   <FileText className="w-3 h-3 text-blue-400" />
+                   HL7 v2.5.1
+                </button>
                 <button
                    disabled={!analysisResult}
                    onClick={handleSaveSession}
@@ -1160,6 +1512,49 @@ export default function TriageDashboard() {
         </div>
         )}
       </main>
+
+      {/* Modal de Confirmacion: Nueva Consulta */}
+      <ConfirmModal
+        isOpen={showNewConsultModal}
+        title="¿Iniciar Nueva Consulta Médica?"
+        message="Se descartarán la transcripción, los signos vitales y el diagnóstico de la sesión actual no guardada. ¿Deseas continuar?"
+        confirmText="Iniciar Nueva Consulta"
+        cancelText="Continuar en Consulta Actual"
+        confirmVariant="danger"
+        onConfirm={executeResetConsultation}
+        onCancel={() => setShowNewConsultModal(false)}
+      />
+
+      {/* Modal de Confirmacion: Ajuste Manual de Nivel */}
+      <ConfirmModal
+        isOpen={pendingLevelChange !== null}
+        title="Confirmar Ajuste Clínico de Nivel"
+        message={
+          <div className="space-y-2">
+            <p>
+              Estás modificando el nivel de triaje clínico asignado:
+            </p>
+            <div className="p-2 rounded bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
+              <div>
+                <span className="text-slate-400">Nivel actual: </span>
+                <span className="font-bold text-white">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Nuevo nivel propuesto: </span>
+                <span className="font-bold text-amber-300">Nivel {ROMAN_LEVELS[pendingLevelChange || 5]} ({getLevelLabel(pendingLevelChange || 5)})</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              Esta modificación quedará registrada en el log de auditoría médica hospitalaria.
+            </p>
+          </div>
+        }
+        confirmText="Confirmar Nivel"
+        cancelText="Mantener Nivel Actual"
+        confirmVariant="warning"
+        onConfirm={handleConfirmTriageLevelChange}
+        onCancel={() => setPendingLevelChange(null)}
+      />
     </div>
   );
 }
@@ -1179,7 +1574,7 @@ function EntityGroup({
         {icon} {title}
       </h3>
       <div className={`flex flex-col gap-1 min-h-[40px] bg-slate-900/30 p-1.5 rounded-md border border-slate-700/50`}>
-        {!entities && !loading && <span className="text-[10px] text-slate-600 italic px-2 py-1">Pendiente...</span>}
+        {!entities && !loading && <span className="text-[10px] text-slate-400 italic px-2 py-1">Pendiente...</span>}
         {loading && (
             <div className="w-full flex flex-col gap-1.5 opacity-70">
                 <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm`}></div>
@@ -1213,10 +1608,10 @@ function EntityGroup({
             />
           </div>
         )}
-        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-500 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
+        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-400 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
       </div>
     </div>
-  )
+  );
 }
 
 const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
@@ -1234,279 +1629,100 @@ function getLevelGradient(level?: number) {
 
 function getLevelLabel(level?: number) {
   switch (level) {
-    case 1: return 'Resucitación';
+    case 1: return 'Reanimación';
     case 2: return 'Emergencia';
     case 3: return 'Urgencia';
-    case 4: return 'Urgencia Menor';
-    case 5: return 'No Urgente';
-    default: return 'Desconocido';
+    case 4: return 'Consulta Prioritaria';
+    case 5: return 'Consulta Externa';
+    default: return 'Sin Clasificar';
   }
 }
 
-function generateFHIRBundle(session: TriageSession): any {
-  const patientId = "pat-" + session.id;
-  const encounterId = "enc-" + session.id;
-  
-  const patInfo = session.patientInfo || {
-    name: session.patientName,
-    documentId: '',
-    birthDate: '',
-    gender: 'unknown',
-    phone: '',
-    insurance: ''
-  };
-
-  // 1. Patient Resource
-  const patientResource: any = {
-    resourceType: "Patient",
-    id: patientId,
-    active: true,
-    name: [
-      {
-        use: "official",
-        text: patInfo.name || "Paciente Desconocido"
-      }
-    ]
-  };
-
-  if (patInfo.documentId) {
-    patientResource.identifier = [
-      {
-        use: "official",
-        type: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/v2-0203",
-              code: "MC",
-              display: "Identificación del Paciente"
-            }
-          ]
-        },
-        value: patInfo.documentId
-      }
-    ];
+function getAttentionTime(level?: number) {
+  switch (level) {
+    case 1: return 'Atención Inmediata';
+    case 2: return 'Atención < 30 min';
+    case 3: return 'Atención < 120 min';
+    case 4: return 'Direccionamiento EPS';
+    case 5: return 'Direccionamiento EPS';
+    default: return '';
   }
+}
 
-  if (patInfo.gender && patInfo.gender !== 'unknown') {
-    patientResource.gender = patInfo.gender;
-  }
+function Tooltip({ children, text, position = 'top' }: { children: React.ReactNode; text: string; position?: 'top' | 'bottom' | 'left' | 'right' }) {
+  const positionClasses = {
+    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
+    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
+    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
+    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+  }[position];
 
-  if (patInfo.birthDate) {
-    patientResource.birthDate = patInfo.birthDate;
-  }
+  return (
+    <div className="relative group/tooltip inline-flex items-center">
+      {children}
+      <div className={`absolute ${positionClasses} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
+        {text}
+      </div>
+    </div>
+  );
+}
 
-  if (patInfo.phone) {
-    patientResource.telecom = [
-      {
-        system: "phone",
-        value: patInfo.phone,
-        use: "mobile"
-      }
-    ];
-  }
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmText = "Confirmar",
+  cancelText = "Cancelar",
+  confirmVariant = "danger",
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  title: string;
+  message: React.ReactNode;
+  confirmText?: string;
+  cancelText?: string;
+  confirmVariant?: "danger" | "warning" | "primary";
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
 
-  if (patInfo.insurance) {
-    patientResource.extension = [
-      {
-        url: "http://hl7.org/fhir/StructureDefinition/patient-insurance",
-        valueString: patInfo.insurance
-      }
-    ];
-  }
+  const btnClasses = {
+    danger: "bg-red-600 hover:bg-red-500 text-white shadow-red-900/30",
+    warning: "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/30",
+    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30",
+  }[confirmVariant];
 
-  // 2. Encounter Resource
-  const triageLevel = session.analysisResult?.triage?.level;
-  let triageLabel = "Desconocido";
-  switch (triageLevel) {
-    case 1: triageLabel = "Resucitación"; break;
-    case 2: triageLabel = "Emergencia"; break;
-    case 3: triageLabel = "Urgencia"; break;
-    case 4: triageLabel = "Urgencia Menor"; break;
-    case 5: triageLabel = "No Urgente"; break;
-  }
-
-  const encounterResource: any = {
-    resourceType: "Encounter",
-    id: encounterId,
-    status: "triaged",
-    class: {
-      system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-      code: "EMER",
-      display: "emergency"
-    },
-    subject: {
-      reference: `Patient/${patientId}`,
-      display: patInfo.name || "Paciente Desconocido"
-    },
-    priority: {
-      coding: [
-        {
-          system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
-          code: triageLevel ? `L${triageLevel}` : "unknown",
-          display: triageLabel
-        }
-      ]
-    }
-  };
-
-  const symptoms = session.analysisResult?.entities?.symptoms || [];
-  if (symptoms.length > 0) {
-    encounterResource.reasonCode = symptoms.map((symptom: string) => ({
-      text: symptom
-    }));
-  }
-
-  if (session.analysisResult?.triage?.justification) {
-    encounterResource.text = {
-      status: "generated",
-      div: `<div xmlns="http://www.w3.org/1999/xhtml"><h3>Justificación de Triaje:</h3><p>${session.analysisResult.triage.justification}</p></div>`
-    };
-  }
-
-  const entries: any[] = [
-    {
-      fullUrl: `urn:uuid:${patientId}`,
-      resource: patientResource
-    },
-    {
-      fullUrl: `urn:uuid:${encounterId}`,
-      resource: encounterResource
-    }
-  ];
-
-  // 3. Condition Resources (Symptoms and History)
-  const history = session.analysisResult?.entities?.history || [];
-  symptoms.forEach((symptom: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:cond-symptom-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Condition",
-        id: `cond-symptom-${idx}-${session.id}`,
-        clinicalStatus: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
-              code: "active"
-            }
-          ]
-        },
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/condition-category",
-                code: "encounter-diagnosis",
-                display: "Encounter Diagnosis"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: symptom
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        encounter: {
-          reference: `Encounter/${encounterId}`
-        }
-      }
-    });
-  });
-
-  history.forEach((hist: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:cond-history-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Condition",
-        id: `cond-history-${idx}-${session.id}`,
-        clinicalStatus: {
-          coding: [
-            {
-              system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
-              code: "active"
-            }
-          ]
-        },
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/condition-category",
-                code: "problem-list-item",
-                display: "Problem List Item"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: hist
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        }
-      }
-    });
-  });
-
-  // 4. Observation Resources (Vitals)
-  const vitals = session.analysisResult?.entities?.vitals || [];
-  vitals.forEach((vital: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:obs-vital-${idx}-${session.id}`,
-      resource: {
-        resourceType: "Observation",
-        id: `obs-vital-${idx}-${session.id}`,
-        status: "final",
-        category: [
-          {
-            coding: [
-              {
-                system: "http://terminology.hl7.org/CodeSystem/observation-category",
-                code: "vital-signs",
-                display: "Vital Signs"
-              }
-            ]
-          }
-        ],
-        code: {
-          text: vital
-        },
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        encounter: {
-          reference: `Encounter/${encounterId}`
-        },
-        valueString: vital
-      }
-    });
-  });
-
-  // 5. MedicationStatement Resources (Medications)
-  const medications = session.analysisResult?.entities?.medications || [];
-  medications.forEach((med: string, idx: number) => {
-    entries.push({
-      fullUrl: `urn:uuid:med-${idx}-${session.id}`,
-      resource: {
-        resourceType: "MedicationStatement",
-        id: `med-${idx}-${session.id}`,
-        status: "active",
-        subject: {
-          reference: `Patient/${patientId}`
-        },
-        medicationCodeableConcept: {
-          text: med
-        }
-      }
-    });
-  });
-
-  return {
-    resourceType: "Bundle",
-    id: `bundle-${session.id}`,
-    type: "collection",
-    timestamp: new Date(session.date).toISOString(),
-    entry: entries
-  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+            <div className="text-xs text-slate-400 leading-relaxed">{message}</div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md ${btnClasses}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

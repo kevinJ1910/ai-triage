@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -102,8 +103,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-import dj_database_url
-
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
@@ -135,12 +134,6 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
-
-WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'large-v3-turbo')
-WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'auto')
-WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
-WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '3'))
-WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
 
 # FIX-SEC-003: BLACKLIST_AFTER_ROTATION habilitado para invalidar tokens rotados.
 SIMPLE_JWT = {
@@ -190,3 +183,11 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+# --- Whisper ASR Configuration ---
+WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'large-v3-turbo')
+WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'auto')
+WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
+WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
+WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '1'))
+

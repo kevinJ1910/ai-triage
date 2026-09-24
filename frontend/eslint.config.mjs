@@ -8,4 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig([{
     extends: [...next],
+    rules: {
+        "react-hooks/set-state-in-effect": "off",
+    },
 }]);

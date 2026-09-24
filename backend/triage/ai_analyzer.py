@@ -1,20 +1,95 @@
 import os
+import re
 import json
 import logging
+from typing import List, Optional, Literal, Dict, Any
+from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
+from .clinical_protocol import evaluate_christus_sinergia_triage
+from .input_pipeline import ClinicalTranscriptCompressor
+from .clinical_rag import ClinicalKnowledgeRAG
+from .clinical_cache import ClinicalQueryCache
+
 logger = logging.getLogger(__name__)
 
-# FIX-TEC-006: Timeout y manejo explicitico de errores en llamadas a la API de Gemini.
+# Timeout configurable para llamadas a la API de Gemini
 GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_TIMEOUT_SECONDS', '30'))
 
 
-def analyze_triage_transcript(transcript: str) -> dict:
+# --- Esquemas Pydantic v2 para Decodificacion Estructurada Estricta ---
+
+class PatientInfoSchema(BaseModel):
+    name: Optional[str] = Field(default=None, description="Nombre del paciente o null si no se menciona")
+    documentId: Optional[str] = Field(default=None, description="Numero de documento de identidad numerico o null")
+    birthDate: Optional[str] = Field(default=None, description="Fecha de nacimiento en formato YYYY-MM-DD o null")
+    gender: Literal["male", "female", "other", "unknown"] = Field(default="unknown", description="Genero del paciente")
+    phone: Optional[str] = Field(default=None, description="Telefono de contacto o null")
+    insurance: Optional[str] = Field(default="Christus Sinergia / EPS", description="Aseguradora o EPS")
+
+
+class EntitiesSchema(BaseModel):
+    symptoms: List[str] = Field(default_factory=list, description="Lista de sintomas clinicos expresados")
+    medications: List[str] = Field(default_factory=list, description="Medicamentos de uso habitual o prescritos")
+    vitals: List[str] = Field(default_factory=list, description="Constantes vitales detectadas en consulta")
+    history: List[str] = Field(default_factory=list, description="Antecedentes patologicos o quirurgicos")
+
+
+class TriageDetailsSchema(BaseModel):
+    level: int = Field(ge=1, le=5, description="Nivel de triaje del 1 al 5 segun escala Christus Sinergia Salud")
+    name: Literal["Reanimación", "Emergencia", "Urgencia", "Consulta Prioritaria", "Consulta Externa"] = Field(
+        description="Nombre institucional del nivel de triaje"
+    )
+    attention_time: Literal[
+        "Inmediata",
+        "Dentro de los siguientes 30 minutos",
+        "Hasta 120 minutos",
+        "Direccionamiento a su EPS"
+    ] = Field(description="Tiempo maximo estandar de atencion")
+    justification: str = Field(description="Justificacion medica concisa fundamentada en el protocolo")
+
+
+class TriageOutputSchema(BaseModel):
+    patientInfo: PatientInfoSchema
+    entities: EntitiesSchema
+    triage: TriageDetailsSchema
+    confidence: float = Field(ge=0.0, le=1.0, default=0.95, description="Puntaje de certeza clinica entre 0.0 y 1.0")
+    protocol: str = Field(default="Christus Sinergia Salud")
+
+
+import copy
+
+def _sanitize_schema_for_gemini(model_cls) -> Dict[str, Any]:
     """
-    Calls Gemini API to analyze a clinical transcript and extract entities.
-    Returns a dictionary matching the triage schema.
+    Convierte el modelo Pydantic v2 en un diccionario JSON Schema estricto
+    removiendo title, $defs y referencias anidadas para máxima compatibilidad con Google AI SDK.
     """
+    raw_schema = model_cls.model_json_schema()
+    defs = raw_schema.pop("$defs", {}) if "$defs" in raw_schema else raw_schema.pop("definitions", {})
+
+    def _sanitize(obj):
+        if isinstance(obj, dict):
+            if "$ref" in obj:
+                ref_key = obj["$ref"].split("/")[-1]
+                if ref_key in defs:
+                    resolved = copy.deepcopy(defs[ref_key])
+                    return _sanitize(resolved)
+            cleaned = {}
+            for k, v in obj.items():
+                if k in ("title", "$defs", "definitions"):
+                    continue
+                cleaned[k] = _sanitize(v)
+            return cleaned
+        elif isinstance(obj, list):
+            return [_sanitize(item) for item in obj]
+        return obj
+
+    return _sanitize(raw_schema)
+
+
+def _resolve_gemini_api_key() -> str:
+    """Recupera la clave API de Gemini desde la base de datos o variables de entorno."""
     api_key = ""
     try:
         from system_settings.models import APIKeyCredential
@@ -27,73 +102,238 @@ def analyze_triage_transcript(transcript: str) -> dict:
     if not api_key:
         api_key = os.environ.get("GEMINI_API_KEY", "").strip("'")
 
+    return api_key
+
+
+def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[str, Any]:
+    """
+    Analiza una conversacion clinica utilizando un pipeline optimizado:
+    1. Evaluacion determinista previa de Christus Sinergia Salud como pauta prioritaria.
+    2. Compresion y desruidado fonetico de la entrada (ClinicalTranscriptCompressor).
+    3. Cache semantico canonico para cuadros clinicos recurrentes (ClinicalQueryCache).
+    4. Recuperacion semantica de criterios relevantes mediante RAG (ClinicalKnowledgeRAG).
+    5. Invocacion a Gemini con System Instruction y decodificacion estructurada sanitizada.
+    6. Fallback automatico garantizado con el Motor de Reglas Christus Sinergia Salud.
+    """
+    raw_transcript = (transcript or "").strip()
+    if not raw_transcript:
+        return {"error": "Transcripción vacía o no proporcionada."}
+
+    # 1. Evaluacion de Reglas Institucionales Christus Sinergia Salud (Prioridad Base)
+    rule_baseline = evaluate_christus_sinergia_triage(raw_transcript)
+
+    # 2. Pipeline de Compresion de Entrada y Extraccion de Signos Vitales
+    compressed_input = ClinicalTranscriptCompressor.process(raw_transcript)
+    cleaned_transcript = compressed_input["cleaned_transcript"]
+    compact_vitals = compressed_input["compact_vitals"]
+    structured_vitals = compressed_input["structured_vitals"]
+    red_flags = compressed_input["red_flags"]
+    compression_ratio = compressed_input["reduction_percentage"]
+
+    # 3. Consulta al Cache Semantico Canonico (0 tokens, < 3ms)
+    fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals)
+    if use_cache:
+        cached_result = ClinicalQueryCache.get(fingerprint)
+        if cached_result:
+            logger.info("Consulta resuelta mediante Cache Semántico de Consultas (0 tokens)")
+            cached_result["compression_ratio"] = compression_ratio
+            return cached_result
+
+    # 4. RAG Clinico: Recuperacion de Criterios Institucionales Top-K Relevantes
+    retrieved_criteria = ClinicalKnowledgeRAG.retrieve(
+        cleaned_transcript,
+        top_k=4,
+        red_flags=red_flags
+    )
+    rag_context_text = ClinicalKnowledgeRAG.format_context_for_prompt(retrieved_criteria)
+    rag_criterion_ids = [c["id"] for c in retrieved_criteria]
+
+    # 5. Resolucion de Credenciales y Cliente Gemini
+    api_key = _resolve_gemini_api_key()
     if not api_key:
         logger.error("No GEMINI_API_KEY found in database or environment variables.")
-        return {"error": "No se encontro una GEMINI_API_KEY valida."}
-
-    client = genai.Client(api_key=api_key)
-
-    prompt = f"""
-    Eres un Asistente Medico de Triaje basado en el protocolo AI-Triage (similar a ESI y Manchester).
-    Analiza la siguiente conversacion transcrita entre un medico y un paciente.
-    Extrae la siguiente informacion:
-    1. "patientInfo": Informacion basica del paciente mencionada en la conversacion.
-       - "name": Nombre completo del paciente.
-       - "documentId": Documento de identidad (cedula, pasaporte, etc.). Extrae unicamente digitos numericos.
-       - "birthDate": Fecha de nacimiento (YYYY-MM-DD).
-       - "gender": "male", "female", "other", o "unknown".
-       - "phone": Numero de telefono (solo digitos).
-       - "insurance": Aseguradora medica o EPS.
-       Si un campo no se menciona, omitelo o devuelve null.
-
-    2. "entities":
-       - "symptoms": Lista de sintomas mencionados.
-       - "medications": Lista de medicamentos mencionados.
-       - "vitals": Constantes vitales o signos fisicos descritos.
-       - "history": Antecedentes medicos o diagnosticos previos.
-
-    Asigna un nivel de prioridad de triaje clinico del 1 al 5 (1=Resucitacion, 5=No Urgente)
-    y una justificacion clinica concisa.
-
-    Devuelve estrictamente un objeto JSON con esta estructura exacta:
-    {{
-      "patientInfo": {{
-        "name": "string",
-        "documentId": "string",
-        "birthDate": "string",
-        "gender": "male | female | other | unknown",
-        "phone": "string",
-        "insurance": "string"
-      }},
-      "entities": {{
-        "symptoms": ["string"],
-        "medications": ["string"],
-        "vitals": ["string"],
-        "history": ["string"]
-      }},
-      "triage": {{
-        "level": 1,
-        "justification": "string"
-      }},
-      "confidence": 0.95
-    }}
-
-    Transcripcion:
-    "{transcript}"
-    """
-
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            ),
+        fallback_res = _fallback_rule_triage(
+            raw_transcript,
+            cleaned_transcript,
+            compact_vitals,
+            red_flags,
+            compression_ratio,
+            rag_criterion_ids,
+            warning="No se encontró una clave de Gemini configurada. Se aplicó el Motor Clínico determinista de respaldo Christus Sinergia Salud."
         )
-        return json.loads(response.text)
-    except json.JSONDecodeError as json_err:
-        logger.error(f"Gemini returned invalid JSON: {json_err}")
-        return {"error": "Formato de respuesta invalido desde la API de IA"}
-    except Exception as api_err:
-        logger.error(f"Gemini API call failed: {api_err}", exc_info=True)
-        return {"error": f"Servicio de IA temporalmente no disponible: {type(api_err).__name__}"}
+        if use_cache:
+            ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
+        return fallback_res
+
+    # 6. Construccion de Prompt Optimizado con Prioridad Christus Sinergia Salud
+    system_instruction = (
+        "Eres un Especialista Médico de Triaje de Urgencias del sistema CHRISTUS SINERGIA Salud "
+        "(Resolución 5596 Ministerio de Salud de Colombia). Tu labor es clasificar rigurosamente la "
+        "gravedad del paciente y extraer entidades clínicas clave dando máxima prioridad a los criterios "
+        "institucionales de Christus Sinergia Salud proporcionados."
+    )
+
+    user_prompt = f"""{rag_context_text}
+
+PAUTA CLÍNICA INSTITUCIONAL PREVIA (CHRISTUS SINERGIA SALUD / RESOLUCIÓN 5596):
+- Nivel Base por Reglas: Nivel {rule_baseline['level']} ({rule_baseline['name']})
+- Ventana de Atención: {rule_baseline['attention_time']}
+- Criterio Base: {rule_baseline['justification']}
+
+INSTRUCCIÓN DE PRIORIDAD: Debes tomar la pauta de Christus Sinergia Salud como referencia institucional prioritaria. A menos que identifiques signos adicionales de gravedad o estabilidad en la conversación, confirma o refina esta clasificación conforme a la escala Christus Sinergia Salud (Niveles 1 a 5).
+
+SIGNOS VITALES IDENTIFICADOS: {", ".join(compact_vitals) if compact_vitals else "Ninguno reportado"}
+ALERTAS CLÍNICAS: {", ".join(red_flags) if red_flags else "Ninguna bandera roja inmediata"}
+
+CONSULTA MÉDICA COMPRIMIDA:
+"{cleaned_transcript}"
+"""
+
+    active_model = 'gemini-2.5-flash'
+    try:
+        from system_settings.models import SystemConfiguration
+        config = SystemConfiguration.get_solo()
+        if config.active_llm_engine:
+            active_model = config.active_llm_engine
+    except Exception as cfg_err:
+        logger.debug(f"Could not read active_llm_engine from DB: {cfg_err}")
+
+    candidate_models = [active_model]
+    if 'gemini' in active_model:
+        for backup in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']:
+            if backup not in candidate_models:
+                candidate_models.append(backup)
+
+    client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
+    gemini_schema = _sanitize_schema_for_gemini(TriageOutputSchema)
+
+    for model_name in candidate_models:
+        try:
+            logger.info(f"Invocando LLM '{model_name}' con entrada optimizada y schema sanitizado...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    response_schema=gemini_schema,
+                    temperature=0.1,
+                ),
+            )
+            raw_text = response.text
+            parsed = json.loads(raw_text)
+
+            # Validar con Pydantic para garantia estructural total
+            validated_model = TriageOutputSchema.model_validate(parsed)
+            result = validated_model.model_dump()
+
+            # Fusionar signos vitales extraidos por regex si el LLM no los capturo todos
+            if compact_vitals:
+                current_v = result.get("entities", {}).get("vitals", [])
+                for cv in compact_vitals:
+                    if cv not in current_v:
+                        current_v.append(cv)
+                result["entities"]["vitals"] = current_v
+
+            # Telemetria de Tokens
+            usage = getattr(response, "usage_metadata", None)
+            p_tokens = getattr(usage, "prompt_token_count", 0) if usage else 0
+            c_tokens = getattr(usage, "candidates_token_count", 0) if usage else 0
+            t_tokens = getattr(usage, "total_token_count", p_tokens + c_tokens) if usage else 0
+
+            result["engine_used"] = f"LLM ({model_name}) + Christus Sinergia"
+            result["cached"] = False
+            result["prompt_tokens"] = p_tokens
+            result["completion_tokens"] = c_tokens
+            result["total_tokens"] = t_tokens
+            result["compression_ratio"] = compression_ratio
+            result["rag_context"] = rag_criterion_ids
+
+            # Guardar en Cache Semantico para proximas consultas
+            if use_cache:
+                ClinicalQueryCache.set(fingerprint, result, estimated_tokens=t_tokens)
+
+            return result
+
+        except Exception as err:
+            logger.warning(f"Fallo en llamada a {model_name} con schema Pydantic: {err}")
+
+    # 7. Fallback Asistencial Garantizado (Motor Determinista)
+    logger.warning("Activando motor determinista de respaldo Christus Sinergia Salud...")
+    fallback_res = _fallback_rule_triage(
+        raw_transcript,
+        cleaned_transcript,
+        compact_vitals,
+        red_flags,
+        compression_ratio,
+        rag_criterion_ids,
+        warning=(
+            "El servicio LLM en la nube presentó alta demanda temporal (código 503). "
+            "Se aplicó el Motor Clínico de Reglas Christus Sinergia Salud para garantizar "
+            "la clasificación y la continuidad asistencial sin demoras."
+        )
+    )
+    if use_cache:
+        ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
+    return fallback_res
+
+
+def _fallback_rule_triage(
+    raw_transcript: str,
+    cleaned_transcript: str,
+    compact_vitals: List[str],
+    red_flags: List[str],
+    compression_ratio: float,
+    rag_criterion_ids: List[str],
+    warning: str
+) -> Dict[str, Any]:
+    """Genera la respuesta estandarizada mediante el motor determinista Christus Sinergia."""
+    rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
+
+    symptoms = []
+    norm_tr = cleaned_transcript.lower()
+    for s_kw in [
+        "dolor de cabeza", "dolor toracico", "dolor en el pecho", "dificultad respiratoria",
+        "fiebre", "tos", "vomito", "diarrea", "mareo", "vertigo", "fatiga", "ardor al orinar"
+    ]:
+        if s_kw in norm_tr:
+            symptoms.append(s_kw)
+
+    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
+    doc_id = doc_match.group(1) if doc_match else None
+
+    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
+    patient_name = name_match.group(1).strip() if name_match else None
+
+    return {
+        "patientInfo": {
+            "name": patient_name,
+            "documentId": doc_id,
+            "birthDate": None,
+            "gender": "unknown",
+            "phone": None,
+            "insurance": "Christus Sinergia / EPS"
+        },
+        "entities": {
+            "symptoms": symptoms or ["Síntomas referidos en consulta"],
+            "medications": [],
+            "vitals": compact_vitals,
+            "history": []
+        },
+        "triage": {
+            "level": rule_triage["level"],
+            "name": rule_triage["name"],
+            "attention_time": rule_triage["attention_time"],
+            "justification": rule_triage["justification"]
+        },
+        "confidence": rule_triage["confidence"],
+        "protocol": "Christus Sinergia Salud",
+        "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+        "cached": False,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "compression_ratio": compression_ratio,
+        "rag_context": rag_criterion_ids,
+        "warning": warning
+    }

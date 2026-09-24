@@ -109,12 +109,12 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 
 ### 2.10. Suites de Pruebas Automatizadas Fullstack
 - **Frontend (Vitest + React Testing Library)**:
-  - 10 archivos de prueba y 49 tests unitarios/componentes ejecutándose al 100% de éxito (~3.4s).
-  - Cobertura: navegación de la app, apertura y conmutación del drawer móvil, asignación EMR y vistas adaptativas, monitores FHIR y Normalización, paneles de Seguridad y Métricas, utilidades de autenticación JWT y lógica reactiva de validaciones tipadas Zod.
+  - 10 archivos de prueba y 56 tests unitarios/componentes ejecutándose al 100% de éxito (~2.8s).
+  - Cobertura: navegación de la app, apertura y conmutación del drawer móvil, asignación EMR y vistas adaptativas, monitores FHIR y Normalización, paneles de Seguridad y Métricas, utilidades de autenticación JWT, lógica reactiva de validaciones tipadas Zod, y controles UX de triaje (banner minimizable, modales de confirmación, tooltips).
 - **Backend (pytest + pytest-django)**:
-  - 69 tests unitarios y de integración ejecutándose al 100% de éxito (~69s).
-  - Cobertura: ciclo de vida de autenticación y verificación OTP, demo users y omisión en producción, seguridad RBAC y registros de auditoría inmutables, modelos criptográficos de credenciales, motor Whisper con poda TTL y redacción de trazas de excepción, endpoints FHIR R4, cálculo matemático de concordancia de triaje y esquemas de validación Pydantic v2.
-- **Total:** 118 pruebas fullstack automatizadas con reporte de cero regresiones.
+  - 93 tests unitarios y de integración ejecutándose al 100% de éxito (~65s).
+  - Cobertura: ciclo de vida de autenticación y verificación OTP, demo users y omisión en producción, seguridad RBAC y registros de auditoría inmutables, modelos criptográficos de credenciales, motor Whisper con poda TTL y redacción de trazas de excepción, endpoints FHIR R4, cálculo matemático de concordancia de triaje, esquemas de validación Pydantic v2, gobernanza de tokens y priorización de protocolo clínico Christus Sinergia Salud con fallback a LLM estructurado.
+- **Total:** 149 pruebas fullstack automatizadas con reporte de cero regresiones.
 
 ### 2.11. Responsividad Movil Integral y Adaptabilidad de Interfaz
 - **Encabezado Superior Movil y Drawer Deslizante (`AppNavigation.tsx`)**:
@@ -146,7 +146,24 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 - **Aislamiento de Red Docker**: Se cerró la exposición directa del puerto `5432` de PostgreSQL al host en `docker-compose.yml`, restringiendo su tráfico a la red interna `ai_triage_network`.
 - **Resiliencia en Cliente Frontend**: Se implementó la renovación silenciosa automática de access tokens vía `tryRefreshToken` en `fetchWithAuth` ante respuestas HTTP 401 previniendo interrupciones abruptas de sesión, y se sustituyó `useState<any>` por interfaces clínicas tipadas (`UserProfile`, `TriageEntities`, `TriageLevelInfo`, `AnalysisResult`).
 
+### 2.14. Priorización Institucional Christus Sinergia Salud y Desreferenciación de Esquemas LLM
+- **Inferencia Jerárquica Institucional**: El módulo `ai_analyzer.py` ejecuta prioritariamente el evaluador determinista `evaluate_christus_sinergia_triage(raw_transcript)` basado en la Resolución 5596 del Minsalud de Colombia y matrices clínicas de Christus Sinergia Salud. Si se detecta un patrón crítico o patología clasificable institucionalmente, esta se inyecta como contexto vinculante y prioritario antes de consultar al LLM.
+- **Sanitización de Esquemas para Google GenAI**: La API de Google GenAI (`google-genai` SDK con Gemini 2.5 Flash) rechaza esquemas JSON generados por Pydantic que contengan el campo `title` y referencias anidadas `$defs` / `$ref`. Se implementó la utilidad recursiva `_sanitize_schema_for_gemini` que desreferencia completamente los sub-esquemas (`PatientInfoSchema`, `VitalSignsSchema`) e higieniza las propiedades prohibidas, garantizando la decodificación gramatical estructurada estricta sin errores de validación de API.
+- **Validación Bidireccional de Salida**: La respuesta JSON del LLM se valida e hidrata directamente con `TriageOutputSchema.model_validate`, protegiendo la sesión contra alucinaciones de tipos o datos incompletos.
+
+### 2.15. Experiencia de Usuario Clínica (UX): Modales de Confirmación, Tooltips y Banner Minimizable
+- **Banner de Respaldo Asistencial Minimizable**: En `TriageDashboard.tsx`, el banner ámbar de advertencia regulatoria ahora cuenta con control de colapso/expansión accesible con teclado y clic (`ChevronDown` / `ChevronUp`), permitiendo al profesional reducir el espacio ocupado a una barra discreta de una sola línea sin perder trazabilidad.
+- **Modales de Confirmación Quirúrgicos**:
+  - Modal de confirmación al iniciar "Nueva Consulta" cuando existen transcripciones o datos de paciente en curso, evitando pérdida accidental de información clínica.
+  - Modal de confirmación al realizar "Ajuste Clínico de Nivel", alertando al personal sobre la discrepancia entre la recomendación algorítmica y el criterio médico ingresado.
+### 2.16. Optimización de Métricas de Rendimiento, Accesibilidad y Estabilidad Visual (Auditoría Lighthouse)
+- **Eliminación de Cumulative Layout Shift (CLS)**: Se resolvió la deriva de diseño en el render inicial de `TriageDashboard.tsx` (CLS 0.196) desacoplando el retraso de hidratación de `isDesktop` y asignando proporciones base en clases CSS nativas (`lg:w-[41.6%]`, `lg:h-[55%]`, `lg:h-[60%]`), además de convertir los tiradores de redimensionamiento a `hidden lg:flex` estáticos en CSS.
+- **Accesibilidad Formativa WCAG 2.1 AA (`label` y `select-name`)**: Vinculación explícita de `htmlFor`, atributos `id` y descriptores `aria-label` en la totalidad de los controles del paciente (Nombre, Documento, Fecha de Nacimiento, Género, Teléfono y Aseguradora/EPS).
+- **Contraste Cromático Estándar (`color-contrast` >= 4.5:1)**: Sustitución de tonos apagados de bajo contraste (`text-slate-500`, `text-slate-600`) por `text-slate-400` y realce de badges de usuario con fondo `bg-blue-900/60 text-blue-200 border border-blue-500/40` en la barra lateral, estados vacíos de audio/triaje y placeholders de entidades clínicas.
+- **Reducción Crítica de Carga de Red**: Optimización de `icon.png` (de 443 KB a 4.9 KB, reducción del 99%) aliviando el bloqueo crítico de red en el documento inicial, e incorporación de `display: 'swap'` en las fuentes web de Google (`Inter` y `Space Grotesk`) para prevenir bloqueo de renderizado de texto.
+
 ---
+
 
 ## 3. Brechas Identificadas y Limitaciones Actuales
 

@@ -103,13 +103,16 @@ export default function AppNavigation() {
   }
 
   const navItems = [
-    { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulo de Triaje' },
-    { id: 'config', icon: <Settings className="w-5 h-5"/>, label: 'Configuracion' },
-    { id: 'security', icon: <Shield className="w-5 h-5"/>, label: 'Seguridad y RBAC' },
-    { id: 'normalization', icon: <RefreshCw className="w-5 h-5"/>, label: 'Monitor Normalizacion' },
-    { id: 'fhir', icon: <Server className="w-5 h-5"/>, label: 'Monitor FHIR/HL7' },
-    { id: 'emr', icon: <Database className="w-5 h-5"/>, label: 'Simulador HCE' },
-    { id: 'metrics', icon: <BarChart className="w-5 h-5"/>, label: 'Metricas y Evaluacion' },
+    // Flujo Clinico y Gestion de Pacientes
+    { id: 'triage', icon: <Stethoscope className="w-5 h-5"/>, label: 'Modulo de Triaje', category: 'clinical' },
+    { id: 'emr', icon: <Database className="w-5 h-5"/>, label: 'Simulador HCE', category: 'clinical' },
+    // Interoperabilidad y Evaluacion IA
+    { id: 'normalization', icon: <RefreshCw className="w-5 h-5"/>, label: 'Monitor Normalizacion', category: 'clinical' },
+    { id: 'fhir', icon: <Server className="w-5 h-5"/>, label: 'Monitor FHIR/HL7', category: 'clinical' },
+    { id: 'metrics', icon: <BarChart className="w-5 h-5"/>, label: 'Metricas y Evaluacion', category: 'clinical' },
+    // Administracion y Parametrizacion del Sistema
+    { id: 'security', icon: <Shield className="w-5 h-5"/>, label: 'Seguridad y RBAC', category: 'admin' },
+    { id: 'config', icon: <Settings className="w-5 h-5"/>, label: 'Configuracion', category: 'admin' },
   ];
 
   const currentActiveItem = navItems.find(i => i.id === activeTab);
@@ -194,23 +197,31 @@ export default function AppNavigation() {
               {navItems.map(item => {
                 const isActive = activeTab === item.id;
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                      isActive 
-                        ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20' 
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <div className="shrink-0">{item.icon}</div>
-                    <span className="text-xs tracking-wide">
-                      {item.label}
-                    </span>
-                  </button>
+                  <React.Fragment key={item.id}>
+                    {item.id === 'security' && (
+                      <div className="my-2 pt-2 border-t border-slate-800">
+                        <span className="px-3 pb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+                          Administracion del Sistema
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
+                        isActive 
+                          ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20' 
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="shrink-0">{item.icon}</div>
+                      <span className="text-xs tracking-wide">
+                        {item.label}
+                      </span>
+                    </button>
+                  </React.Fragment>
                 );
               })}
             </nav>
@@ -263,21 +274,29 @@ export default function AppNavigation() {
           {navItems.map(item => {
             const isActive = activeTab === item.id;
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center justify-center md:justify-start gap-3 p-2.5 rounded transition-all group ${
-                  isActive 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                }`}
-                title={isCollapsed ? item.label : undefined}
-              >
-                <div className="shrink-0">{item.icon}</div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
-                  {item.label}
-                </span>
-              </button>
+              <React.Fragment key={item.id}>
+                {item.id === 'security' && (
+                  <div className="my-2 pt-2 border-t border-slate-800">
+                    <span className={`px-2 pb-1 text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold block ${isCollapsed ? 'hidden' : 'block'}`}>
+                      Administracion
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center justify-center md:justify-start gap-3 p-2.5 rounded transition-all group ${
+                    isActive 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  }`}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <div className="shrink-0">{item.icon}</div>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest truncate transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              </React.Fragment>
             );
           })}
         </nav>
@@ -299,7 +318,7 @@ export default function AppNavigation() {
         <div className="p-2 border-t border-slate-800 flex items-center justify-center md:justify-start shrink-0">
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-all"
+            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all"
             title={isCollapsed ? "Expandir" : "Contraer"}
           >
             <div className="shrink-0">

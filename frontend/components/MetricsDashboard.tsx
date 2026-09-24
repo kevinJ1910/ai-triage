@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
@@ -10,7 +10,8 @@ import {
   Activity, 
   GitCompare, 
   Zap, 
-  AlertTriangle 
+  AlertTriangle,
+  Cpu
 } from 'lucide-react';
 
 interface EvaluationItem {
@@ -21,6 +22,15 @@ interface EvaluationItem {
   is_modified: boolean;
   agreement_score: number;
   date: string;
+}
+
+interface CacheStats {
+  hits: number;
+  misses: number;
+  total_requests: number;
+  hit_rate_pct: number;
+  cached_items_count: number;
+  estimated_tokens_saved: number;
 }
 
 interface MetricsData {
@@ -34,6 +44,9 @@ interface MetricsData {
   unmodified_count: number;
   distribution_ai: Record<number, number>;
   distribution_physician: Record<number, number>;
+  total_tokens_consumed?: number;
+  cached_triages_count?: number;
+  clinical_cache_stats?: CacheStats;
   recent_evaluations: EvaluationItem[];
 }
 
@@ -216,6 +229,57 @@ export default function MetricsDashboard() {
             <p className="text-[11px] text-slate-400 mt-1">
               Entidades clinicas extraidas por el modelo retenidas por el personal.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Token Governance & Input Optimization KPIs */}
+      <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-cyan-400" />
+              Gobernanza de Tokens y Optimización de Entrada LLM (RAG & Caché Semántico)
+            </h2>
+            <p className="text-[11px] text-slate-400">
+              Métricas de compresión de contexto, decodificación estructurada Pydantic y ahorro de cómputo en urgencias.
+            </p>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            Pydantic v2 + Gemini Structured Output
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+          <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-800/80">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Tokens Consumidos</div>
+            <div className="text-xl font-bold font-mono text-cyan-300 mt-1">
+              {(metrics?.total_tokens_consumed ?? 0).toLocaleString()}
+            </div>
+            <div className="text-[10px] text-slate-500 mt-0.5">En inferencias de triaje</div>
+          </div>
+          <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-800/80">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Triajes en Caché</div>
+            <div className="text-xl font-bold font-mono text-emerald-400 mt-1">
+              {metrics?.cached_triages_count ?? 0}
+            </div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Respuestas sub-3ms a 0 tokens</div>
+          </div>
+          <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-800/80">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Aciertos de Caché</div>
+            <div className="text-xl font-bold font-mono text-blue-400 mt-1">
+              {metrics?.clinical_cache_stats?.hit_rate_pct ?? 0}%
+            </div>
+            <div className="text-[10px] text-slate-500 mt-0.5">
+              {metrics?.clinical_cache_stats?.hits ?? 0} de {metrics?.clinical_cache_stats?.total_requests ?? 0} consultas
+            </div>
+          </div>
+          <div className="bg-slate-900/80 rounded-lg p-3 border border-slate-800/80">
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Tokens Ahorrados</div>
+            <div className="text-xl font-bold font-mono text-purple-400 mt-1">
+              {(metrics?.clinical_cache_stats?.estimated_tokens_saved ?? 0).toLocaleString()}
+            </div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Por deduplicación canónica</div>
           </div>
         </div>
       </div>

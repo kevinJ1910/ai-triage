@@ -8,17 +8,20 @@
 
 * **ASR Clínico en Tiempo Real (Faster-Whisper):** Transcripción continua y segmentada en español con prompts especializados para terminología médica y manejo de buffers de audio con control de concurrencia y limpieza TTL.
 * **Compatibilidad de Cómputo (GPU NVIDIA CUDA / Fallback CPU):** Aceleración por hardware en entornos con GPU y fallback transparente en CPU (int8/float16).
-* **Motor de Triaje Multimodal con Inferencia Adaptativa:** Inferencia de nivel de prioridad (1 al 5) mediante Google Gemini Flash con justificación clínica estructurada en JSON y soporte para timeout resiliente.
+* **Motor de Triaje Multimodal con Prioridad Christus Sinergia Salud:** Inferencia de nivel de prioridad (1 al 5) mediante Google Gemini Flash priorizando los criterios institucionales de Christus Sinergia Salud (Resolución 5596 Minsalud Colombia), complementado con motor determinista de respaldo asistencial.
+* **Pipeline de Compresión y RAG Contextual:** Limpieza determinista de transcripción (`ClinicalTranscriptCompressor`), recuperación semántica top-K de criterios diferenciales (`ClinicalKnowledgeRAG`) y caché semántico canónico SHA-256 (`ClinicalQueryCache`) para respuestas en <3ms y 0 tokens en consultas recurrentes.
+* **Decodificación Estructurada y Gobernanza de Tokens:** Generación guiada por esquema JSON sanitizado con validación Pydantic v2, persistencia de telemetría de tokens (`prompt_tokens`, `completion_tokens`, `total_tokens`, `is_cached`) y dashboard de gobernanza.
+* **Experiencia de Usuario Hospitalaria Segura (UX):** Modales de confirmación para inicio de nueva consulta y discrepancias clínicas en ajuste manual de nivel, tooltips interactivos con tiempos de espera terapéutica y minimización del banner de respaldo asistencial.
 * **Ajuste y Ratificación Médica de Nivel (Human-in-the-Loop):** Control stepper interactivo para que el profesional ratifique o modifique el nivel sugerido, registrando discrepancias y motivos clínicos.
 * **Telemetría y Métricas de Concordancia (Cohen's Kappa):** Monitor de concordancia porcentual entre la IA y el criterio médico, cálculo de Cohen's Kappa, tasa de modificación y deriva temporal de discrepancias.
-* **Normalización Ontológica en Vivo (SNOMED-CT / CIE-10):** Traducción de relatos coloquiales ("le aprieta el pecho", "falta el aire") a conceptos y códigos médicos formales con resaltado interactivo y tabla ontológica filtrable.
+* **Normalización Ontológica en Vivo (SNOMED-CT / CIE-10):** Traducción de relatos coloquiales a conceptos y códigos médicos formales con resaltado interactivo y tabla ontológica filtrable.
 * **Simulador HCE / EMR con Asignación de Box Persistente:** Módulo de admisión y gestión de pacientes en espera con asignación persistente de box y registro de auditoría.
 * **Interoperabilidad FHIR R4:** Generación, validación semántica e historial transaccional de Bundles HL7 FHIR Release 4 (`Patient`, `Encounter`, `Condition`, `Observation`).
 * **Bóveda de Credenciales Cifradas (AES-256 Fernet):** Gestión dinámica de claves API (`gemini`, `openai`, `anthropic`, `deepseek`) con cifrado simétrico en base de datos y exposición exclusivamente enmascarada.
 * **Seguridad Hospitalaria, RBAC y Auditoría Inmutable:** Control de acceso por roles (`admin`, `medico`, `enfermero`), matriz granular de permisos por usuario, pistas de auditoría forense (`AuditLog`) y protección `IsAuthenticatedOrReadOnly` en triaje.
-* **Defensa de Autenticación y Rate Limiting:** Verificación OTP de 6 dígitos vía correo SMTP local (Mailpit), rotación e invalidación de JWT con lista negra (`token_blacklist`), limitación de tasa contra ataques de fuerza bruta (`AuthThrottle` 10/min, `OTPThrottle` 5/min) y renovación silenciosa automática en cliente frontend.
+* **Defensa de Autenticación y Rate Limiting:** Verificación OTP de 6 dígitos vía correo SMTP local (Mailpit), rotación e invalidación de JWT con lista negra (`token_blacklist`), limitación de tasa contra ataques de fuerza bruta (`AuthThrottle` 10/min, `OTPThrottle` 5/min).
 * **Diseño Responsivo Clínico:** Soporte adaptativo para terminales de escritorio y dispositivos móviles de urgencias mediante Drawer flotante y visualizaciones alternadas lista/detalle.
-* **Suites de Pruebas Automatizadas:** Cobertura integral fullstack con 56 pruebas en Pytest (Backend) y 47 pruebas en Vitest / React Testing Library (Frontend).
+* **Suites de Pruebas Automatizadas:** Cobertura integral fullstack con 93 pruebas en Pytest (Backend) y 56 pruebas en Vitest / React Testing Library (Frontend) con 100% de éxito.
 
 ---
 
@@ -275,7 +278,7 @@ El proyecto implementa un estándar estricto de pruebas automatizadas con aislam
 
 ### Suite de Backend (Django + Pytest)
 
-Ejecuta 56 pruebas unitarias y de integración que cubren autenticación, OTP, RBAC, criptografía AES-256, modelos de pacientes, sesiones de triaje, interoperabilidad FHIR y validación de esquemas Pydantic:
+Ejecuta 93 pruebas unitarias y de integración que cubren autenticación, OTP, RBAC, criptografía AES-256, modelos de pacientes, sesiones de triaje, compresión de transcripciones, RAG clínico, caché semántico, esquemas Pydantic e interoperabilidad FHIR:
 
 ```bash
 # Ejecutar toda la suite de pruebas del backend
@@ -287,7 +290,7 @@ backend/.venv/Scripts/python.exe -m pytest backend -v
 
 ### Suite de Frontend (Next.js + Vitest + Testing Library)
 
-Ejecuta 47 pruebas unitarias y de componentes que validan el comportamiento reactivo de paneles, validación de tipos en cliente, monitor FHIR, simulador EMR, normalizador SNOMED-CT y manejo de tokens JWT:
+Ejecuta 56 pruebas unitarias y de componentes que validan el comportamiento reactivo de paneles, gobernanza de tokens, validación de tipos en cliente, monitor FHIR, simulador EMR, normalizador SNOMED-CT y manejo de tokens JWT:
 
 ```bash
 # Ejecutar todas las pruebas del frontend

@@ -79,6 +79,23 @@ class TestTriageSessions:
         assert session.agreement_score == 0.5
         assert "Bradicardia" in session.final_symptoms
 
+    def test_override_justification_action(self):
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=3,
+            ai_level=3,
+            final_level=3,
+            justification="Justificacion generada por IA"
+        )
+        response = self.client.patch(f"/api/triage/sessions/{session.id}/override_level/", {
+            "justification": "Criterio medico actualizado: Dolor pleuritico con antecedentes relevantes.",
+            "override_reason": "Edicion de justificacion clinica por medico"
+        }, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        session.refresh_from_db()
+        assert session.justification == "Criterio medico actualizado: Dolor pleuritico con antecedentes relevantes."
+        assert session.final_level == 3
+
     def test_evaluation_metrics_empty(self):
         response = self.client.get("/api/triage/sessions/evaluation_metrics/")
         assert response.status_code == status.HTTP_200_OK
