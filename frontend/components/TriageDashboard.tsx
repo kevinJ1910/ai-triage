@@ -262,7 +262,7 @@ export default function TriageDashboard() {
   };
 
   const [colRatio, setColRatio] = useState(41.6);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -663,7 +663,7 @@ export default function TriageDashboard() {
           <div className="px-3 py-1 bg-slate-700 rounded text-[10px] sm:text-xs font-medium text-slate-300 truncate max-w-[120px] sm:max-w-none">
               <User className="w-3.5 h-3.5 text-blue-400 shrink-0 inline mr-1" />
               <span>Usuario: {currentUser?.full_name || "Dr. Rodriguez"}</span>
-              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px] uppercase font-bold tracking-wider">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-900/60 border border-blue-500/40 text-blue-200 text-[9px] uppercase font-bold tracking-wider">
                 {currentUser?.role || "Medico"}
               </span>
           </div>
@@ -766,7 +766,7 @@ export default function TriageDashboard() {
           <section 
             ref={leftContainerRef} 
             style={isDesktop ? { width: `${colRatio}%` } : undefined}
-            className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-auto"
+            className="flex flex-col gap-2 h-full min-h-[400px] lg:min-h-0 shrink-0 w-full lg:w-[41.6%]"
           >
             {/* ASR Error Banner */}
             {asrError && (
@@ -789,7 +789,7 @@ export default function TriageDashboard() {
             )}
 
             {/* ASR Transcription Box */}
-            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0 lg:h-[55%]">
               <div className="flex justify-between items-center mb-3 shrink-0">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Mic className="w-4 h-4 text-blue-400" />
@@ -930,7 +930,7 @@ export default function TriageDashboard() {
               
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                 {transcript.length === 0 && !isRecording && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
                         <Mic className="w-6 h-6 mb-2 opacity-30" />
                         Esperando entrada de audio...
                     </div>
@@ -976,7 +976,7 @@ export default function TriageDashboard() {
                         animate={{ opacity: 1, y: 0 }}
                         className={`flex flex-col ${line.speaker === 'Doctor' ? 'items-start' : 'items-end'}`}
                       >
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{line.speaker}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">{line.speaker}</span>
                         <div className={`px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border ${
                           line.speaker === 'Doctor' 
                           ? 'bg-slate-800 border-l-2 border-slate-500 border-y-slate-700 border-r-slate-700 text-slate-300'
@@ -993,7 +993,7 @@ export default function TriageDashboard() {
                       animate={{ opacity: 1, y: 0 }}
                       className="flex flex-col items-start"
                     >
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">Usuario (Escuchando...)</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Usuario (Escuchando...)</span>
                       <div className="px-3 py-2 rounded max-w-[95%] text-xs sm:text-sm leading-relaxed border border-dashed border-slate-600 bg-slate-800/30 text-slate-400">
                         {interimText}
                       </div>
@@ -1026,7 +1026,7 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleLeftResizeStart}
-              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
+              className="hidden lg:flex h-1.5 hover:h-2 bg-slate-950/20 hover:bg-blue-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1"
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-blue-300 rounded"></div>
             </div>
@@ -1039,8 +1039,10 @@ export default function TriageDashboard() {
               </h3>
               <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Nombre Completo</label>
+                  <label htmlFor="patient-name" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Nombre Completo</label>
                   <input
+                    id="patient-name"
+                    aria-label="Nombre Completo"
                     type="text"
                     value={patientInfo.name}
                     onChange={e => setPatientInfo({ ...patientInfo, name: e.target.value })}
@@ -1049,8 +1051,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Documento Identidad</label>
+                  <label htmlFor="patient-document-id" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Documento Identidad</label>
                   <input
+                    id="patient-document-id"
+                    aria-label="Documento Identidad"
                     type="text"
                     value={patientInfo.documentId}
                     onChange={e => setPatientInfo({ ...patientInfo, documentId: e.target.value })}
@@ -1063,8 +1067,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Fecha Nacimiento</label>
+                  <label htmlFor="patient-birth-date" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Fecha Nacimiento</label>
                   <input
+                    id="patient-birth-date"
+                    aria-label="Fecha Nacimiento"
                     type="date"
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
@@ -1076,8 +1082,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Género</label>
+                  <label htmlFor="patient-gender" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Género</label>
                   <select
+                    id="patient-gender"
+                    aria-label="Género"
                     value={patientInfo.gender}
                     onChange={e => setPatientInfo({ ...patientInfo, gender: e.target.value })}
                     className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
@@ -1089,8 +1097,10 @@ export default function TriageDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Teléfono</label>
+                  <label htmlFor="patient-phone" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Teléfono</label>
                   <input
+                    id="patient-phone"
+                    aria-label="Teléfono"
                     type="text"
                     value={patientInfo.phone}
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
@@ -1103,8 +1113,10 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] text-slate-500 uppercase block mb-1">Aseguradora / EPS</label>
+                  <label htmlFor="patient-insurance" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Aseguradora / EPS</label>
                   <input
+                    id="patient-insurance"
+                    aria-label="Aseguradora / EPS"
                     type="text"
                     value={patientInfo.insurance}
                     onChange={e => setPatientInfo({ ...patientInfo, insurance: e.target.value })}
@@ -1131,7 +1143,7 @@ export default function TriageDashboard() {
           >
             
             {/* NER Module */}
-            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0">
+            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0 lg:h-[60%]">
               <div className="flex justify-between items-center shrink-0 mb-3">
                 <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -1191,7 +1203,7 @@ export default function TriageDashboard() {
             {/* Resize Handle */}
             <div 
               onPointerDown={handleRightResizeStart}
-              className={`${isDesktop ? 'flex' : 'hidden'} h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1`}
+              className="hidden lg:flex h-1.5 hover:h-2 bg-slate-950/20 hover:bg-emerald-500/60 rounded cursor-row-resize transition-all items-center justify-center shrink-0 group py-1"
             >
               <div className="w-8 h-1 bg-slate-700 group-hover:bg-emerald-300 rounded"></div>
             </div>
@@ -1411,7 +1423,7 @@ export default function TriageDashboard() {
                       </div>
                     </div>
                 ) : !triageError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
                     Esperando datos de la consulta para análisis...
                   </div>
                 ) : null}
@@ -1562,7 +1574,7 @@ function EntityGroup({
         {icon} {title}
       </h3>
       <div className={`flex flex-col gap-1 min-h-[40px] bg-slate-900/30 p-1.5 rounded-md border border-slate-700/50`}>
-        {!entities && !loading && <span className="text-[10px] text-slate-600 italic px-2 py-1">Pendiente...</span>}
+        {!entities && !loading && <span className="text-[10px] text-slate-400 italic px-2 py-1">Pendiente...</span>}
         {loading && (
             <div className="w-full flex flex-col gap-1.5 opacity-70">
                 <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm`}></div>
@@ -1596,7 +1608,7 @@ function EntityGroup({
             />
           </div>
         )}
-        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-500 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
+        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-400 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
       </div>
     </div>
   );

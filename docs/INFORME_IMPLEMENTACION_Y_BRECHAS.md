@@ -156,7 +156,11 @@ Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos 
 - **Modales de Confirmación Quirúrgicos**:
   - Modal de confirmación al iniciar "Nueva Consulta" cuando existen transcripciones o datos de paciente en curso, evitando pérdida accidental de información clínica.
   - Modal de confirmación al realizar "Ajuste Clínico de Nivel", alertando al personal sobre la discrepancia entre la recomendación algorítmica y el criterio médico ingresado.
-- **Tooltips Asistenciales Informativos**: Componente `Tooltip` reutilizable integrado en puntos de decisión clave: botones de control de grabación/audio, ventana terapéutica estimada por nivel de triaje (I a V, con tiempos máximos según Resolución 5596) y habilitador de edición manual de justificación clínica.
+### 2.16. Optimización de Métricas de Rendimiento, Accesibilidad y Estabilidad Visual (Auditoría Lighthouse)
+- **Eliminación de Cumulative Layout Shift (CLS)**: Se resolvió la deriva de diseño en el render inicial de `TriageDashboard.tsx` (CLS 0.196) desacoplando el retraso de hidratación de `isDesktop` y asignando proporciones base en clases CSS nativas (`lg:w-[41.6%]`, `lg:h-[55%]`, `lg:h-[60%]`), además de convertir los tiradores de redimensionamiento a `hidden lg:flex` estáticos en CSS.
+- **Accesibilidad Formativa WCAG 2.1 AA (`label` y `select-name`)**: Vinculación explícita de `htmlFor`, atributos `id` y descriptores `aria-label` en la totalidad de los controles del paciente (Nombre, Documento, Fecha de Nacimiento, Género, Teléfono y Aseguradora/EPS).
+- **Contraste Cromático Estándar (`color-contrast` >= 4.5:1)**: Sustitución de tonos apagados de bajo contraste (`text-slate-500`, `text-slate-600`) por `text-slate-400` y realce de badges de usuario con fondo `bg-blue-900/60 text-blue-200 border border-blue-500/40` en la barra lateral, estados vacíos de audio/triaje y placeholders de entidades clínicas.
+- **Reducción Crítica de Carga de Red**: Optimización de `icon.png` (de 443 KB a 4.9 KB, reducción del 99%) aliviando el bloqueo crítico de red en el documento inicial, e incorporación de `display: 'swap'` en las fuentes web de Google (`Inter` y `Space Grotesk`) para prevenir bloqueo de renderizado de texto.
 
 ---
 

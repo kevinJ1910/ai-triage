@@ -277,7 +277,7 @@ export default function AppNavigation() {
               <React.Fragment key={item.id}>
                 {item.id === 'security' && (
                   <div className="my-2 pt-2 border-t border-slate-800">
-                    <span className={`px-2 pb-1 text-[9px] font-mono uppercase tracking-wider text-slate-500 font-bold block ${isCollapsed ? 'hidden' : 'block'}`}>
+                    <span className={`px-2 pb-1 text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold block ${isCollapsed ? 'hidden' : 'block'}`}>
                       Administracion
                     </span>
                   </div>
@@ -318,7 +318,7 @@ export default function AppNavigation() {
         <div className="p-2 border-t border-slate-800 flex items-center justify-center md:justify-start shrink-0">
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-all"
+            className="flex items-center justify-center md:justify-start gap-3 p-2.5 w-full rounded text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all"
             title={isCollapsed ? "Expandir" : "Contraer"}
           >
             <div className="shrink-0">
