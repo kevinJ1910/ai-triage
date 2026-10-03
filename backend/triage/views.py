@@ -1,29 +1,30 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
-from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from rest_framework.permissions import IsAuthenticated
+from django.http import JsonResponse
 from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
+from core.permissions import CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
-import json
 import random
-import time
 
 logger = logging.getLogger(__name__)
 
-class TriageSessionViewSet(viewsets.ModelViewSet):
+class TriageSessionViewSet(viewsets.GenericViewSet):
+    """
+    Solo expone acciones explicitas. No hereda list/retrieve/update/destroy:
+    las sesiones de triaje no se borran ni se editan fuera de override_level.
+    """
     queryset = TriageSession.objects.all().order_by('-created_at')
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    
-    @action(detail=False, methods=['POST'])
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['POST'], permission_classes=[IsAuthenticated, CanRegisterPatients])
     def analyze(self, request):
         """
         Receives audio file or text transcript, runs analysis, and saves the triage session.
@@ -143,7 +144,7 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "engine_used": analysis.get('engine_used')
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['PATCH'])
+    @action(detail=True, methods=['PATCH'], permission_classes=[IsAuthenticated, CanEditSymptoms])
     def override_level(self, request, pk=None):
         """
         Allows physician to manually override triage level (1 to 5) and symptom list.
@@ -307,7 +308,7 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "recent_evaluations": recent
         })
 
-    @action(detail=False, methods=['GET'])
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def emr_patients(self, request):
         """
         Returns patients list from real database for the EMR simulator.
@@ -355,7 +356,7 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
 
         return Response(results)
 
-    @action(detail=True, methods=['POST'])
+    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
     def assign_box(self, request, pk=None):
         """
         Assigns a hospital box/bed to a triage session patient.
@@ -374,11 +375,8 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
         session.clinical_entities = entities
         session.save(update_fields=['clinical_entities'])
 
-        # Audit log creation
-        from accounts.models import AuditLog
-        user = request.user if request.user.is_authenticated else session.user
         AuditLog.objects.create(
-            user=user,
+            user=request.user,
             action="EMR_BOX_ASSIGNED",
             resource=f"TriageSession:{session.id}",
             status="SUCCESS",
@@ -394,7 +392,7 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             "status": status_str
         })
 
-    @action(detail=False, methods=['GET'])
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewFHIR])
     def fhir_logs(self, request):
         """
         Returns audit logs of FHIR R4 transactions.
@@ -416,14 +414,17 @@ class TriageSessionViewSet(viewsets.ModelViewSet):
             })
         return Response(data)
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def fhir_sync(request: HttpRequest) -> JsonResponse:
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def fhir_sync(request) -> JsonResponse:
     """
     Simulates FHIR server synchronization, stores FHIRRecord and FHIRMessageLog in the DB.
+    El JSON invalido lo rechaza el parser de DRF con 400.
     """
+    payload = request.data
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Invalid JSON FHIR payload"}, status=400)
     try:
-        payload = json.loads(request.body)
         from core.validation import validate_payload, FHIRSyncSchema
         validate_payload(FHIRSyncSchema, payload)
         fhir_id = f"fhir-enc-{random.randint(100000, 999999)}"
@@ -475,8 +476,6 @@ def fhir_sync(request: HttpRequest) -> JsonResponse:
             "resourceReceived": payload
         }, status=201)
         
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON FHIR payload"}, status=400)
     except Exception as e:
         logger.error(f"Error in fhir_sync: {e}", exc_info=True)
-        return JsonResponse({"error": "Internal server error during FHIR sync", "details": str(e)}, status=500)
+        return JsonResponse({"error": "Internal server error during FHIR sync"}, status=500)

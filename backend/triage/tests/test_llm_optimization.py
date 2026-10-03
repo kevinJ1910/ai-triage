@@ -99,6 +99,40 @@ class TestClinicalQueryCache:
         fp2 = ClinicalQueryCache.generate_fingerprint("dolor de cabeza fuerte", {"bp_sys": 120, "spo2": 98})
         assert fp1 == fp2
 
+    def test_fingerprint_preserves_negation(self):
+        fp_pos = ClinicalQueryCache.generate_fingerprint("tiene dolor de pecho", {})
+        fp_neg = ClinicalQueryCache.generate_fingerprint("no tiene dolor de pecho", {})
+        fp_sin = ClinicalQueryCache.generate_fingerprint("tiene dolor sin fiebre", {})
+        fp_con = ClinicalQueryCache.generate_fingerprint("tiene dolor con fiebre", {})
+        assert fp_pos != fp_neg
+        assert fp_sin != fp_con
+
+    def test_fingerprint_preserves_word_order(self):
+        fp_a = ClinicalQueryCache.generate_fingerprint("no tiene dolor tiene fiebre", {})
+        fp_b = ClinicalQueryCache.generate_fingerprint("tiene dolor no tiene fiebre", {})
+        assert fp_a != fp_b
+
+    def test_fingerprint_missing_vitals_not_assumed_normal(self):
+        fp_missing = ClinicalQueryCache.generate_fingerprint("disnea", {})
+        fp_normal = ClinicalQueryCache.generate_fingerprint("disnea", {"bp_sys": 120, "spo2": 98})
+        fp_hypox = ClinicalQueryCache.generate_fingerprint("disnea", {"bp_sys": 120, "spo2": 85})
+        assert fp_missing != fp_normal
+        assert fp_normal != fp_hypox
+
+    def test_cache_never_stores_patient_info(self):
+        fp = ClinicalQueryCache.generate_fingerprint("ardor al orinar", {})
+        payload = {
+            "patientInfo": {"name": "Paciente A", "documentId": "1111111111"},
+            "triage": {"level": 4},
+            "entities": {"symptoms": ["disuria"]},
+        }
+        ClinicalQueryCache.set(fp, payload)
+        payload["entities"]["symptoms"].append("mutado")
+
+        cached = ClinicalQueryCache.get(fp)
+        assert "patientInfo" not in cached
+        assert cached["entities"]["symptoms"] == ["disuria"]
+
     def test_cache_miss_then_hit(self):
         fp = ClinicalQueryCache.generate_fingerprint("ardor al orinar", {})
         assert ClinicalQueryCache.get(fp) is None
@@ -209,3 +243,16 @@ class TestAIAnalyzerEndToEnd:
         assert second_call["cached"] is True
         assert second_call["tokens_used"] == 0
         assert second_call["triage"]["level"] == first_call["triage"]["level"]
+
+    def test_cache_hit_does_not_leak_previous_patient(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "")
+        from system_settings.models import APIKeyCredential
+        APIKeyCredential.objects.filter(provider='gemini').delete()
+
+        # Si un resultado previo trae datos de paciente, el acierto de cache no debe reutilizarlos.
+        query ="Paciente con tos y congestion nasal de tres dias"
+        first = analyze_triage_transcript(query, use_cache=True)
+        first["patientInfo"]["documentId"] = "9999999999"  # mutar el resultado devuelto
+        second = analyze_triage_transcript(query, use_cache=True)
+        assert second["cached"] is True
+        assert second["patientInfo"]["documentId"] is None

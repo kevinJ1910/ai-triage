@@ -3,8 +3,10 @@ import uuid
 import logging
 import os
 from django.http import JsonResponse, HttpRequest
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from core.permissions import CanUseTranscriber
 from .whisper_engine import WhisperEngine
 
 logger = logging.getLogger(__name__)
@@ -13,9 +15,9 @@ logger = logging.getLogger(__name__)
 # garantiza una sola instancia con threading.Lock sin necesidad de estado global en el modulo.
 # FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual.
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def transcribe_chunk(request: HttpRequest) -> JsonResponse:
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, CanUseTranscriber])
+def transcribe_chunk(request) -> JsonResponse:
     # FIX-TEC-004: Usar Singleton directamente, sin variable global mutable en el modulo.
     try:
         engine = WhisperEngine()
@@ -28,7 +30,7 @@ def transcribe_chunk(request: HttpRequest) -> JsonResponse:
         if not audio_file:
             return JsonResponse({"error": "No audio file provided under key 'audio'"}, status=400)
             
-        session_id = request.POST.get('session_id')
+        session_id = request.data.get('session_id')
         if not session_id:
             # Generate a temporary session_id if none was provided
             session_id = str(uuid.uuid4())
@@ -48,9 +50,9 @@ def transcribe_chunk(request: HttpRequest) -> JsonResponse:
         logger.error(f"Error in transcribe_chunk view: {e}", exc_info=True)
         return JsonResponse({"error": "Internal transcription failure"}, status=500)
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def reset_session(request: HttpRequest) -> JsonResponse:
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, CanUseTranscriber])
+def reset_session(request) -> JsonResponse:
     # FIX-TEC-004: Singleton directo, sin estado global mutable.
     try:
         engine = WhisperEngine()
@@ -58,21 +60,15 @@ def reset_session(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "Whisper Engine is not initialized"}, status=503)
 
     try:
-        # Check if json body or post request parameters
-        if request.content_type == 'application/json':
-            body = json.loads(request.body)
-            session_id = body.get('session_id')
-        else:
-            session_id = request.POST.get('session_id')
+        # request.data acepta JSON y form-data; el JSON invalido lo rechaza DRF con 400.
+        session_id = request.data.get('session_id')
 
         if not session_id:
             return JsonResponse({"error": "Missing parameter 'session_id'"}, status=400)
 
         engine.reset_session(session_id)
         return JsonResponse({"status": "success", "message": f"Session {session_id} reset successfully"})
-        
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON format in body"}, status=400)
+
     except Exception as e:
         logger.error(f"Error in reset_session view: {e}", exc_info=True)
         return JsonResponse({"error": "Failed to reset session"}, status=500)
@@ -100,16 +96,15 @@ def health_check(request: HttpRequest) -> JsonResponse:
         }, status=500)
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def normalize_text(request: HttpRequest) -> JsonResponse:
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def normalize_text(request) -> JsonResponse:
     """
     Normaliza texto clinico crudo/coloquial a terminologia medica estandarizada (SNOMED-CT / CIE-10).
     Utiliza Gemini o motor de reglas clinicas estructuradas.
     """
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except Exception:
+    data = request.data
+    if not isinstance(data, dict):
         return JsonResponse({"error": "Formato JSON invalido"}, status=400)
 
     from core.validation import validate_payload, NormalizeTextSchema

@@ -2,13 +2,20 @@ import json
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.contrib.auth import get_user_model
 from triage.models import FHIRMessageLog, TriageSession
 from patients.models import Patient
+
+User = get_user_model()
 
 @pytest.mark.django_db
 class TestFHIRIntegration:
     def setup_method(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="fhir_tester@hospital.com", password="Password123!", role="medico", is_verified=True
+        )
+        self.client.force_authenticate(user=self.user)
         self.patient = Patient.objects.create(
             document_id="CC-FHIR-01",
             full_name="Patricia Beltran",
@@ -90,6 +97,13 @@ class TestFHIRIntegration:
         log_entry = FHIRMessageLog.objects.filter(session=self.session).first()
         assert log_entry is not None
         assert log_entry.status_code == 201
+
+    def test_fhir_endpoints_require_authentication(self):
+        anon = APIClient()
+        assert anon.get("/api/triage/sessions/fhir_logs/").status_code == status.HTTP_401_UNAUTHORIZED
+        res = anon.post("/api/fhir/", data=json.dumps({"resourceType": "Bundle"}), content_type="application/json")
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+        assert FHIRMessageLog.objects.count() == 0
 
     def test_fhir_sync_post_invalid_json(self):
         response = self.client.post(

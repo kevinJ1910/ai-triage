@@ -5,11 +5,20 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.contrib.auth import get_user_model
 from transcription.whisper_engine import WhisperEngine
 
+User = get_user_model()
+
+
+@pytest.mark.django_db
 class TestWhisperEngineAndEndpoints:
     def setup_method(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="asr_tester@hospital.com", password="Password123!", role="medico", is_verified=True
+        )
+        self.client.force_authenticate(user=self.user)
         self.engine = WhisperEngine()
 
     def test_singleton_pattern(self):
@@ -161,6 +170,24 @@ class TestWhisperEngineAndEndpoints:
             assert data == {"error": "Failed to reset session"}
             assert "details" not in data
             assert "Sensitive memory lock deadlock" not in response.content.decode()
+
+    def test_asr_endpoints_require_authentication(self):
+        anon = APIClient()
+        audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+        assert anon.post("/api/transcribe/", {"audio": audio_file}, format="multipart").status_code == status.HTTP_401_UNAUTHORIZED
+        assert anon.post("/api/transcribe/reset/", {"session_id": "x"}).status_code == status.HTTP_401_UNAUTHORIZED
+        assert anon.post(
+            "/api/transcribe/normalize/", data=json.dumps({"raw_text": "dolor"}), content_type="application/json"
+        ).status_code == status.HTTP_401_UNAUTHORIZED
+        # El health check sigue publico para el healthcheck de Docker
+        assert anon.get("/api/health_check/").status_code == status.HTTP_200_OK
+
+    def test_transcribe_denied_without_transcriber_permission(self):
+        self.user.permissions.can_use_transcriber = False
+        self.user.permissions.save()
+        audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+        response = self.client.post("/api/transcribe/", {"audio": audio_file}, format="multipart")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_health_check_failure_path_redacts_details(self):
         with patch("transcription.views.WhisperEngine") as mock_cls:

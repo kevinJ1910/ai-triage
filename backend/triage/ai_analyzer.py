@@ -136,6 +136,8 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
         cached_result = ClinicalQueryCache.get(fingerprint)
         if cached_result:
             logger.info("Consulta resuelta mediante Cache Semántico de Consultas (0 tokens)")
+            # La cache no guarda datos del paciente: se extraen de ESTA transcripcion.
+            cached_result["patientInfo"] = _extract_patient_info_rules(raw_transcript)
             cached_result["compression_ratio"] = compression_ratio
             return cached_result
 
@@ -278,6 +280,24 @@ CONSULTA MÉDICA COMPRIMIDA:
     return fallback_res
 
 
+def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
+    """Extrae documento y nombre del paciente por regex, sin LLM."""
+    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
+    doc_id = doc_match.group(1) if doc_match else None
+
+    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
+    patient_name = name_match.group(1).strip() if name_match else None
+
+    return {
+        "name": patient_name,
+        "documentId": doc_id,
+        "birthDate": None,
+        "gender": "unknown",
+        "phone": None,
+        "insurance": "Christus Sinergia / EPS"
+    }
+
+
 def _fallback_rule_triage(
     raw_transcript: str,
     cleaned_transcript: str,
@@ -299,21 +319,8 @@ def _fallback_rule_triage(
         if s_kw in norm_tr:
             symptoms.append(s_kw)
 
-    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
-    doc_id = doc_match.group(1) if doc_match else None
-
-    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
-    patient_name = name_match.group(1).strip() if name_match else None
-
     return {
-        "patientInfo": {
-            "name": patient_name,
-            "documentId": doc_id,
-            "birthDate": None,
-            "gender": "unknown",
-            "phone": None,
-            "insurance": "Christus Sinergia / EPS"
-        },
+        "patientInfo": _extract_patient_info_rules(raw_transcript),
         "entities": {
             "symptoms": symptoms or ["Síntomas referidos en consulta"],
             "medications": [],

@@ -104,7 +104,7 @@ describe('FHIRMonitor Component', () => {
         '/api/fhir/',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
         })
       );
     });

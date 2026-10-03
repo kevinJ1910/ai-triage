@@ -1,8 +1,16 @@
+import re
+import copy
 import time
 import hashlib
 import threading
 from typing import Dict, Any, Optional
 from .clinical_protocol import _normalize_text
+
+# Palabras cortas que invierten o modifican el sentido clinico y nunca se descartan.
+_SEMANTIC_SHORT_WORDS = {"no", "sin", "ni", "nunca", "nada", "niega", "poco", "muy", "mas", "ya"}
+
+# Campos que identifican al paciente: jamas se guardan en cache ni se comparten entre casos.
+_PATIENT_SCOPED_KEYS = ("patientInfo",)
 
 
 class ClinicalQueryCache:
@@ -10,6 +18,9 @@ class ClinicalQueryCache:
     Cache semantico y canonico de consultas de triaje clinico.
     Evita invocar el LLM para cuadros clinicos identicos o equivalentes,
     reduciendo a 0 el consumo de tokens y respondiendo en < 3 ms.
+
+    Solo almacena la parte clinica del resultado (triaje, entidades, confianza);
+    los datos del paciente deben extraerse de nuevo en cada consulta.
     """
     _lock = threading.Lock()
     _store: Dict[str, Dict[str, Any]] = {}
@@ -17,26 +28,38 @@ class ClinicalQueryCache:
     _misses: int = 0
     _tokens_saved: int = 0
 
+    @staticmethod
+    def _bucket(value: Optional[float], thresholds) -> str:
+        """Clasifica un signo vital en un rango; 'na' si no fue reportado."""
+        if value is None:
+            return "na"
+        for limit, label in thresholds:
+            if value < limit:
+                return label
+        return "top"
+
     @classmethod
     def generate_fingerprint(cls, cleaned_transcript: str, structured_vitals: Optional[Dict[str, Any]] = None) -> str:
         """
-        Genera una firma hash criptografica representativa del cuadro clinico.
-        Normaliza palabras clave, elimina ruido menor y agrupa rangos de constantes vitales.
+        Genera una firma hash representativa del cuadro clinico.
+        Conserva el orden de las palabras y las negaciones ("no", "sin"), porque
+        "no tiene dolor de pecho" y "tiene dolor de pecho" son cuadros distintos.
+        Los signos vitales ausentes se codifican como 'na', nunca como normales.
         """
         norm_text = _normalize_text(cleaned_transcript)
-        # Extraer palabras significativas ordenadas
-        words = sorted(list(set(re_word for re_word in norm_text.split() if len(re_word) > 3)))
+        tokens = re.findall(r"[a-z0-9]+", norm_text)
+        words = [w for w in tokens if len(w) > 3 or w in _SEMANTIC_SHORT_WORDS]
 
-        vitals_repr = ""
-        if structured_vitals:
-            # Agrupar valores en categorias para preservar generalizacion
-            bp_sys = structured_vitals.get("bp_sys", 120)
-            bp_cat = "crit_high" if bp_sys >= 180 else "high" if bp_sys >= 140 else "norm"
-            sat = structured_vitals.get("spo2", 98)
-            sat_cat = "hypox_crit" if sat < 90 else "hypox_mod" if sat < 93 else "norm"
-            vitals_repr = f"|bp:{bp_cat}|sat:{sat_cat}"
+        v = structured_vitals or {}
+        vitals_repr = "|".join([
+            "bp:" + cls._bucket(v.get("bp_sys"), [(90, "low"), (140, "norm"), (180, "high")]),
+            "sat:" + cls._bucket(v.get("spo2"), [(90, "crit"), (93, "mod"), (101, "norm")]),
+            "hr:" + cls._bucket(v.get("heart_rate"), [(50, "low"), (100, "norm"), (130, "high")]),
+            "rr:" + cls._bucket(v.get("respiratory_rate"), [(12, "low"), (21, "norm"), (30, "high")]),
+            "t:" + cls._bucket(v.get("temperature"), [(36.0, "low"), (38.0, "norm"), (39.5, "high")]),
+        ])
 
-        canonical_str = " ".join(words) + vitals_repr
+        canonical_str = " ".join(words) + "||" + vitals_repr
         return hashlib.sha256(canonical_str.encode('utf-8')).hexdigest()
 
     @classmethod
@@ -50,8 +73,8 @@ class ClinicalQueryCache:
                     cls._hits += 1
                     saved = entry.get("estimated_tokens", 850)
                     cls._tokens_saved += saved
-                    # Devolver copia del payload anotado como cache
-                    result = dict(entry["data"])
+                    # Copia profunda: quien llama puede mutar el resultado sin alterar la cache
+                    result = copy.deepcopy(entry["data"])
                     result["cached"] = True
                     result["engine_used"] = "Cache Semántico de Consultas"
                     result["tokens_used"] = 0
@@ -71,8 +94,9 @@ class ClinicalQueryCache:
             if len(cls._store) > 5000:
                 cls._prune_expired(now)
 
+            clinical_only = {k: copy.deepcopy(v) for k, v in result.items() if k not in _PATIENT_SCOPED_KEYS}
             cls._store[fingerprint] = {
-                "data": result,
+                "data": clinical_only,
                 "expires_at": now + ttl_seconds,
                 "estimated_tokens": estimated_tokens
             }

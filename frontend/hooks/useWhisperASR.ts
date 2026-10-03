@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { fetchWithAuth } from '@/lib/api';
 
 interface UseWhisperASRReturn {
   isRecording: boolean;
@@ -73,7 +74,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
         formData.append('audio', audioFile);
         formData.append('session_id', currentSessionId);
 
-        const response = await fetch('/api/transcribe', {
+        const response = await fetchWithAuth('/api/transcribe', {
           method: 'POST',
           body: formData,
         });

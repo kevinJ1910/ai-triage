@@ -203,6 +203,42 @@ class TestTriageSessions:
         )
         assert res_box.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_unauthenticated_reads_blocked(self):
+        unauth_client = APIClient()
+        for url in (
+            "/api/triage/sessions/emr_patients/",
+            "/api/triage/sessions/evaluation_metrics/",
+            "/api/triage/sessions/fhir_logs/",
+        ):
+            assert unauth_client.get(url).status_code == status.HTTP_401_UNAUTHORIZED, url
+
+    def test_generic_crud_routes_not_exposed(self):
+        session = TriageSession.objects.create(
+            patient=self.patient, level=3, ai_level=3, final_level=3, justification="No borrable"
+        )
+        assert self.client.delete(f"/api/triage/sessions/{session.id}/").status_code == status.HTTP_404_NOT_FOUND
+        assert self.client.put(
+            f"/api/triage/sessions/{session.id}/", {"final_level": 1}, format="json"
+        ).status_code == status.HTTP_404_NOT_FOUND
+        assert TriageSession.objects.filter(id=session.id).exists()
+
+    def test_override_denied_without_edit_permission(self):
+        nurse = User.objects.create_user(
+            email="enfermera_triage@hospital.com", password="Password123!", role="enfermero", is_verified=True
+        )
+        assert nurse.permissions.can_edit_symptoms is False
+        nurse_client = APIClient()
+        nurse_client.force_authenticate(user=nurse)
+        session = TriageSession.objects.create(
+            patient=self.patient, level=4, ai_level=4, final_level=4, justification="Inicial"
+        )
+        response = nurse_client.patch(
+            f"/api/triage/sessions/{session.id}/override_level/", {"final_level": 1}, format="json"
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        session.refresh_from_db()
+        assert session.final_level == 4
+
     def test_analyze_transcript_action_creates_session(self, mocker):
         mock_result = {
             "patientInfo": {
