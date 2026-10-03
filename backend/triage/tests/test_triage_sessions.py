@@ -285,6 +285,39 @@ class TestTriageSessions:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert TriageSession.objects.count() == 0
 
+    def test_history_returns_own_sessions_with_transcript(self):
+        from triage.models import Transcription
+        own = TriageSession.objects.create(
+            user=self.user, patient=self.patient, level=2, ai_level=3, final_level=2,
+            justification="Ajustado", final_symptoms=["Dolor toracico"],
+            clinical_entities={"symptoms": ["dolor"], "medications": ["asa"], "assigned_box": "BOX-01"},
+        )
+        Transcription.objects.create(
+            triage_session=own, session_uuid="u1", full_text="Medico: que le pasa\nPaciente: me duele el pecho",
+            model_used="test",
+        )
+        other_user = User.objects.create_user(email="otro@hospital.com", password="Password123!", role="medico")
+        TriageSession.objects.create(user=other_user, patient=self.patient, level=5, ai_level=5, final_level=5)
+
+        response = self.client.get("/api/triage/sessions/history/")
+        assert response.status_code == status.HTTP_200_OK
+        assert [item["id"] for item in response.data] == [str(own.id)]
+        item = response.data[0]
+        assert item["patientName"] == "Alejandro Morales"
+        assert item["transcript"][1] == {"speaker": "Paciente", "text": "me duele el pecho"}
+        assert item["analysisResult"]["triage"]["level"] == 2
+        assert item["analysisResult"]["triage"]["ai_level"] == 3
+        assert item["analysisResult"]["entities"]["symptoms"] == ["Dolor toracico"]
+        assert "assigned_box" not in item["analysisResult"]["entities"]
+
+    def test_history_admin_sees_all_and_anonymous_blocked(self):
+        TriageSession.objects.create(user=self.user, patient=self.patient, level=3, ai_level=3, final_level=3)
+        admin = User.objects.create_user(email="admin_h@hospital.com", password="Password123!", role="admin")
+        admin_client = APIClient()
+        admin_client.force_authenticate(user=admin)
+        assert len(admin_client.get("/api/triage/sessions/history/").data) == 1
+        assert APIClient().get("/api/triage/sessions/history/").status_code == status.HTTP_401_UNAUTHORIZED
+
     def test_dates_are_reported_in_local_timezone(self):
         from django.utils import timezone
         from datetime import datetime, timezone as dt_tz

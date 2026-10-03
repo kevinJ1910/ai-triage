@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -331,16 +331,23 @@ export default function TriageDashboard() {
     return matchName || matchLevel;
   });
 
-  useEffect(() => {
-    const data = localStorage.getItem('triage_sessions');
-    if (data) {
-      try {
-        setSavedSessions(JSON.parse(data));
-      } catch (e) {
-        console.error("Failed to load sessions", e);
+  // El historial se lee de la BD: no se guardan datos clinicos en el navegador.
+  const loadHistory = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/triage/sessions/history/');
+      if (res.ok) {
+        setSavedSessions(await res.json());
       }
+    } catch (e) {
+      console.error('Error cargando historial de triajes:', e);
     }
   }, []);
+
+  useEffect(() => {
+    // Purga del historial heredado que versiones anteriores guardaban en localStorage
+    localStorage.removeItem('triage_sessions');
+    loadHistory();
+  }, [loadHistory]);
 
   const handleDownloadPDF = (session: TriageSession, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -449,21 +456,15 @@ export default function TriageDashboard() {
     toast.success('Descargando Mensaje HL7 v2.5.1 ER7');
   };
 
-  const handleSaveSession = () => {
+  const handleSaveSession = async () => {
     if (!analysisResult) return;
-    const newSession: TriageSession = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
-      patientInfo: { ...patientInfo },
-      transcript: [...transcript],
-      analysisResult: analysisResult,
-    };
-    const updated = [newSession, ...savedSessions];
-    setSavedSessions(updated);
-    localStorage.setItem('triage_sessions', JSON.stringify(updated));
-    setSyncStatus('success');
-    toast.success(`Sesión guardada para ${newSession.patientName}`);
+    // La sesion ya se persiste en BD al analizar; aqui solo se refresca el historial.
+    if (!activeSessionId) {
+      toast.error('Esta sesión no está registrada en el servidor.');
+      return;
+    }
+    await loadHistory();
+    toast.success(`Sesión registrada en el historial para ${patientInfo.name || 'el paciente'}`);
   };
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -650,7 +651,7 @@ export default function TriageDashboard() {
             </button>
           </Tooltip>
           <button 
-            onClick={() => { setShowHistory(!showHistory); setSelectedSessionId(null); }}
+            onClick={() => { if (!showHistory) loadHistory(); setShowHistory(!showHistory); setSelectedSessionId(null); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest ${showHistory ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
           >
             <History className="w-3.5 h-3.5" />
@@ -701,6 +702,8 @@ export default function TriageDashboard() {
                       setAnalysisResult(session.analysisResult); 
                       setShowHistory(false); 
                       setSelectedSessionId(session.id); 
+                      // Los ajustes posteriores deben aplicarse a ESTA sesion, no a la ultima analizada
+                      setActiveSessionId(Number(session.id) || null);
                       setIsEditingJustification(false);
                       if (session.patientInfo) {
                         setPatientInfo(session.patientInfo);
@@ -1489,7 +1492,7 @@ export default function TriageDashboard() {
                    }`}
                 >
                    <Save className="w-3 h-3" />
-                   Guardar Local
+                   Guardar en Historial
                 </button>
                 <button
                    disabled={!analysisResult || syncStatus === 'syncing' || syncStatus === 'success'}

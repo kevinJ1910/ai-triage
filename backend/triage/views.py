@@ -9,7 +9,7 @@ from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
 from core.timeutils import local_strftime
-from core.permissions import CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
+from core.permissions import is_admin_user, CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
 from .fhir_validation import validate_fhir_bundle
@@ -186,6 +186,57 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "is_level_modified": session.is_level_modified,
             "agreement_score": session.agreement_score
         })
+
+    @action(detail=False, methods=['GET'])
+    def history(self, request):
+        """
+        Historial de triajes persistido en BD (reemplaza el guardado en localStorage del navegador).
+        Cada usuario ve sus propias sesiones; un administrador ve todas.
+        Devuelve la misma forma que consume TriageDashboard.
+        """
+        qs = TriageSession.objects.select_related('patient', 'transcription').order_by('-created_at')
+        if not is_admin_user(request.user):
+            qs = qs.filter(user=request.user)
+        try:
+            limit = max(1, min(int(request.query_params.get('limit', 50)), 200))
+        except (TypeError, ValueError):
+            limit = 50
+
+        entity_keys = ('symptoms', 'medications', 'vitals', 'history')
+        results = []
+        for s in qs[:limit]:
+            pat = s.patient
+            entities = s.clinical_entities if isinstance(s.clinical_entities, dict) else {}
+            transcription = getattr(s, 'transcription', None)
+            results.append({
+                "id": str(s.id),
+                "date": s.created_at.isoformat(),
+                "patientName": pat.full_name or pat.document_id,
+                "patientInfo": {
+                    "name": pat.full_name or '',
+                    "documentId": '' if pat.document_id.startswith('anon-') else pat.document_id,
+                    "birthDate": pat.birth_date.isoformat() if pat.birth_date else '',
+                    "gender": pat.gender or 'unknown',
+                    "phone": pat.phone or '',
+                    "insurance": pat.insurance or '',
+                },
+                "transcript": _split_transcript(transcription.full_text if transcription else ''),
+                "analysisResult": {
+                    "triage": {
+                        "level": s.final_level,
+                        "final_level": s.final_level,
+                        "ai_level": s.ai_level,
+                        "is_modified": s.is_level_modified,
+                        "justification": s.justification,
+                    },
+                    "entities": {
+                        **{k: entities.get(k, []) for k in entity_keys},
+                        "symptoms": s.final_symptoms or entities.get('symptoms', []),
+                    },
+                    "confidence": s.confidence_score,
+                },
+            })
+        return Response(results)
 
     @action(detail=False, methods=['GET'])
     def evaluation_metrics(self, request):
@@ -467,3 +518,14 @@ def _upsert_patient(patient_info: dict, session_uuid: str) -> Patient:
         if changed:
             patient.save(update_fields=changed)
     return patient
+
+
+def _split_transcript(full_text: str) -> list:
+    """Reconstruye los turnos 'Hablante: texto' que el frontend envia unidos por saltos de linea."""
+    turns = []
+    for line in (full_text or '').splitlines():
+        if not line.strip():
+            continue
+        speaker, sep, text = line.partition(': ')
+        turns.append({"speaker": speaker, "text": text} if sep else {"speaker": "Transcripcion", "text": line})
+    return turns
