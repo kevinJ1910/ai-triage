@@ -108,6 +108,7 @@ export default function FHIRMonitor() {
           {
             resource: {
               resourceType: 'Observation',
+              status: 'final',
               code: { text: 'Nivel de Triaje Medico' },
               valueInteger: 2
             }

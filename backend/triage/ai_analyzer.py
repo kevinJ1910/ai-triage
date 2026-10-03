@@ -17,6 +17,55 @@ logger = logging.getLogger(__name__)
 # Timeout configurable para llamadas a la API de Gemini
 GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_TIMEOUT_SECONDS', '30'))
 
+# Modelos de respaldo si falla el modelo activo (configurable, separados por coma).
+GEMINI_FALLBACK_MODELS = [
+    m.strip() for m in os.getenv('GEMINI_FALLBACK_MODELS', 'gemini-2.5-flash,gemini-2.5-flash-lite').split(',') if m.strip()
+]
+
+# Seudonimizacion de identificadores antes de enviar texto a un LLM externo (Ley 1581 de 2012).
+_PHONE_RE = re.compile(r'\b3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b')
+_DOCUMENT_RE = re.compile(r'\b\d{6,11}\b')
+_NAME_RE = re.compile(
+    r'(?i:\b(?:me llamo|mi nombre es|se llama|su nombre es)\s+)'
+    r'((?:[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s?){1,4})'
+)
+_PLACEHOLDERS = ("[NOMBRE]", "[DOCUMENTO]", "[TELEFONO]")
+
+
+def _pseudonymize(text: str) -> Dict[str, Any]:
+    """
+    Reemplaza nombre, telefono y documento por marcadores y devuelve los valores originales,
+    que se reinyectan localmente en patientInfo sin salir del servidor.
+    """
+    found: Dict[str, Optional[str]] = {"name": None, "phone": None, "documentId": None}
+
+    name_match = _NAME_RE.search(text)
+    if name_match:
+        found["name"] = name_match.group(1).strip()
+        text = text[:name_match.start(1)] + "[NOMBRE] " + text[name_match.end(1):]
+
+    phone_match = _PHONE_RE.search(text)
+    if phone_match:
+        found["phone"] = re.sub(r'\D', '', phone_match.group(0))
+    text = _PHONE_RE.sub("[TELEFONO]", text)
+
+    doc_match = _DOCUMENT_RE.search(text)
+    if doc_match:
+        found["documentId"] = doc_match.group(0)
+    text = _DOCUMENT_RE.sub("[DOCUMENTO]", text)
+
+    return {"text": text, "identifiers": found}
+
+
+def _restore_identifiers(patient_info: Dict[str, Any], identifiers: Dict[str, Optional[str]], raw_transcript: str) -> Dict[str, Any]:
+    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente."""
+    local = _extract_patient_info_rules(raw_transcript)
+    for field in ("name", "documentId", "phone"):
+        value = patient_info.get(field)
+        if not value or any(ph in str(value) for ph in _PLACEHOLDERS):
+            patient_info[field] = identifiers.get(field) or (local.get(field) if field != "phone" else None)
+    return patient_info
+
 
 # --- Esquemas Pydantic v2 para Decodificacion Estructurada Estricta ---
 
@@ -175,6 +224,8 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
         "institucionales de Christus Sinergia Salud proporcionados."
     )
 
+    pseudonymized = _pseudonymize(cleaned_transcript)
+
     user_prompt = f"""{rag_context_text}
 
 PAUTA CLÍNICA INSTITUCIONAL PREVIA (CHRISTUS SINERGIA SALUD / RESOLUCIÓN 5596):
@@ -187,8 +238,8 @@ INSTRUCCIÓN DE PRIORIDAD: Debes tomar la pauta de Christus Sinergia Salud como 
 SIGNOS VITALES IDENTIFICADOS: {", ".join(compact_vitals) if compact_vitals else "Ninguno reportado"}
 ALERTAS CLÍNICAS: {", ".join(red_flags) if red_flags else "Ninguna bandera roja inmediata"}
 
-CONSULTA MÉDICA COMPRIMIDA:
-"{cleaned_transcript}"
+CONSULTA MÉDICA COMPRIMIDA (identificadores seudonimizados):
+"{pseudonymized['text']}"
 """
 
     active_model = 'gemini-2.5-flash'
@@ -202,13 +253,12 @@ CONSULTA MÉDICA COMPRIMIDA:
 
     candidate_models = [active_model]
     if 'gemini' in active_model:
-        for backup in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']:
-            if backup not in candidate_models:
-                candidate_models.append(backup)
+        candidate_models += [m for m in GEMINI_FALLBACK_MODELS if m not in candidate_models]
 
     client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
     gemini_schema = _sanitize_schema_for_gemini(TriageOutputSchema)
 
+    last_error: Optional[Exception] = None
     for model_name in candidate_models:
         try:
             logger.info(f"Invocando LLM '{model_name}' con entrada optimizada y schema sanitizado...")
@@ -228,6 +278,9 @@ CONSULTA MÉDICA COMPRIMIDA:
             # Validar con Pydantic para garantia estructural total
             validated_model = TriageOutputSchema.model_validate(parsed)
             result = validated_model.model_dump()
+            result["patientInfo"] = _restore_identifiers(
+                result.get("patientInfo") or {}, pseudonymized["identifiers"], raw_transcript
+            )
 
             # Fusionar signos vitales extraidos por regex si el LLM no los capturo todos
             if compact_vitals:
@@ -258,6 +311,7 @@ CONSULTA MÉDICA COMPRIMIDA:
             return result
 
         except Exception as err:
+            last_error = err
             logger.warning(f"Fallo en llamada a {model_name} con schema Pydantic: {err}")
 
     # 7. Fallback Asistencial Garantizado (Motor Determinista)
@@ -270,14 +324,29 @@ CONSULTA MÉDICA COMPRIMIDA:
         compression_ratio,
         rag_criterion_ids,
         warning=(
-            "El servicio LLM en la nube presentó alta demanda temporal (código 503). "
+            f"{_describe_llm_failure(last_error)} "
             "Se aplicó el Motor Clínico de Reglas Christus Sinergia Salud para garantizar "
             "la clasificación y la continuidad asistencial sin demoras."
         )
     )
-    if use_cache:
-        ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
+    # No se cachea: es un fallo transitorio y la proxima consulta debe reintentar el LLM.
     return fallback_res
+
+
+def _describe_llm_failure(err: Optional[Exception]) -> str:
+    """Mensaje para el usuario segun el tipo real de fallo del LLM (sin detalles internos)."""
+    text = str(err or "").lower()
+    if "503" in text or "unavailable" in text or "overloaded" in text:
+        return "El servicio LLM en la nube presentó alta demanda temporal (código 503)."
+    if "429" in text or "resource_exhausted" in text or "quota" in text:
+        return "Se alcanzó el límite de cuota del servicio LLM (código 429)."
+    if "401" in text or "403" in text or "api key" in text or "permission" in text:
+        return "La clave del servicio LLM fue rechazada o no tiene permisos."
+    if "timeout" in text or "timed out" in text or "deadline" in text:
+        return "El servicio LLM no respondió dentro del tiempo límite."
+    if isinstance(err, (json.JSONDecodeError, ValueError)):
+        return "El servicio LLM devolvió una respuesta que no cumple el esquema clínico."
+    return "El servicio LLM no respondió correctamente."
 
 
 def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:

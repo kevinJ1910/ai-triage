@@ -65,6 +65,54 @@ describe('MetricsDashboard Component', () => {
     });
   });
 
+  it('shows triage safety metrics (under/overtriage, critical sensitivity)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...mockMetrics,
+        undertriage_rate: 12.5,
+        overtriage_rate: 7.5,
+        critical_cases: 4,
+        critical_sensitivity: 75.0,
+        critical_undertriage_count: 1,
+      }),
+    } as Response);
+    render(<MetricsDashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('12.5%')).toBeInTheDocument();
+      expect(screen.getByText('7.5%')).toBeInTheDocument();
+      expect(screen.getByText('75%')).toBeInTheDocument();
+      expect(screen.getByText(/1 de 4 casos criticos/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows a placeholder instead of fabricated values when there is no data', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...mockMetrics,
+        total_triages: 0,
+        concordance_rate: null,
+        severity_drift: null,
+        symptom_retention: null,
+        cohen_kappa: null,
+        kappa_interpretation: 'Sin datos suficientes',
+        undertriage_rate: null,
+        overtriage_rate: null,
+        critical_sensitivity: null,
+        recent_evaluations: [],
+      }),
+    } as Response);
+    render(<MetricsDashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Sin datos suficientes')).toBeInTheDocument();
+      expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(7);
+      expect(screen.queryByText('0.88')).not.toBeInTheDocument();
+    });
+  });
+
   it('renders recent evaluation sessions table', async () => {
     render(<MetricsDashboard />);
 

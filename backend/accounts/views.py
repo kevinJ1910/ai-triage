@@ -19,6 +19,7 @@ from .serializers import (
 )
 from .emails import send_verification_email, send_password_reset_email
 from .throttles import AuthThrottle, OTPThrottle
+from core.permissions import IsAdminRole
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -169,10 +170,9 @@ class UserProfileView(APIView):
 
 # RBAC y Auditoria Views
 class UserListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        # Admins ven todos los usuarios, otros roles solo ven informacion basica
         users = User.objects.all().select_related('permissions').order_by('id')
         data = UserSerializer(users, many=True).data
         return Response(data)
@@ -213,10 +213,14 @@ class UserPermissionUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AuditLogListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        limit = int(request.query_params.get('limit', 50))
+        try:
+            limit = int(request.query_params.get('limit', 50))
+        except (TypeError, ValueError):
+            limit = 50
+        limit = max(1, min(limit, 500))
         logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:limit]
         data = [{
             "id": log.id,

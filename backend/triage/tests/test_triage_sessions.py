@@ -100,8 +100,11 @@ class TestTriageSessions:
         response = self.client.get("/api/triage/sessions/evaluation_metrics/")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_triages"] == 0
-        assert "concordance_rate" in response.data
-        assert "cohen_kappa" in response.data
+        # Sin sesiones no se inventan valores de demostracion
+        assert response.data["concordance_rate"] is None
+        assert response.data["cohen_kappa"] is None
+        assert response.data["symptom_retention"] is None
+        assert response.data["kappa_interpretation"] == "Sin datos suficientes"
 
     def test_evaluation_metrics_with_data(self):
         TriageSession.objects.create(
@@ -124,6 +127,11 @@ class TestTriageSessions:
         assert response.data["modified_count"] == 1
         assert response.data["unmodified_count"] == 1
         assert 0.0 <= response.data["concordance_rate"] <= 100.0
+        assert response.data["kappa_type"] == "quadratic_weighted"
+        assert response.data["confusion_matrix"][1][1] == 1  # IA 2 -> medico 2
+        assert response.data["confusion_matrix"][1][2] == 1  # IA 2 -> medico 3
+        assert response.data["overtriage_rate"] == 50.0
+        assert response.data["undertriage_rate"] == 0.0
 
     def test_emr_patients_endpoint(self):
         TriageSession.objects.create(

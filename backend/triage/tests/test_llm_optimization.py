@@ -204,6 +204,41 @@ class TestPydanticTriageSchemas:
             TriageOutputSchema.model_validate(data)
 
 
+class TestPseudonymization:
+    """Los identificadores del paciente no deben salir hacia el LLM externo."""
+
+    def test_identifiers_are_masked(self):
+        from triage.ai_analyzer import _pseudonymize
+        text = "Me llamo Carlos Ruiz Gomez, cedula 1144123456, celular 300 123 4567, tengo dolor en el pecho"
+        res = _pseudonymize(text)
+        assert "Carlos" not in res["text"]
+        assert "1144123456" not in res["text"]
+        assert "4567" not in res["text"]
+        assert "dolor en el pecho" in res["text"]
+        assert res["identifiers"]["name"] == "Carlos Ruiz Gomez"
+        assert res["identifiers"]["documentId"] == "1144123456"
+        assert res["identifiers"]["phone"] == "3001234567"
+
+    def test_vitals_are_not_masked(self):
+        from triage.ai_analyzer import _pseudonymize
+        text = "tension de 150 sobre 95, saturando al 88 por ciento, temperatura 38.5"
+        assert _pseudonymize(text)["text"] == text
+
+    def test_restore_replaces_placeholders(self):
+        from triage.ai_analyzer import _restore_identifiers
+        info = {"name": "[NOMBRE]", "documentId": "[DOCUMENTO]", "phone": None}
+        restored = _restore_identifiers(info, {"name": "Ana", "documentId": "123456789", "phone": None}, "")
+        assert restored["name"] == "Ana"
+        assert restored["documentId"] == "123456789"
+
+    def test_failure_messages_reflect_real_error(self):
+        from triage.ai_analyzer import _describe_llm_failure
+        assert "503" in _describe_llm_failure(RuntimeError("503 UNAVAILABLE"))
+        assert "429" in _describe_llm_failure(RuntimeError("429 RESOURCE_EXHAUSTED"))
+        assert "503" not in _describe_llm_failure(RuntimeError("Read timed out"))
+        assert "503" not in _describe_llm_failure(None)
+
+
 @pytest.mark.django_db
 class TestAIAnalyzerEndToEnd:
     """Pruebas de integracion del analizador optimizado."""
@@ -243,6 +278,40 @@ class TestAIAnalyzerEndToEnd:
         assert second_call["cached"] is True
         assert second_call["tokens_used"] == 0
         assert second_call["triage"]["level"] == first_call["triage"]["level"]
+
+    def test_llm_prompt_is_pseudonymized_and_identifiers_restored(self, mocker):
+        import json as _json
+        from types import SimpleNamespace
+        llm_output = {
+            "patientInfo": {"name": "[NOMBRE]", "documentId": "[DOCUMENTO]", "gender": "female"},
+            "entities": {"symptoms": ["cefalea"], "medications": [], "vitals": [], "history": []},
+            "triage": {"level": 4, "name": "Consulta Prioritaria",
+                       "attention_time": "Hasta 120 minutos", "justification": "Cefalea sin alarma"},
+            "confidence": 0.9,
+        }
+        mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+        client_cls = mocker.patch("triage.ai_analyzer.genai.Client")
+        generate = client_cls.return_value.models.generate_content
+        generate.return_value = SimpleNamespace(text=_json.dumps(llm_output), usage_metadata=None)
+
+        res = analyze_triage_transcript(
+            "Mi nombre es Laura Martinez, documento 52123456, tengo dolor de cabeza leve", use_cache=False
+        )
+
+        sent_prompt = generate.call_args.kwargs["contents"]
+        assert "Laura" not in sent_prompt
+        assert "52123456" not in sent_prompt
+        assert res["patientInfo"]["name"] == "Laura Martinez"
+        assert res["patientInfo"]["documentId"] == "52123456"
+
+    def test_llm_failure_fallback_is_not_cached(self, mocker):
+        mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+        client_cls = mocker.patch("triage.ai_analyzer.genai.Client")
+        client_cls.return_value.models.generate_content.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
+
+        res = analyze_triage_transcript("dolor abdominal leve desde ayer", use_cache=True)
+        assert "429" in res["warning"]
+        assert ClinicalQueryCache.stats()["cached_items_count"] == 0
 
     def test_cache_hit_does_not_leak_previous_patient(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "")

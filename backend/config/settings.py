@@ -22,7 +22,13 @@ if not _secret_key:
         )
 SECRET_KEY = _secret_key
 
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# Clave dedicada para cifrar credenciales en BD (system_settings.crypto). Si no se define,
+# se deriva de SECRET_KEY (comportamiento historico). Generar con:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY', '').strip()
+
+# Seguro por defecto: DEBUG solo se activa explicitamente (DEBUG=True en .env de desarrollo).
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # FIX-SEC-002: ALLOWED_HOSTS via variable de entorno. Sin comodin '*' en produccion.
 _allowed_hosts_raw = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')

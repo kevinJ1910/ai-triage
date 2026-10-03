@@ -8,13 +8,24 @@ def user_has_flag(user, flag: str) -> bool:
     """
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser or getattr(user, 'role', None) == 'admin':
+    if is_admin_user(user):
         return True
     from accounts.models import UserPermission
     try:
         return bool(getattr(user.permissions, flag, False))
     except UserPermission.DoesNotExist:
         return False
+
+
+def is_admin_user(user) -> bool:
+    return bool(user and user.is_authenticated and (user.is_superuser or getattr(user, 'role', None) == 'admin'))
+
+
+class IsAdminRole(BasePermission):
+    message = 'Permiso denegado. Solo administradores.'
+
+    def has_permission(self, request, view):
+        return is_admin_user(request.user)
 
 
 class _PermissionFlag(BasePermission):

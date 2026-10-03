@@ -44,6 +44,21 @@ class TestSystemSettingsAndEncryption:
         assert detect_key_provider("sk-ant-api03-example") == "anthropic"
         assert detect_key_provider("sk-example-openai-key-long-enough-35-chars") == "openai"
 
+    def test_dedicated_encryption_key_keeps_legacy_ciphertexts_readable(self, settings):
+        from cryptography.fernet import Fernet
+        settings.FIELD_ENCRYPTION_KEY = ''
+        legacy_cipher = encrypt_secret("AIzaSyLegacyKey000")
+
+        settings.FIELD_ENCRYPTION_KEY = Fernet.generate_key().decode()
+        new_cipher = encrypt_secret("AIzaSyNewKey111")
+        # Las llaves antiguas (derivadas de SECRET_KEY) siguen descifrandose
+        assert decrypt_secret(legacy_cipher) == "AIzaSyLegacyKey000"
+        assert decrypt_secret(new_cipher) == "AIzaSyNewKey111"
+
+        # Rotar SECRET_KEY ya no afecta a lo cifrado con la clave dedicada
+        settings.SECRET_KEY = "otra-secret-key-rotada"
+        assert decrypt_secret(new_cipher) == "AIzaSyNewKey111"
+
     def test_api_key_credential_model(self):
         key_cred = APIKeyCredential(name="Test Gemini Prod")
         key_cred.set_key("AIzaSyMyUltraSecretKey998877")

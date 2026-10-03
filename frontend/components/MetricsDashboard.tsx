@@ -35,11 +35,20 @@ interface CacheStats {
 
 interface MetricsData {
   total_triages: number;
-  concordance_rate: number;
-  severity_drift: number;
-  symptom_retention: number;
-  cohen_kappa: number;
+  // null cuando aun no hay sesiones: no se muestran valores inventados
+  concordance_rate: number | null;
+  severity_drift: number | null;
+  symptom_retention: number | null;
+  cohen_kappa: number | null;
+  cohen_kappa_unweighted?: number | null;
+  kappa_type?: string;
   kappa_interpretation: string;
+  undertriage_rate?: number | null;
+  overtriage_rate?: number | null;
+  critical_cases?: number;
+  critical_sensitivity?: number | null;
+  critical_undertriage_count?: number;
+  confusion_matrix?: number[][];
   modified_count: number;
   unmodified_count: number;
   distribution_ai: Record<number, number>;
@@ -49,6 +58,8 @@ interface MetricsData {
   clinical_cache_stats?: CacheStats;
   recent_evaluations: EvaluationItem[];
 }
+
+const NO_DATA = '—';
 
 const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
 const LEVEL_NAMES = ['', 'Resucitacion', 'Emergencia', 'Urgencia', 'Urgencia Menor', 'No Urgente'];
@@ -160,7 +171,7 @@ export default function MetricsDashboard() {
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black font-mono text-slate-100">
-              {metrics?.concordance_rate ?? 0}%
+              {metrics?.concordance_rate != null ? `${metrics.concordance_rate}%` : NO_DATA}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
               {metrics?.unmodified_count ?? 0} de {metrics?.total_triages ?? 0} clasificaciones sin discrepancia.
@@ -172,15 +183,15 @@ export default function MetricsDashboard() {
         <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-blue-400" /> Indice Kappa de Cohen
+              <ShieldCheck className="w-4 h-4 text-blue-400" /> Kappa Ponderado (Cuadratico)
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono font-bold">
-              K = {metrics?.cohen_kappa ?? 0}
+              K sin ponderar = {metrics?.cohen_kappa_unweighted ?? NO_DATA}
             </span>
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black font-mono text-blue-400">
-              {metrics?.cohen_kappa ?? 0}
+              {metrics?.cohen_kappa ?? NO_DATA}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
               {metrics?.kappa_interpretation || 'Concordancia clinica analizada'}
@@ -204,7 +215,7 @@ export default function MetricsDashboard() {
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black font-mono text-amber-400">
-              {metrics?.severity_drift !== undefined && metrics.severity_drift > 0 ? `+${metrics.severity_drift}` : metrics?.severity_drift ?? 0}
+              {metrics?.severity_drift == null ? NO_DATA : metrics.severity_drift > 0 ? `+${metrics.severity_drift}` : metrics.severity_drift}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
               Desviacion neta promedio de niveles respecto a recomendacion IA.
@@ -224,12 +235,51 @@ export default function MetricsDashboard() {
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black font-mono text-purple-400">
-              {metrics?.symptom_retention ?? 0}%
+              {metrics?.symptom_retention != null ? `${metrics.symptom_retention}%` : NO_DATA}
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
               Entidades clinicas extraidas por el modelo retenidas por el personal.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Triage Safety KPIs (referencia: nivel final ratificado por el medico) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-slate-950/70 border border-red-500/30 rounded-xl p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <AlertTriangle className="w-4 h-4 text-red-400" /> Infratriaje IA
+          </span>
+          <div className="text-3xl font-black font-mono text-red-400 mt-3">
+            {metrics?.undertriage_rate != null ? `${metrics.undertriage_rate}%` : NO_DATA}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Casos en que la IA asigno menor urgencia que el medico.
+          </p>
+        </div>
+
+        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-amber-400" /> Sobretriaje IA
+          </span>
+          <div className="text-3xl font-black font-mono text-amber-400 mt-3">
+            {metrics?.overtriage_rate != null ? `${metrics.overtriage_rate}%` : NO_DATA}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Casos en que la IA asigno mayor urgencia que el medico.
+          </p>
+        </div>
+
+        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> Sensibilidad Niveles I-II
+          </span>
+          <div className="text-3xl font-black font-mono text-emerald-400 mt-3">
+            {metrics?.critical_sensitivity != null ? `${metrics.critical_sensitivity}%` : NO_DATA}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            {metrics?.critical_undertriage_count ?? 0} de {metrics?.critical_cases ?? 0} casos criticos clasificados por la IA como nivel III-V.
+          </p>
         </div>
       </div>
 

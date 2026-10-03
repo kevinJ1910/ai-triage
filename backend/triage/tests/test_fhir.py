@@ -3,7 +3,7 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from triage.models import FHIRMessageLog, TriageSession
+from triage.models import FHIRMessageLog, FHIRRecord, TriageSession
 from patients.models import Patient
 
 User = get_user_model()
@@ -78,7 +78,8 @@ class TestFHIRIntegration:
                     "resource": {
                         "resourceType": "Encounter",
                         "id": f"enc-{self.session.id}-test",
-                        "status": "arrived"
+                        "status": "arrived",
+                        "class": {"code": "EMER", "display": "Emergencia"}
                     }
                 }
             ]
@@ -97,6 +98,35 @@ class TestFHIRIntegration:
         log_entry = FHIRMessageLog.objects.filter(session=self.session).first()
         assert log_entry is not None
         assert log_entry.status_code == 201
+
+    def test_fhir_sync_rejects_structurally_invalid_bundle(self):
+        bundle_payload = {
+            "resourceType": "Bundle",
+            "type": "transaction",
+            "entry": [
+                {"resource": {"resourceType": "Encounter", "id": f"enc-{self.session.id}-x"}},  # sin status ni class
+                {"resource": {"resourceType": "Observation", "code": {"text": "Nivel"}}},  # sin status
+            ]
+        }
+        response = self.client.post("/api/fhir/", data=json.dumps(bundle_payload), content_type="application/json")
+        assert response.status_code == 422
+        details = response.json()["details"]
+        assert "Encounter.status" in details
+        assert "Encounter.class" in details
+        assert "Observation.status" in details
+
+        log_entry = FHIRMessageLog.objects.get(session=self.session)
+        assert log_entry.validation_status == "ERROR"
+        assert log_entry.status_code == 422
+        assert not FHIRRecord.objects.filter(triage_session=self.session).exists()
+
+    def test_fhir_sync_rejects_unknown_bundle_type(self):
+        response = self.client.post(
+            "/api/fhir/",
+            data=json.dumps({"resourceType": "Bundle", "type": "inventado", "entry": []}),
+            content_type="application/json"
+        )
+        assert response.status_code == 422
 
     def test_fhir_endpoints_require_authentication(self):
         anon = APIClient()

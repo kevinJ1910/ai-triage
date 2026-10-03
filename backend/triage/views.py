@@ -9,6 +9,8 @@ from accounts.models import AuditLog
 from core.permissions import CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
+from .fhir_validation import validate_fhir_bundle
+from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
@@ -202,108 +204,64 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['GET'])
     def evaluation_metrics(self, request):
         """
-        Calculates real evaluation metrics:
-        - Physician-AI agreement percentage
-        - Severity drift (average final_level - ai_level)
-        - Symptom retention rate
-        - Cohen's Kappa concordance coefficient
-        - Distribution by triage level (1 to 5)
+        Metricas de concordancia IA vs medico (referencia: nivel final ratificado):
+        - Concordancia exacta, Kappa de Cohen ponderado cuadratico (escala ordinal) y sin ponderar
+        - Infratriaje / sobretriaje y sensibilidad en casos criticos (niveles 1-2)
+        - Matriz de confusion 5x5, deriva de severidad y retencion de sintomas
+        Sin sesiones no se inventan valores: las metricas se devuelven como null.
         """
-        sessions = TriageSession.objects.all().order_by('-created_at')
-        total = sessions.count()
+        sessions = list(TriageSession.objects.select_related('patient').order_by('-created_at'))
+        total = len(sessions)
+        pairs = [(s.ai_level, s.final_level) for s in sessions]
+        matrix = confusion_matrix(pairs)
+        dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
+        dist_phy = {lvl: sum(row[lvl - 1] for row in matrix) for lvl in range(1, 6)}
 
-        if total == 0:
-            # Return baseline demo metrics if DB has no sessions yet
-            return Response({
-                "total_triages": 0,
-                "concordance_rate": 100.0,
-                "severity_drift": 0.0,
-                "symptom_retention": 95.0,
-                "cohen_kappa": 0.88,
-                "kappa_interpretation": "Concordancia casi perfecta",
-                "modified_count": 0,
-                "unmodified_count": 0,
-                "distribution_ai": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-                "distribution_physician": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-                "total_tokens_consumed": 0,
-                "cached_triages_count": 0,
-                "clinical_cache_stats": ClinicalQueryCache.stats(),
-                "recent_evaluations": []
-            })
+        concordant_count = sum(1 for s in sessions if not s.is_level_modified)
+        modified_count = total - concordant_count
 
-        concordant_count = sessions.filter(is_level_modified=False).count()
-        modified_count = sessions.filter(is_level_modified=True).count()
-        concordance_rate = round((concordant_count / total) * 100, 1)
+        kappa_weighted = cohen_kappa(matrix, weights='quadratic')
+        kappa_unweighted = cohen_kappa(matrix, weights='none')
 
-        # Drift calculation
-        total_drift = sum((s.final_level - s.ai_level) for s in sessions)
-        severity_drift = round(total_drift / total, 2)
+        concordance_rate = severity_drift = symptom_retention = None
+        if total:
+            concordance_rate = round((concordant_count / total) * 100, 1)
+            severity_drift = round(sum(final - ai for ai, final in pairs) / total, 2)
 
-        # Symptom retention
-        retention_sum = 0.0
-        for s in sessions:
-            ai_s = set([str(x).lower() for x in (s.ai_symptoms or [])])
-            fin_s = set([str(x).lower() for x in (s.final_symptoms or [])])
-            if not ai_s:
-                retention_sum += 1.0
-            else:
-                overlap = len(ai_s.intersection(fin_s))
-                retention_sum += (overlap / len(ai_s))
-        symptom_retention = round((retention_sum / total) * 100, 1)
+            retention_sum = 0.0
+            for s in sessions:
+                ai_s = {str(x).lower() for x in (s.ai_symptoms or [])}
+                fin_s = {str(x).lower() for x in (s.final_symptoms or [])}
+                retention_sum += 1.0 if not ai_s else len(ai_s & fin_s) / len(ai_s)
+            symptom_retention = round((retention_sum / total) * 100, 1)
 
-        # Distribution
-        dist_ai = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        dist_phy = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-        for s in sessions:
-            if s.ai_level in dist_ai:
-                dist_ai[s.ai_level] += 1
-            if s.final_level in dist_phy:
-                dist_phy[s.final_level] += 1
-
-        # Cohen's Kappa approximation
-        po = concordant_count / total
-        pe = sum((dist_ai[k] / total) * (dist_phy[k] / total) for k in range(1, 6))
-        if pe < 1.0:
-            kappa = round((po - pe) / (1.0 - pe), 3)
-        else:
-            kappa = 1.0
-        kappa = max(-1.0, min(1.0, kappa))
-
-        if kappa >= 0.81:
-            kappa_interp = "Concordancia casi perfecta (Excelente)"
-        elif kappa >= 0.61:
-            kappa_interp = "Concordancia sustancial (Robusta)"
-        elif kappa >= 0.41:
-            kappa_interp = "Concordancia moderada"
-        else:
-            kappa_interp = "Concordancia debil"
-
-        # Recent sessions
-        recent = []
-        for s in sessions[:10]:
-            recent.append({
-                "id": s.id,
-                "patient": s.patient.full_name or s.patient.document_id,
-                "ai_level": s.ai_level,
-                "final_level": s.final_level,
-                "is_modified": s.is_level_modified,
-                "agreement_score": round(s.agreement_score * 100, 1),
-                "date": s.created_at.strftime('%Y-%m-%d %H:%M')
-            })
+        recent = [{
+            "id": s.id,
+            "patient": s.patient.full_name or s.patient.document_id,
+            "ai_level": s.ai_level,
+            "final_level": s.final_level,
+            "is_modified": s.is_level_modified,
+            "agreement_score": round(s.agreement_score * 100, 1),
+            "date": s.created_at.strftime('%Y-%m-%d %H:%M')
+        } for s in sessions[:10]]
 
         return Response({
             "total_triages": total,
             "concordance_rate": concordance_rate,
             "severity_drift": severity_drift,
             "symptom_retention": symptom_retention,
-            "cohen_kappa": kappa,
-            "kappa_interpretation": kappa_interp,
+            "cohen_kappa": kappa_weighted,
+            "cohen_kappa_unweighted": kappa_unweighted,
+            "kappa_type": "quadratic_weighted",
+            "kappa_interpretation": interpret_kappa(kappa_weighted),
+            **triage_safety_metrics(pairs),
+            "confusion_matrix": matrix,
             "modified_count": modified_count,
             "unmodified_count": concordant_count,
             "distribution_ai": dist_ai,
             "distribution_physician": dist_phy,
             "total_tokens_consumed": sum(s.total_tokens for s in sessions),
-            "cached_triages_count": sessions.filter(is_cached=True).count(),
+            "cached_triages_count": sum(1 for s in sessions if s.is_cached),
             "clinical_cache_stats": ClinicalQueryCache.stats(),
             "recent_evaluations": recent
         })
@@ -418,64 +376,60 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
 @permission_classes([IsAuthenticated])
 def fhir_sync(request) -> JsonResponse:
     """
-    Simulates FHIR server synchronization, stores FHIRRecord and FHIRMessageLog in the DB.
-    El JSON invalido lo rechaza el parser de DRF con 400.
+    Simula la sincronizacion con un servidor FHIR: valida la estructura R4 del Bundle,
+    registra la transaccion en FHIRMessageLog y, si es valido, guarda el FHIRRecord.
+    JSON malformado -> 400 (parser DRF); esquema base invalido -> 400; Bundle R4 invalido -> 422.
     """
     payload = request.data
     if not isinstance(payload, dict):
         return JsonResponse({"error": "Invalid JSON FHIR payload"}, status=400)
-    try:
-        from core.validation import validate_payload, FHIRSyncSchema
-        validate_payload(FHIRSyncSchema, payload)
-        fhir_id = f"fhir-enc-{random.randint(100000, 999999)}"
-        
-        session_id = None
-        entries = payload.get('entry', [])
-        for entry in entries:
-            resource = entry.get('resource', {})
-            res_id = resource.get('id', '')
-            if res_id.startswith('enc-') or res_id.startswith('pat-'):
-                parts = res_id.split('-')
-                if len(parts) > 1 and parts[1].isdigit():
-                    session_id = int(parts[1])
-                    break
-        
-        triage_session = None
-        if session_id:
-            try:
-                triage_session = TriageSession.objects.filter(id=session_id).first()
-                if triage_session:
-                    FHIRRecord.objects.update_or_create(
-                        triage_session=triage_session,
-                        defaults={
-                            'fhir_resource_id': fhir_id,
-                            'payload_sent': payload
-                        }
-                    )
-            except Exception as db_err:
-                logger.error(f"Error saving FHIRRecord: {db_err}")
 
-        # Always log transaction to FHIRMessageLog
-        try:
-            FHIRMessageLog.objects.create(
-                session=triage_session,
-                resource_type=payload.get('resourceType', 'Bundle'),
-                direction='OUTBOUND',
-                status_code=201,
-                fhir_resource_id=fhir_id,
-                validation_status='VALID',
-                validation_details='HL7 FHIR R4 Bundle validation passed: Encounter, Condition, Patient and Observation schemas match specification.',
-                payload=payload
+    from core.validation import validate_payload, FHIRSyncSchema
+    validate_payload(FHIRSyncSchema, payload)
+
+    is_valid, validation_details = validate_fhir_bundle(payload)
+    triage_session = _find_session_in_bundle(payload)
+    fhir_id = f"fhir-enc-{random.randint(100000, 999999)}" if is_valid else ""
+    status_code = 201 if is_valid else 422
+
+    try:
+        if is_valid and triage_session:
+            FHIRRecord.objects.update_or_create(
+                triage_session=triage_session,
+                defaults={'fhir_resource_id': fhir_id, 'payload_sent': payload}
             )
-        except Exception as log_err:
-            logger.error(f"Error saving FHIRMessageLog: {log_err}")
-                
-        return JsonResponse({
-            "message": "Resource created",
-            "id": fhir_id,
-            "resourceReceived": payload
-        }, status=201)
-        
+        FHIRMessageLog.objects.create(
+            session=triage_session,
+            resource_type=payload.get('resourceType', 'Bundle'),
+            direction='OUTBOUND',
+            status_code=status_code,
+            fhir_resource_id=fhir_id,
+            validation_status='VALID' if is_valid else 'ERROR',
+            validation_details=validation_details,
+            payload=payload
+        )
     except Exception as e:
         logger.error(f"Error in fhir_sync: {e}", exc_info=True)
         return JsonResponse({"error": "Internal server error during FHIR sync"}, status=500)
+
+    if not is_valid:
+        return JsonResponse({"error": "Bundle FHIR R4 invalido", "details": validation_details}, status=422)
+
+    return JsonResponse({
+        "message": "Resource created",
+        "id": fhir_id,
+        "validation": validation_details,
+        "resourceReceived": payload
+    }, status=201)
+
+
+def _find_session_in_bundle(payload) -> "TriageSession | None":
+    """Localiza la sesion de triaje por los ids 'enc-<id>' / 'pat-<id>' del Bundle."""
+    for entry in payload.get('entry') or []:
+        resource = entry.get('resource', {}) if isinstance(entry, dict) else {}
+        res_id = str(resource.get('id', ''))
+        if res_id.startswith(('enc-', 'pat-')):
+            parts = res_id.split('-')
+            if len(parts) > 1 and parts[1].isdigit():
+                return TriageSession.objects.filter(id=int(parts[1])).first()
+    return None
