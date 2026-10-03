@@ -20,10 +20,14 @@ from .serializers import (
 from .emails import send_verification_email, send_password_reset_email
 from .throttles import AuthThrottle, OTPThrottle
 from core.permissions import IsAdminRole
+from .jwt_cookies import move_refresh_to_cookie
 from core.timeutils import local_strftime
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        return move_refresh_to_cookie(super().post(request, *args, **kwargs))
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -68,12 +72,12 @@ class VerifyCodeView(APIView):
                 details='Cuenta verificada satisfactoriamente via OTP.'
             )
 
-            return Response({
+            return move_refresh_to_cookie(Response({
                 "message": "Correo verificado exitosamente. Bienvenido a AI-Triage.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "user": user_data
-            }, status=status.HTTP_200_OK)
+            }, status=status.HTTP_200_OK))
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendCodeView(APIView):

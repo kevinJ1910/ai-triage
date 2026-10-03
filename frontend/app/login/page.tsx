@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { setAccessToken } from '@/lib/api';
 import { 
   Lock, 
   Mail, 
@@ -120,9 +121,8 @@ export default function LoginPage() {
         throw new Error(data.detail || data.error || 'Credenciales invalidas o error de servidor.');
       }
 
-      // Guardar tokens y perfil
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
+      // El access token queda en memoria; el refresh lo fija el backend en una cookie httpOnly
+      setAccessToken(data.access);
       localStorage.setItem('user_profile', JSON.stringify(data.user));
 
       router.push('/');

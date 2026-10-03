@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { RefreshCw, ArrowRight, Check, Copy, Sparkles, BookOpen, AlertCircle, Database } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 
 interface MappingItem {
   raw_term: string;
@@ -55,13 +56,9 @@ export default function NormalizationMonitor() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-
-      const res = await fetch('/api/transcribe/normalize/', {
+      const res = await fetchWithAuth('/api/transcribe/normalize/', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw_text: rawText })
       });
 

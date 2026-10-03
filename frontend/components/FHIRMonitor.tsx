@@ -17,6 +17,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchWithAuth } from '@/lib/api';
 
 interface FHIRLogItem {
   id: number;
@@ -41,11 +42,7 @@ export default function FHIRMonitor() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch('/api/triage/sessions/fhir_logs/', { headers });
+      const res = await fetchWithAuth('/api/triage/sessions/fhir_logs/');
       if (res.ok) {
         const data = await res.json();
         setLogs(data);
@@ -116,13 +113,9 @@ export default function FHIRMonitor() {
         ]
       };
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch('/api/fhir/', {
+      const res = await fetchWithAuth('/api/fhir/', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testBundle)
       });
 

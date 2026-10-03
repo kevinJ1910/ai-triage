@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Toaster } from 'sonner';
+import { fetchWithAuth, logout } from '@/lib/api';
 
 import TriageDashboard from '@/components/TriageDashboard';
 import ConfigPanel from '@/components/ConfigPanel';
@@ -52,18 +53,9 @@ export default function AppNavigation() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    // Validar token en backend y sincronizar perfil de usuario
-    fetch('/api/auth/me/', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    // Validar sesion en backend (renueva el access token con la cookie httpOnly si hace falta)
+    fetchWithAuth('/api/auth/me/', {
+      headers: { 'Content-Type': 'application/json' }
     })
       .then(res => {
         if (!res.ok) {
@@ -77,17 +69,13 @@ export default function AppNavigation() {
         setIsAuthChecking(false);
       })
       .catch(() => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user_profile');
         router.push('/login');
       });
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_profile');
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

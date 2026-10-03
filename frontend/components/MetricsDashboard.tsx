@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Cpu
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 
 interface EvaluationItem {
   id: number;
@@ -79,11 +80,7 @@ export default function MetricsDashboard() {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch('/api/triage/sessions/evaluation_metrics/', { headers });
+      const res = await fetchWithAuth('/api/triage/sessions/evaluation_metrics/');
       if (res.ok) {
         const data = await res.json();
         setMetrics(data);

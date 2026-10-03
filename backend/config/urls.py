@@ -1,12 +1,12 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
+from accounts.jwt_cookies import CookieTokenRefreshView
 from transcription.views import health_check as transcription_health_check
 from triage.views import fhir_sync as triage_fhir_sync
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/', include('accounts.urls')),
     path('api/security/', include('accounts.urls_security')),
     path('api/config/', include('system_settings.urls')),

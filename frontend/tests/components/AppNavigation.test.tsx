@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import AppNavigation from '../../components/AppNavigation';
+import { setAccessToken } from '../../lib/api';
 
 const mockPush = vi.fn();
 
@@ -56,9 +57,11 @@ describe('AppNavigation Component', () => {
     vi.restoreAllMocks();
     mockPush.mockReset();
     localStorage.clear();
+    setAccessToken(null);
   });
 
-  it('redirects to /login if no access token is present', async () => {
+  it('redirects to /login if there is no session (refresh cookie rejected)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) } as Response);
     render(<AppNavigation />);
 
     await waitFor(() => {
@@ -67,7 +70,7 @@ describe('AppNavigation Component', () => {
   });
 
   it('authenticates user and renders navigation with doctor profile', async () => {
-    localStorage.setItem('access_token', 'valid-jwt-token');
+    setAccessToken('valid-jwt-token');
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/auth/me/')) {
@@ -89,7 +92,7 @@ describe('AppNavigation Component', () => {
   });
 
   it('navigates between modules on tab click', async () => {
-    localStorage.setItem('access_token', 'valid-jwt-token');
+    setAccessToken('valid-jwt-token');
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/auth/me/')) {
@@ -126,7 +129,7 @@ describe('AppNavigation Component', () => {
   });
 
   it('clears credentials and redirects on logout click', async () => {
-    localStorage.setItem('access_token', 'valid-jwt-token');
+    setAccessToken('valid-jwt-token');
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/auth/me/')) {
@@ -147,12 +150,14 @@ describe('AppNavigation Component', () => {
     const logoutBtn = screen.getByRole('button', { name: /Cerrar Sesion/i });
     fireEvent.click(logoutBtn);
 
-    expect(localStorage.getItem('access_token')).toBeNull();
-    expect(mockPush).toHaveBeenCalledWith('/login');
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout/', expect.objectContaining({ method: 'POST' }));
+      expect(mockPush).toHaveBeenCalledWith('/login');
+    });
   });
 
   it('opens mobile drawer and navigates from mobile drawer', async () => {
-    localStorage.setItem('access_token', 'valid-jwt-token');
+    setAccessToken('valid-jwt-token');
 
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/auth/me/')) {
