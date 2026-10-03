@@ -315,21 +315,9 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         for s in sessions:
             pat = s.patient
             entities = s.clinical_entities or {}
-            box_num = entities.get("assigned_box")
-            if not box_num:
-                if s.final_level == 1:
-                    box_num = "REAN-01"
-                else:
-                    box_num = f"BOX-0{((s.id * 3) % 8) + 1}"
-
-            status_val = entities.get("status")
-            if not status_val:
-                if s.final_level == 1:
-                    status_val = "Reanimacion Inmediata"
-                elif s.final_level >= 4:
-                    status_val = "En Espera"
-                else:
-                    status_val = "En Atencion"
+            # Solo se informa la ubicacion realmente asignada (assign_box); nunca se inventa.
+            box_num = entities.get("assigned_box") or ""
+            status_val = entities.get("status") or "Pendiente de Box"
 
             results.append({
                 "id": s.id,

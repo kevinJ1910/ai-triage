@@ -148,7 +148,9 @@ class TestTriageSessions:
         first_patient = response.data[0]
         assert first_patient["name"] == "Alejandro Morales"
         assert first_patient["document_id"] == "CC-TRIAGE-001"
-        assert "assigned_box" in first_patient
+        # Sin asignacion real no se inventa ubicacion
+        assert first_patient["assigned_box"] == ""
+        assert first_patient["status"] == "Pendiente de Box"
 
     def test_assign_box_endpoint_success(self):
         session = TriageSession.objects.create(

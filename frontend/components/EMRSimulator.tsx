@@ -333,7 +333,7 @@ export default function EMRSimulator() {
                       Asignacion de Box / Camilla Hospitalaria
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Ubicacion actual del paciente en urgencias: <span className="font-bold text-blue-400">{selectedPatient.assigned_box}</span>
+                      Ubicacion actual del paciente en urgencias: <span className="font-bold text-blue-400">{selectedPatient.assigned_box || 'Sin asignar'}</span>
                     </p>
                   </div>
                 </div>
