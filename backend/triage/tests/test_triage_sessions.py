@@ -247,6 +247,57 @@ class TestTriageSessions:
         session.refresh_from_db()
         assert session.final_level == 4
 
+    def _mock_analysis(self, mocker, **patient):
+        result = {
+            "patientInfo": {"documentId": "CC-TRIAGE-001", **patient},
+            "entities": {"symptoms": ["Tos"], "medications": [], "vitals": [], "history": []},
+            "triage": {"level": 4, "justification": "Cuadro leve"},
+            "confidence": 0.9,
+            "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+        }
+        mocker.patch("triage.views.analyze_triage_transcript", return_value=result)
+
+    def test_analyze_does_not_overwrite_existing_patient_data(self, mocker):
+        self._mock_analysis(mocker, name="Nombre Alucinado", phone="3001112233", birthDate="1990-01-31")
+        response = self.client.post("/api/triage/sessions/analyze/", {"transcript": "tos leve"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        self.patient.refresh_from_db()
+        assert self.patient.full_name == "Alejandro Morales"  # no se sobrescribe
+        assert self.patient.phone == "3001112233"  # campo vacio: se completa
+        assert str(self.patient.birth_date) == "1990-01-31"
+
+    def test_analyze_ignores_malformed_birth_date_and_out_of_range_level(self, mocker):
+        self._mock_analysis(mocker, birthDate="31/01/1990")
+        response = self.client.post(
+            "/api/triage/sessions/analyze/", {"transcript": "tos leve", "final_level": 9}, format="json"
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["final_level"] == 4
+        self.patient.refresh_from_db()
+        assert self.patient.birth_date is None
+
+    def test_analyze_rolls_back_everything_if_audit_fails(self, mocker):
+        self._mock_analysis(mocker)
+        mocker.patch("triage.views.AuditLog.objects.create", side_effect=RuntimeError("audit down"))
+        client = APIClient(raise_request_exception=False)
+        client.force_authenticate(user=self.user)
+        response = client.post("/api/triage/sessions/analyze/", {"transcript": "tos leve"}, format="json")
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert TriageSession.objects.count() == 0
+
+    def test_dates_are_reported_in_local_timezone(self):
+        from django.utils import timezone
+        from datetime import datetime, timezone as dt_tz
+        session = TriageSession.objects.create(
+            patient=self.patient, level=3, ai_level=3, final_level=3, justification="tz"
+        )
+        utc_noon = datetime(2026, 1, 15, 12, 0, tzinfo=dt_tz.utc)
+        TriageSession.objects.filter(id=session.id).update(created_at=utc_noon)
+        response = self.client.get("/api/triage/sessions/evaluation_metrics/")
+        # America/Bogota = UTC-5
+        assert response.data["recent_evaluations"][0]["date"] == "2026-01-15 07:00"
+        assert timezone.get_current_timezone_name() == "America/Bogota"
+
     def test_analyze_transcript_action_creates_session(self, mocker):
         mock_result = {
             "patientInfo": {

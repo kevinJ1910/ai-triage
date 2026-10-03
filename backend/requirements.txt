@@ -23,6 +23,7 @@ pycparser==2.22
 pydantic==2.12.5
 email-validator>=2.0.0
 python-dotenv==1.2.1
+tzdata==2025.2
 PyJWT==2.10.1
 rsa==4.9.1
 safetensors==0.7.0

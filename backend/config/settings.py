@@ -124,8 +124,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-LANGUAGE_CODE = 'es-es'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'es-co'
+# Se almacena en UTC (USE_TZ) y se presenta en hora de Colombia.
+TIME_ZONE = os.getenv('TIME_ZONE', 'America/Bogota')
 USE_I18N = True
 USE_TZ = True
 

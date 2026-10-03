@@ -1,3 +1,5 @@
+from datetime import date
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -6,6 +8,7 @@ from django.http import JsonResponse
 from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
+from core.timeutils import local_strftime
 from core.permissions import CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
@@ -61,73 +64,56 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         entities = analysis.get('entities', {})
         confidence = analysis.get('confidence', None)
         
-        # Upsert Patient
-        document_id = patient_info.get('documentId')
-        patient = None
-        if document_id:
-            patient, _ = Patient.objects.get_or_create(
-                document_id=document_id,
-                defaults={
-                    'full_name': patient_info.get('name') or 'Paciente Sin Nombre',
-                    'birth_date': patient_info.get('birthDate') if patient_info.get('birthDate') else None,
-                    'gender': patient_info.get('gender') or 'unknown',
-                    'phone': patient_info.get('phone') or '',
-                    'insurance': patient_info.get('insurance') or 'Contributivo',
-                }
-            )
-        else:
-            patient = Patient.objects.create(document_id=f"anon-{session_uuid[:8]}")
-            
         ai_level_val = triage_data.get('level', 5)
-        # Client can pass an explicit final_level if confirmed
-        final_level_val = request.data.get('final_level', ai_level_val)
+        # El cliente puede enviar un final_level confirmado; fuera de 1-5 se ignora.
         try:
-            final_level_val = int(final_level_val)
+            final_level_val = int(request.data.get('final_level', ai_level_val))
         except (ValueError, TypeError):
+            final_level_val = ai_level_val
+        if final_level_val not in range(1, 6):
             final_level_val = ai_level_val
 
         extracted_symptoms = entities.get('symptoms', []) if isinstance(entities, dict) else []
 
-        # Create Session
-        triage_session = TriageSession.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            patient=patient,
-            level=final_level_val,
-            ai_level=ai_level_val,
-            final_level=final_level_val,
-            is_level_modified=(final_level_val != ai_level_val),
-            justification=triage_data.get('justification', ''),
-            clinical_entities=entities,
-            ai_symptoms=extracted_symptoms,
-            final_symptoms=extracted_symptoms,
-            confidence_score=confidence,
-            prompt_tokens=analysis.get('prompt_tokens', 0),
-            completion_tokens=analysis.get('completion_tokens', 0),
-            total_tokens=analysis.get('total_tokens', 0),
-            is_cached=analysis.get('cached', False),
-            rag_context=analysis.get('rag_context', [])
-        )
-        
-        # Create Transcription record
-        Transcription.objects.create(
-            triage_session=triage_session,
-            session_uuid=session_uuid,
-            full_text=transcript_text,
-            model_used="whisper-gemini-2.5-flash"
-        )
+        # Paciente, sesion, transcripcion y auditoria se guardan juntos o no se guarda nada:
+        # un triaje sin registro de auditoria no es aceptable.
+        with transaction.atomic():
+            patient = _upsert_patient(patient_info, session_uuid)
 
-        # Audit Log
-        try:
+            triage_session = TriageSession.objects.create(
+                user=request.user,
+                patient=patient,
+                level=final_level_val,
+                ai_level=ai_level_val,
+                final_level=final_level_val,
+                is_level_modified=(final_level_val != ai_level_val),
+                justification=triage_data.get('justification', ''),
+                clinical_entities=entities,
+                ai_symptoms=extracted_symptoms,
+                final_symptoms=extracted_symptoms,
+                confidence_score=confidence,
+                prompt_tokens=analysis.get('prompt_tokens', 0),
+                completion_tokens=analysis.get('completion_tokens', 0),
+                total_tokens=analysis.get('total_tokens', 0),
+                is_cached=analysis.get('cached', False),
+                rag_context=analysis.get('rag_context', [])
+            )
+
+            Transcription.objects.create(
+                triage_session=triage_session,
+                session_uuid=session_uuid,
+                full_text=transcript_text,
+                model_used=(analysis.get('engine_used') or 'desconocido')[:100]
+            )
+
             AuditLog.objects.create(
-                user=request.user if request.user.is_authenticated else None,
+                user=request.user,
                 action='TRIAGE_CREATED',
                 resource=f'TriageSession #{triage_session.id}',
                 details=f'Triaje inicial guardado. AI Nivel: {ai_level_val}, Final: {final_level_val}, Paciente: {patient.document_id}',
                 ip_address=request.META.get('REMOTE_ADDR')
             )
-        except Exception as audit_err:
-            logger.error(f"AuditLog write failed for TRIAGE_CREATED: {audit_err}", exc_info=True)
-        
+
         return Response({
             "session_id": triage_session.id,
             "patient": {
@@ -242,7 +228,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "final_level": s.final_level,
             "is_modified": s.is_level_modified,
             "agreement_score": round(s.agreement_score * 100, 1),
-            "date": s.created_at.strftime('%Y-%m-%d %H:%M')
+            "date": local_strftime(s.created_at, '%Y-%m-%d %H:%M')
         } for s in sessions[:10]]
 
         return Response({
@@ -307,7 +293,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "ai_level": s.ai_level,
                 "assigned_box": box_num,
                 "status": status_val,
-                "admission_time": s.created_at.strftime('%H:%M:%S'),
+                "admission_time": local_strftime(s.created_at, '%H:%M:%S'),
                 "justification": s.justification,
                 "entities": entities
             })
@@ -368,7 +354,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "validation_status": l.validation_status,
                 "validation_details": l.validation_details,
                 "payload": l.payload,
-                "created_at": l.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                "created_at": local_strftime(l.created_at, '%Y-%m-%d %H:%M:%S')
             })
         return Response(data)
 
@@ -433,3 +419,51 @@ def _find_session_in_bundle(payload) -> "TriageSession | None":
             if len(parts) > 1 and parts[1].isdigit():
                 return TriageSession.objects.filter(id=int(parts[1])).first()
     return None
+
+
+def _parse_iso_date(value):
+    """Fecha YYYY-MM-DD o None: un valor mal formado del LLM no debe romper el guardado."""
+    try:
+        return date.fromisoformat(str(value)) if value else None
+    except ValueError:
+        return None
+
+
+def _upsert_patient(patient_info: dict, session_uuid: str) -> Patient:
+    """
+    Busca el paciente por documento. Si ya existe, solo completa los campos vacios:
+    nunca sobrescribe datos registrados con lo que extrajo la IA.
+    Sin documento se crea un paciente anonimo propio de esta sesion.
+    """
+    document_id = patient_info.get('documentId')
+    if not document_id:
+        return Patient.objects.create(document_id=f"anon-{session_uuid[:8]}")
+
+    extracted = {
+        'full_name': patient_info.get('name'),
+        'birth_date': _parse_iso_date(patient_info.get('birthDate')),
+        'gender': patient_info.get('gender') if patient_info.get('gender') not in (None, 'unknown') else None,
+        'phone': patient_info.get('phone'),
+        'insurance': patient_info.get('insurance'),
+    }
+    patient, created = Patient.objects.select_for_update().get_or_create(
+        document_id=document_id,
+        defaults={
+            'full_name': extracted['full_name'] or 'Paciente Sin Nombre',
+            'birth_date': extracted['birth_date'],
+            'gender': extracted['gender'] or 'unknown',
+            'phone': extracted['phone'] or '',
+            'insurance': extracted['insurance'] or 'Contributivo',
+        }
+    )
+    if not created:
+        placeholders = {'full_name': 'Paciente Sin Nombre', 'gender': 'unknown'}
+        changed = []
+        for field, value in extracted.items():
+            current = getattr(patient, field)
+            if value and (not current or current == placeholders.get(field)):
+                setattr(patient, field, value)
+                changed.append(field)
+        if changed:
+            patient.save(update_fields=changed)
+    return patient

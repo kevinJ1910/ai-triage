@@ -20,6 +20,7 @@ from .serializers import (
 from .emails import send_verification_email, send_password_reset_email
 from .throttles import AuthThrottle, OTPThrottle
 from core.permissions import IsAdminRole
+from core.timeutils import local_strftime
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -224,7 +225,7 @@ class AuditLogListView(APIView):
         logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:limit]
         data = [{
             "id": log.id,
-            "timestamp": log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": local_strftime(log.timestamp, '%Y-%m-%d %H:%M:%S'),
             "user": log.user.full_name if log.user else 'Sistema/Anonimo',
             "user_email": log.user.email if log.user else 'N/A',
             "role": log.user.role if log.user else 'system',
