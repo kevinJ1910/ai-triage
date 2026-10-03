@@ -75,6 +75,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 Desktop.ini
+CLAUDE.md
+.claude
+.agents
 
 # ===========================================
 # Environment & Secrets
