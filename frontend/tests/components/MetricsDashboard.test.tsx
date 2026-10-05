@@ -139,4 +139,37 @@ describe('MetricsDashboard Component', () => {
       );
     });
   });
+  it('muestra la validacion contra el nivel de referencia ciego', async () => {
+    const agreement = (exact: number, under: number) => ({
+      n: 4, exact_agreement: exact, cohen_kappa: 0.61, kappa_interpretation: 'Concordancia sustancial',
+      undertriage_rate: under, overtriage_rate: 0, critical_cases: 2, critical_sensitivity: 50.0,
+      critical_undertriage_count: 1,
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...mockMetrics,
+        reference_validation: {
+          referenced_count: 4,
+          ai_vs_reference: agreement(62.5, 37.5),
+          physician_vs_reference: agreement(87.5, 12.5),
+        },
+      }),
+    } as Response);
+    render(<MetricsDashboard />);
+
+    await waitFor(() => {
+      expect(screen.getByText('4 de 10 casos adjudicados')).toBeInTheDocument();
+      expect(screen.getByText('62.5%')).toBeInTheDocument();
+      expect(screen.getByText('87.5%')).toBeInTheDocument();
+      expect(screen.getByText('37.5%')).toBeInTheDocument();
+    });
+  });
+
+  it('indica cuando aun no hay casos adjudicados', async () => {
+    render(<MetricsDashboard />);
+    await waitFor(() => {
+      expect(screen.getByText(/Aún no hay casos adjudicados/)).toBeInTheDocument();
+    });
+  });
 });

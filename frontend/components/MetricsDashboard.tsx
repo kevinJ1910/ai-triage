@@ -34,6 +34,24 @@ interface CacheStats {
   estimated_tokens_saved: number;
 }
 
+interface ReferenceAgreement {
+  n: number;
+  exact_agreement: number | null;
+  cohen_kappa: number | null;
+  kappa_interpretation: string;
+  undertriage_rate: number | null;
+  overtriage_rate: number | null;
+  critical_cases: number;
+  critical_sensitivity: number | null;
+  critical_undertriage_count: number;
+}
+
+interface ReferenceValidation {
+  referenced_count: number;
+  ai_vs_reference: ReferenceAgreement;
+  physician_vs_reference: ReferenceAgreement;
+}
+
 interface MetricsData {
   total_triages: number;
   // null cuando aun no hay sesiones: no se muestran valores inventados
@@ -58,7 +76,18 @@ interface MetricsData {
   cached_triages_count?: number;
   clinical_cache_stats?: CacheStats;
   recent_evaluations: EvaluationItem[];
+  reference_validation?: ReferenceValidation;
 }
+
+const pct = (value: number | null | undefined) => (value != null ? `${value}%` : NO_DATA);
+
+const REFERENCE_ROWS: { key: keyof ReferenceAgreement; label: string; format: (v: ReferenceAgreement) => string }[] = [
+  { key: 'exact_agreement', label: 'Concordancia exacta', format: (v) => pct(v.exact_agreement) },
+  { key: 'cohen_kappa', label: 'Kappa ponderado', format: (v) => (v.cohen_kappa != null ? String(v.cohen_kappa) : NO_DATA) },
+  { key: 'undertriage_rate', label: 'Infratriaje', format: (v) => pct(v.undertriage_rate) },
+  { key: 'overtriage_rate', label: 'Sobretriaje', format: (v) => pct(v.overtriage_rate) },
+  { key: 'critical_sensitivity', label: 'Sensibilidad niveles I-II', format: (v) => pct(v.critical_sensitivity) },
+];
 
 const NO_DATA = '—';
 
@@ -278,6 +307,52 @@ export default function MetricsDashboard() {
             {metrics?.critical_undertriage_count ?? 0} de {metrics?.critical_cases ?? 0} casos criticos clasificados por la IA como nivel III-V.
           </p>
         </div>
+      </div>
+
+      {/* Validacion contra referencia ciega (sin sesgo de anclaje) */}
+      <div className="bg-slate-950/60 border border-indigo-500/30 rounded-xl p-5 space-y-4" data-testid="reference-validation">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <GitCompare className="w-4 h-4 text-indigo-400" />
+              Validación contra nivel de referencia ciego
+            </h2>
+            <p className="text-[11px] text-slate-400">
+              Un clínico distinto al tratante asigna el nivel viendo solo la transcripción. Las métricas anteriores usan como
+              referencia el nivel final, fijado después de ver la propuesta de la IA, y por eso tienden a sobrestimar la concordancia.
+            </p>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
+            {metrics?.reference_validation?.referenced_count ?? 0} de {metrics?.total_triages ?? 0} casos adjudicados
+          </span>
+        </div>
+
+        {metrics?.reference_validation && metrics.reference_validation.referenced_count > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-slate-400 uppercase tracking-wider">
+                  <th className="py-2 pr-4 font-semibold">Métrica</th>
+                  <th className="py-2 pr-4 font-semibold">IA vs referencia</th>
+                  <th className="py-2 font-semibold">Médico tratante vs referencia</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-slate-200">
+                {REFERENCE_ROWS.map((row) => (
+                  <tr key={row.key} className="border-t border-slate-800">
+                    <td className="py-2 pr-4 font-sans text-slate-300">{row.label}</td>
+                    <td className="py-2 pr-4">{row.format(metrics.reference_validation!.ai_vs_reference)}</td>
+                    <td className="py-2">{row.format(metrics.reference_validation!.physician_vs_reference)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-[11px] text-slate-400">
+            Aún no hay casos adjudicados. Use el módulo &quot;Validacion Ciega&quot; para asignar niveles de referencia.
+          </p>
+        )}
       </div>
 
       {/* Token Governance & Input Optimization KPIs */}

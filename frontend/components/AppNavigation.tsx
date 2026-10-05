@@ -13,7 +13,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Menu,
-  X
+  X,
+  EyeOff
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Toaster } from 'sonner';
@@ -26,6 +27,7 @@ import NormalizationMonitor from '@/components/NormalizationMonitor';
 import FHIRMonitor from '@/components/FHIRMonitor';
 import EMRSimulator from '@/components/EMRSimulator';
 import MetricsDashboard from '@/components/MetricsDashboard';
+import BlindReview from '@/components/BlindReview';
 
 interface UserProfile {
   id: number;
@@ -98,6 +100,7 @@ export default function AppNavigation() {
     { id: 'normalization', icon: <RefreshCw className="w-5 h-5"/>, label: 'Monitor Normalizacion', category: 'clinical' },
     { id: 'fhir', icon: <Server className="w-5 h-5"/>, label: 'Monitor FHIR/HL7', category: 'clinical' },
     { id: 'metrics', icon: <BarChart className="w-5 h-5"/>, label: 'Metricas y Evaluacion', category: 'clinical' },
+    { id: 'blind', icon: <EyeOff className="w-5 h-5"/>, label: 'Validacion Ciega', category: 'clinical' },
     // Administracion y Parametrizacion del Sistema
     { id: 'security', icon: <Shield className="w-5 h-5"/>, label: 'Seguridad y RBAC', category: 'admin' },
     { id: 'config', icon: <Settings className="w-5 h-5"/>, label: 'Configuracion', category: 'admin' },
@@ -329,6 +332,7 @@ export default function AppNavigation() {
         {activeTab === 'fhir' && <FHIRMonitor />}
         {activeTab === 'emr' && <EMRSimulator />}
         {activeTab === 'metrics' && <MetricsDashboard />}
+        {activeTab === 'blind' && <BlindReview />}
       </div>
     </div>
   );
