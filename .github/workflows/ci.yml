@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      # Las ruedas CUDA (nvidia-*) solo hacen falta en el contenedor GPU; los tests mockean Whisper.
+      - name: Instalar dependencias
+        run: |
+          grep -v '^nvidia-' requirements.txt > requirements-ci.txt
+          sed 's/requirements.txt/requirements-ci.txt/' requirements-dev.txt > requirements-dev-ci.txt
+          pip install -r requirements-dev-ci.txt
+      - name: Comprobar migraciones pendientes
+        run: python manage.py makemigrations --check --dry-run
+        env:
+          SECRET_KEY: ci-only-secret-key
+      - name: Tests
+        run: python -m pytest --create-db
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm test
+      - run: pnpm run build
