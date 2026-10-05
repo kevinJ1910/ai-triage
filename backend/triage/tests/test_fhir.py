@@ -1,4 +1,5 @@
 import json
+import uuid
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -93,6 +94,8 @@ class TestFHIRIntegration:
         data = response.json()
         assert "id" in data
         assert data["message"] == "Resource created"
+        # Identificador basado en UUID: sin colisiones entre transacciones
+        uuid.UUID(data["id"].removeprefix("fhir-enc-"))
 
         # Validar persistencia en BD
         log_entry = FHIRMessageLog.objects.filter(session=self.session).first()

@@ -17,7 +17,6 @@ from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safe
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -418,7 +417,7 @@ def fhir_sync(request) -> JsonResponse:
 
     is_valid, validation_details = validate_fhir_bundle(payload)
     triage_session = _find_session_in_bundle(payload)
-    fhir_id = f"fhir-enc-{random.randint(100000, 999999)}" if is_valid else ""
+    fhir_id = f"fhir-enc-{uuid.uuid4()}" if is_valid else ""
     status_code = 201 if is_valid else 422
 
     try:
