@@ -35,7 +35,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         Receives audio file or text transcript, runs analysis, and saves the triage session.
         Supports explicit final_level override from client if sent.
         """
-        transcript_text = request.data.get('transcript')
+        transcript_text = (request.data.get('transcript') or '').strip()
         audio_file = request.FILES.get('audio')
         
         if not transcript_text and not audio_file:
@@ -48,16 +48,20 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 engine = WhisperEngine()
                 audio_bytes = audio_file.read()
                 result = engine.transcribe_chunk(audio_bytes, session_uuid)
-                transcript_text = result.get('text', '')
+                transcript_text = (result.get('text') or '').strip()
             except Exception as e:
                 logger.error(f"Whisper transcription failed: {e}")
                 return Response({"error": "Transcription failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if not transcript_text:
+                # El audio llego pero no contenia voz reconocible: es un problema de la entrada, no del servidor.
+                return Response({"error": "No se detecto voz en el audio enviado"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
                 
         # Analyze using Gemini or fallback
         analysis = analyze_triage_transcript(transcript_text)
         
         if "error" in analysis:
-            return Response(analysis, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # El analizador solo devuelve 'error' ante entradas no analizables; nunca por fallo del LLM.
+            return Response(analysis, status=status.HTTP_400_BAD_REQUEST)
             
         patient_info = analysis.get('patientInfo', {})
         triage_data = analysis.get('triage', {})

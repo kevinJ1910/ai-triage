@@ -364,4 +364,18 @@ class TestTriageSessions:
         assert response.data["ai_level"] == 3
         assert response.data["final_level"] == 3
         assert response.data["is_level_modified"] is False
-
+
+    def test_analyze_blank_transcript_returns_400(self):
+        response = self.client.post("/api/triage/sessions/analyze/", {"transcript": "   "}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert TriageSession.objects.count() == 0
+
+    def test_analyze_silent_audio_returns_422(self, mocker):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        engine = mocker.patch("triage.views.WhisperEngine")
+        engine.return_value.transcribe_chunk.return_value = {"text": "  "}
+        audio = SimpleUploadedFile("audio.webm", b"\x00\x01", content_type="audio/webm")
+        response = self.client.post("/api/triage/sessions/analyze/", {"audio": audio}, format="multipart")
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert TriageSession.objects.count() == 0
+
