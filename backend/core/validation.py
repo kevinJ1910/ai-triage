@@ -118,6 +118,9 @@ class TriageOverrideSchema(BaseModel):
     justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
 
+class TriageReferenceSchema(BaseModel):
+    reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")
+
 class EMRBoxAssignSchema(BaseModel):
     assigned_box: Optional[str] = Field(default=None, max_length=50)
     box_name: Optional[str] = Field(default=None, max_length=50)

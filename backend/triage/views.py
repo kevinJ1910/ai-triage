@@ -1,5 +1,6 @@
 from datetime import date
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -13,7 +14,7 @@ from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
 from .fhir_validation import validate_fhir_bundle
-from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics
+from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics, reference_agreement
 from transcription.whisper_engine import WhisperEngine
 import uuid
 import logging
@@ -252,6 +253,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         sessions = list(TriageSession.objects.select_related('patient').order_by('-created_at'))
         total = len(sessions)
+        referenced = [s for s in sessions if s.reference_level is not None]
         pairs = [(s.ai_level, s.final_level) for s in sessions]
         matrix = confusion_matrix(pairs)
         dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
@@ -306,8 +308,75 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "total_tokens_consumed": sum(s.total_tokens for s in sessions),
             "cached_triages_count": sum(1 for s in sessions if s.is_cached),
             "clinical_cache_stats": ClinicalQueryCache.stats(),
-            "recent_evaluations": recent
+            "recent_evaluations": recent,
+            # Validacion contra el nivel de referencia ciego: es la medida sin sesgo de anclaje.
+            "reference_validation": {
+                "referenced_count": len(referenced),
+                "ai_vs_reference": reference_agreement([(s.ai_level, s.reference_level) for s in referenced]),
+                "physician_vs_reference": reference_agreement([(s.final_level, s.reference_level) for s in referenced]),
+            },
         })
+
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanEditSymptoms])
+    def blind_review_queue(self, request):
+        """
+        Casos pendientes de adjudicacion ciega. Solo expone la transcripcion y datos demograficos
+        minimos: nunca el nivel de la IA, el nivel final, la justificacion ni el contexto RAG.
+        Se excluyen los triajes realizados por el propio adjudicador.
+        """
+        qs = (TriageSession.objects
+              .filter(reference_level__isnull=True)
+              .exclude(user=request.user)
+              .select_related('patient', 'transcription')
+              .order_by('created_at'))
+        pending_total = qs.count()
+        results = []
+        for s in qs[:20]:
+            transcription = getattr(s, 'transcription', None)
+            birth_date = s.patient.birth_date
+            age = None
+            if birth_date:
+                ref = s.created_at.date()
+                age = ref.year - birth_date.year - ((ref.month, ref.day) < (birth_date.month, birth_date.day))
+            results.append({
+                "id": s.id,
+                "date": local_strftime(s.created_at, '%Y-%m-%d %H:%M'),
+                "gender": s.patient.gender or 'unknown',
+                "age": age,
+                "transcript": transcription.full_text if transcription else '',
+            })
+        return Response({"pending_total": pending_total, "results": results})
+
+    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanEditSymptoms])
+    def reference_level(self, request, pk=None):
+        """
+        Registra el nivel de referencia ciego. Es inmutable: una vez adjudicado no se reescribe,
+        y el clinico que hizo el triaje no puede adjudicarlo.
+        """
+        from core.validation import validate_payload, TriageReferenceSchema
+        validated = validate_payload(TriageReferenceSchema, request.data)
+
+        with transaction.atomic():
+            session = TriageSession.objects.select_for_update().get(pk=self.get_object().pk)
+            if session.user_id is not None and session.user_id == request.user.id:
+                return Response({"error": "No puede adjudicar un triaje realizado por usted"}, status=status.HTTP_403_FORBIDDEN)
+            if session.reference_level is not None:
+                return Response({"error": "Este triaje ya tiene nivel de referencia"}, status=status.HTTP_409_CONFLICT)
+
+            session.reference_level = validated.reference_level
+            session.reference_by = request.user
+            session.reference_at = timezone.now()
+            session.save(update_fields=['reference_level', 'reference_by', 'reference_at'])
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='TRIAGE_REFERENCE',
+                resource=f'TriageSession #{session.id}',
+                details=f'Nivel de referencia ciego registrado: {session.reference_level}',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+        return Response({"session_id": session.id, "reference_level": session.reference_level})
 
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def emr_patients(self, request):

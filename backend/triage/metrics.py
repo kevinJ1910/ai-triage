@@ -61,6 +61,25 @@ def interpret_kappa(kappa: Optional[float]) -> str:
     return "Concordancia debil"
 
 
+def reference_agreement(pairs: List[Tuple[int, int]]) -> Dict[str, Optional[float]]:
+    """
+    Concordancia de un evaluador (IA o medico tratante) contra el nivel de referencia ciego.
+    pairs: (nivel_evaluado, nivel_referencia). Sin pares devuelve metricas null.
+    """
+    matrix = confusion_matrix(pairs)
+    total = len(pairs)
+    exact = sum(1 for predicted, reference in pairs if predicted == reference)
+    kappa = cohen_kappa(matrix, weights='quadratic')
+    return {
+        "n": total,
+        "exact_agreement": round(exact / total * 100, 1) if total else None,
+        "cohen_kappa": kappa,
+        "kappa_interpretation": interpret_kappa(kappa),
+        **triage_safety_metrics(pairs),
+        "confusion_matrix": matrix,
+    }
+
+
 def triage_safety_metrics(pairs: List[Tuple[int, int]]) -> Dict[str, Optional[float]]:
     """
     Tasas de error de triaje tomando el nivel final del medico como referencia:

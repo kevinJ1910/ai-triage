@@ -1,4 +1,4 @@
-from triage.metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics
+from triage.metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics, reference_agreement
 
 
 class TestConcordanceMetrics:
@@ -53,3 +53,19 @@ class TestTriageSafetyMetrics:
         assert res["critical_cases"] == 2
         assert res["critical_sensitivity"] == 50.0
         assert res["critical_undertriage_count"] == 1
+
+    def test_reference_agreement_null_without_pairs(self):
+        result = reference_agreement([])
+        assert result["n"] == 0
+        assert result["exact_agreement"] is None
+        assert result["cohen_kappa"] is None
+
+    def test_reference_agreement_counts_undertriage_against_reference(self):
+        # (evaluado, referencia): un caso critico enviado a nivel 3 es infratriaje
+        result = reference_agreement([(1, 1), (3, 2), (4, 4), (4, 5)])
+        assert result["n"] == 4
+        assert result["exact_agreement"] == 50.0
+        assert result["undertriage_rate"] == 25.0
+        assert result["overtriage_rate"] == 25.0
+        assert result["critical_cases"] == 2
+        assert result["critical_sensitivity"] == 50.0

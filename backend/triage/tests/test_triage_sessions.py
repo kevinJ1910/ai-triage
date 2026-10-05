@@ -391,3 +391,88 @@ class TestTriageSessions:
         response = self.client.get("/api/triage/sessions/evaluation_metrics/")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["recent_evaluations"][0]["patient"] == f"Paciente #{self.patient.id}"
+
+    def _blind_case(self, author=None, ai_level=3, final_level=2):
+        from triage.models import Transcription
+        session = TriageSession.objects.create(
+            user=author, patient=self.patient, level=final_level, ai_level=ai_level,
+            final_level=final_level, justification="Justificacion de la IA"
+        )
+        Transcription.objects.create(
+            triage_session=session, session_uuid="blind-1", full_text="dolor toracico opresivo", model_used="test"
+        )
+        return session
+
+    def _other_doctor(self):
+        doctor = User.objects.create_user(
+            email="adjudicador@hospital.com", password="Password123!", role="medico", is_verified=True
+        )
+        client = APIClient()
+        client.force_authenticate(user=doctor)
+        return doctor, client
+
+    def test_blind_review_queue_hides_levels_and_own_cases(self):
+        self._blind_case(author=self.user)
+        _, client = self._other_doctor()
+
+        response = client.get("/api/triage/sessions/blind_review_queue/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["pending_total"] == 1
+        case = response.data["results"][0]
+        assert case["transcript"] == "dolor toracico opresivo"
+        for hidden in ("ai_level", "final_level", "level", "justification", "rag_context", "name"):
+            assert hidden not in case
+
+        # El autor del triaje no ve su propio caso en la cola
+        own = self.client.get("/api/triage/sessions/blind_review_queue/")
+        assert own.data["pending_total"] == 0
+
+    def test_reference_level_is_recorded_once_and_audited(self):
+        from accounts.models import AuditLog
+        session = self._blind_case(author=self.user)
+        doctor, client = self._other_doctor()
+        url = f"/api/triage/sessions/{session.id}/reference_level/"
+
+        response = client.post(url, {"reference_level": 1}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        session.refresh_from_db()
+        assert session.reference_level == 1
+        assert session.reference_by == doctor
+        # El nivel de referencia no altera la concordancia IA vs medico tratante
+        assert session.final_level == 2 and session.ai_level == 3
+        assert AuditLog.objects.filter(action="TRIAGE_REFERENCE").count() == 1
+
+        again = client.post(url, {"reference_level": 4}, format="json")
+        assert again.status_code == status.HTTP_409_CONFLICT
+        session.refresh_from_db()
+        assert session.reference_level == 1
+
+    def test_reference_level_rejects_author_invalid_level_and_nurse(self):
+        session = self._blind_case(author=self.user)
+        url = f"/api/triage/sessions/{session.id}/reference_level/"
+        assert self.client.post(url, {"reference_level": 2}, format="json").status_code == status.HTTP_403_FORBIDDEN
+
+        _, client = self._other_doctor()
+        assert client.post(url, {"reference_level": 7}, format="json").status_code == status.HTTP_400_BAD_REQUEST
+
+        nurse = User.objects.create_user(
+            email="enfermera_ref@hospital.com", password="Password123!", role="enfermero", is_verified=True
+        )
+        nurse_client = APIClient()
+        nurse_client.force_authenticate(user=nurse)
+        assert nurse_client.post(url, {"reference_level": 2}, format="json").status_code == status.HTTP_403_FORBIDDEN
+        session.refresh_from_db()
+        assert session.reference_level is None
+
+    def test_evaluation_metrics_reports_reference_validation(self):
+        session = self._blind_case(author=self.user, ai_level=3, final_level=2)
+        TriageSession.objects.create(patient=self.patient, level=4, ai_level=4, final_level=4, justification="Sin referencia")
+        TriageSession.objects.filter(pk=session.pk).update(reference_level=2)
+
+        response = self.client.get("/api/triage/sessions/evaluation_metrics/")
+        ref = response.data["reference_validation"]
+        assert ref["referenced_count"] == 1
+        assert ref["ai_vs_reference"]["n"] == 1
+        assert ref["ai_vs_reference"]["undertriage_rate"] == 100.0
+        assert ref["physician_vs_reference"]["exact_agreement"] == 100.0
+
