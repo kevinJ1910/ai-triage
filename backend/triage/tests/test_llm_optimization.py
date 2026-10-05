@@ -304,6 +304,18 @@ class TestAIAnalyzerEndToEnd:
         assert res["patientInfo"]["name"] == "Laura Martinez"
         assert res["patientInfo"]["documentId"] == "52123456"
 
+    def test_without_llm_skips_gemini_and_is_not_cached(self, mocker):
+        resolve_key = mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+        client_cls = mocker.patch("triage.ai_analyzer.genai.Client")
+
+        res = analyze_triage_transcript("dolor abdominal leve desde ayer", use_cache=True, allow_llm=False)
+
+        resolve_key.assert_not_called()
+        client_cls.assert_not_called()
+        assert "no respondió" in res["warning"]
+        assert res["triage"]["level"] in range(1, 6)
+        assert ClinicalQueryCache.stats()["cached_items_count"] == 0
+
     def test_llm_failure_fallback_is_not_cached(self, mocker):
         mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
         client_cls = mocker.patch("triage.ai_analyzer.genai.Client")

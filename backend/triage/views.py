@@ -11,11 +11,13 @@ from patients.models import Patient
 from accounts.models import AuditLog
 from core.timeutils import local_strftime
 from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
-from .ai_analyzer import analyze_triage_transcript
+from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
 from .fhir_validation import validate_fhir_bundle
 from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics, reference_agreement
-from transcription.whisper_engine import WhisperEngine
+from core.task_runner import TaskUnavailable
+from transcription.tasks import transcribe_audio
+from transcription.whisper_engine import reset_session_context
 import uuid
 import logging
 
@@ -45,19 +47,22 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         
         if audio_file and not transcript_text:
             try:
-                engine = WhisperEngine()
-                audio_bytes = audio_file.read()
-                result = engine.transcribe_chunk(audio_bytes, session_uuid)
+                result = transcribe_audio(audio_file.read(), session_uuid)
                 transcript_text = (result.get('text') or '').strip()
+            except TaskUnavailable:
+                return Response({"error": "Servicio de transcripcion no disponible"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             except Exception as e:
                 logger.error(f"Whisper transcription failed: {e}")
                 return Response({"error": "Transcription failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            finally:
+                # Audio completo de un solo envio: no hay continuidad que conservar.
+                reset_session_context(session_uuid)
             if not transcript_text:
                 # El audio llego pero no contenia voz reconocible: es un problema de la entrada, no del servidor.
                 return Response({"error": "No se detecto voz en el audio enviado"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
                 
         # Analyze using Gemini or fallback
-        analysis = analyze_triage_transcript(transcript_text)
+        analysis = analyze_with_worker(transcript_text)
         
         if "error" in analysis:
             # El analizador solo devuelve 'error' ante entradas no analizables; nunca por fallo del LLM.

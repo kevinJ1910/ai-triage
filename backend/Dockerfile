@@ -40,4 +40,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/health_check/ || exit 1
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "120", "config.wsgi:application"]
+# El estado compartido (cache clinica, contexto ASR, throttling) vive en Redis, por lo que se pueden
+# usar varios procesos web; los hilos esperan a los workers de inferencia sin consumir CPU.
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "8", "--timeout", "120", "config.wsgi:application"]

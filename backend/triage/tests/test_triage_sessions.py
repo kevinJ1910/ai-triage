@@ -257,7 +257,7 @@ class TestTriageSessions:
             "confidence": 0.9,
             "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
         }
-        mocker.patch("triage.views.analyze_triage_transcript", return_value=result)
+        mocker.patch("triage.tasks.analyze_triage_transcript", return_value=result)
 
     def test_analyze_does_not_overwrite_existing_patient_data(self, mocker):
         self._mock_analysis(mocker, name="Nombre Alucinado", phone="3001112233", birthDate="1990-01-31")
@@ -352,7 +352,7 @@ class TestTriageSessions:
             },
             "confidence": 0.92
         }
-        mocker.patch("triage.views.analyze_triage_transcript", return_value=mock_result)
+        mocker.patch("triage.tasks.analyze_triage_transcript", return_value=mock_result)
 
         response = self.client.post(
             "/api/triage/sessions/analyze/",
@@ -372,7 +372,7 @@ class TestTriageSessions:
 
     def test_analyze_silent_audio_returns_422(self, mocker):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        engine = mocker.patch("triage.views.WhisperEngine")
+        engine = mocker.patch("transcription.tasks.WhisperEngine")
         engine.return_value.transcribe_chunk.return_value = {"text": "  "}
         audio = SimpleUploadedFile("audio.webm", b"\x00\x01", content_type="audio/webm")
         response = self.client.post("/api/triage/sessions/analyze/", {"audio": audio}, format="multipart")
@@ -475,4 +475,21 @@ class TestTriageSessions:
         assert ref["ai_vs_reference"]["n"] == 1
         assert ref["ai_vs_reference"]["undertriage_rate"] == 100.0
         assert ref["physician_vs_reference"]["exact_agreement"] == 100.0
+
+    def test_analyze_falls_back_to_rules_when_worker_unavailable(self, mocker):
+        from core.task_runner import TaskUnavailable
+        mocker.patch("triage.tasks.run_task", side_effect=TaskUnavailable("worker sin respuesta"))
+        resolve_key = mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+
+        response = self.client.post(
+            "/api/triage/sessions/analyze/",
+            {"transcript": "paciente inconsciente, no respira"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["ai_level"] == 1
+        assert "no respondió" in response.data["warning"]
+        assert "Reglas" in response.data["engine_used"]
+        # El respaldo no intenta llamar a Gemini desde el proceso web
+        resolve_key.assert_not_called()
 

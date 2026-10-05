@@ -154,7 +154,7 @@ def _resolve_gemini_api_key() -> str:
     return api_key
 
 
-def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[str, Any]:
+def analyze_triage_transcript(transcript: str, use_cache: bool = True, allow_llm: bool = True) -> Dict[str, Any]:
     """
     Analiza una conversacion clinica utilizando un pipeline optimizado:
     1. Evaluacion determinista previa de Christus Sinergia Salud como pauta prioritaria.
@@ -163,6 +163,9 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
     4. Recuperacion semantica de criterios relevantes mediante RAG (ClinicalKnowledgeRAG).
     5. Invocacion a Gemini con System Instruction y decodificacion estructurada sanitizada.
     6. Fallback automatico garantizado con el Motor de Reglas Christus Sinergia Salud.
+
+    allow_llm=False omite Gemini y aplica directamente el motor de reglas (lo usa la vista
+    cuando el worker de inferencia no responde, para no dejar al clinico sin clasificacion).
     """
     raw_transcript = (transcript or "").strip()
     if not raw_transcript:
@@ -200,9 +203,16 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
     rag_criterion_ids = [c["id"] for c in retrieved_criteria]
 
     # 5. Resolucion de Credenciales y Cliente Gemini
-    api_key = _resolve_gemini_api_key()
+    api_key = _resolve_gemini_api_key() if allow_llm else ""
     if not api_key:
-        logger.error("No GEMINI_API_KEY found in database or environment variables.")
+        if allow_llm:
+            logger.error("No GEMINI_API_KEY found in database or environment variables.")
+            warning = "No se encontró una clave de Gemini configurada. Se aplicó el Motor Clínico determinista de respaldo Christus Sinergia Salud."
+        else:
+            warning = (
+                "El servicio de inferencia no respondió a tiempo. Se aplicó el Motor Clínico determinista "
+                "de respaldo Christus Sinergia Salud para garantizar la continuidad asistencial."
+            )
         fallback_res = _fallback_rule_triage(
             raw_transcript,
             cleaned_transcript,
@@ -210,9 +220,10 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
             red_flags,
             compression_ratio,
             rag_criterion_ids,
-            warning="No se encontró una clave de Gemini configurada. Se aplicó el Motor Clínico determinista de respaldo Christus Sinergia Salud."
+            warning=warning
         )
-        if use_cache:
+        # Solo se cachea la falta de clave; un worker caido es transitorio y debe reintentarse.
+        if use_cache and allow_llm:
             ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
         return fallback_res
 

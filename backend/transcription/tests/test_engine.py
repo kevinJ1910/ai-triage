@@ -1,12 +1,19 @@
+import base64
 import json
-import time
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 import pytest
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from transcription.whisper_engine import WhisperEngine
+from core.task_runner import TaskUnavailable
+from transcription.tasks import ASR_STATUS_KEY
+from transcription.whisper_engine import (
+    WhisperEngine, append_session_context, get_session_context, reset_session_context,
+)
 
 User = get_user_model()
 
@@ -14,6 +21,7 @@ User = get_user_model()
 @pytest.mark.django_db
 class TestWhisperEngineAndEndpoints:
     def setup_method(self):
+        cache.clear()
         self.client = APIClient()
         self.user = User.objects.create_user(
             email="asr_tester@hospital.com", password="Password123!", role="medico", is_verified=True
@@ -26,67 +34,85 @@ class TestWhisperEngineAndEndpoints:
         engine2 = WhisperEngine()
         assert engine1 is engine2
 
-    def test_prune_inactive_sessions_ttl(self):
-        now = time.time()
-        # Simular sesion antigua de hace 2000 segundos y sesion activa reciente
-        with self.engine._session_lock:
-            self.engine._session_contexts["expired-sid-1"] = "Contexto antiguo"
-            self.engine._session_timestamps["expired-sid-1"] = now - 2000
+    def test_session_context_lives_in_shared_cache(self):
+        append_session_context("sid-1", "dolor toracico")
+        append_session_context("sid-1", "desde hace una hora")
+        assert get_session_context("sid-1") == "dolor toracico desde hace una hora"
+        assert get_session_context("sid-2") == ""
 
-            self.engine._session_contexts["active-sid-1"] = "Contexto activo reciente"
-            self.engine._session_timestamps["active-sid-1"] = now - 10
+        reset_session_context("sid-1")
+        assert get_session_context("sid-1") == ""
 
-        self.engine._prune_inactive_sessions(max_age_seconds=1800, max_sessions=50)
+    @override_settings(ASR_SESSION_TTL=1234)
+    def test_session_context_expires_and_is_bounded(self, mocker):
+        spy = mocker.spy(cache, "set")
+        append_session_context("sid-long", "x" * 5000)
+        assert spy.call_args.kwargs["timeout"] == 1234
+        assert len(get_session_context("sid-long")) == 2000
 
-        with self.engine._session_lock:
-            assert "expired-sid-1" not in self.engine._session_contexts
-            assert "expired-sid-1" not in self.engine._session_timestamps
-            assert "active-sid-1" in self.engine._session_contexts
-            assert "active-sid-1" in self.engine._session_timestamps
+    def test_transcribe_chunk_continues_session_from_cache(self, monkeypatch):
+        fake_model = MagicMock()
+        fake_model.transcribe.return_value = (
+            [SimpleNamespace(text="me duele el pecho")],
+            SimpleNamespace(language="es", language_probability=0.99),
+        )
+        monkeypatch.setattr(self.engine, "model", fake_model)
+        append_session_context("sid-chunk", "paciente de 60 anos")
 
-    def test_prune_inactive_sessions_max_limit(self):
-        now = time.time()
-        with self.engine._session_lock:
-            self.engine._session_contexts.clear()
-            self.engine._session_timestamps.clear()
-            for i in range(10):
-                sid = f"session-limit-{i}"
-                self.engine._session_contexts[sid] = f"Contexto {i}"
-                self.engine._session_timestamps[sid] = now + i
+        result = self.engine.transcribe_chunk(b"fake-audio", "sid-chunk")
 
-        # Reducir limite a 4 sesiones
-        self.engine._prune_inactive_sessions(max_age_seconds=99999, max_sessions=4)
+        assert result["text"] == "me duele el pecho"
+        assert "paciente de 60 anos" in fake_model.transcribe.call_args.kwargs["initial_prompt"]
+        assert get_session_context("sid-chunk") == "paciente de 60 anos me duele el pecho"
 
-        with self.engine._session_lock:
-            assert len(self.engine._session_timestamps) == 4
-            # Deben quedar las 4 mas recientes (indices 6, 7, 8, 9)
-            assert "session-limit-9" in self.engine._session_timestamps
-            assert "session-limit-0" not in self.engine._session_timestamps
-
-    def test_reset_session(self):
-        sid = "reset-test-uuid"
-        with self.engine._session_lock:
-            self.engine._session_contexts[sid] = "Conversacion clinica"
-            self.engine._session_timestamps[sid] = time.time()
-
-        self.engine.reset_session(sid)
-
-        with self.engine._session_lock:
-            assert sid not in self.engine._session_contexts
-            assert sid not in self.engine._session_timestamps
-
-    def test_engine_get_status(self):
+    def test_engine_get_status_does_not_expose_sessions(self):
+        append_session_context("secret-session-id", "texto")
         info = self.engine.get_status()
-        assert "model_size" in info
-        assert "device" in info
-        assert "active_sessions_count" in info
+        assert {"model_size", "device", "compute_type", "model_loaded"} <= set(info)
+        assert "secret-session-id" not in json.dumps(info)
 
-    def test_health_check_endpoint(self):
+    def test_health_check_inline_mode(self):
         response = self.client.get("/api/health_check/")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        assert data["status"] in ("healthy", "degraded")
+        assert data["inference_mode"] == "inline"
+        assert "device" in data["asr"]
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+    def test_health_check_worker_mode_reads_published_status_without_loading_model(self):
+        cache.set(ASR_STATUS_KEY, {"model_loaded": True, "device": "cuda", "model_size": "large-v3-turbo"})
+        with patch("transcription.tasks.WhisperEngine") as engine_cls:
+            response = self.client.get("/api/health_check/")
+        engine_cls.assert_not_called()
+        data = response.json()
         assert data["status"] == "healthy"
-        assert "model_size" in data
+        assert data["inference_mode"] == "worker"
+        assert data["asr"]["device"] == "cuda"
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+    def test_health_check_worker_mode_without_asr_worker_is_degraded(self):
+        response = self.client.get("/api/health_check/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "degraded"
+
+    def test_transcribe_runs_engine_through_task(self):
+        audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+        with patch("transcription.tasks.WhisperEngine") as engine_cls:
+            engine_cls.return_value.transcribe_chunk.return_value = {"text": "hola", "session_id": "s-1"}
+            response = self.client.post(
+                "/api/transcribe/", {"audio": audio_file, "session_id": "s-1"}, format="multipart"
+            )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["text"] == "hola"
+        engine_cls.return_value.transcribe_chunk.assert_called_once_with(b"RIFFfakeaudiobytes123456", "s-1")
+
+    def test_transcribe_encodes_audio_for_the_broker(self):
+        with patch("transcription.tasks.run_task", return_value={"text": "ok"}) as run_task:
+            from transcription.tasks import transcribe_audio
+            transcribe_audio(b"\x00\xffaudio", "s-2")
+        audio_b64 = run_task.call_args.args[1]
+        assert base64.b64decode(audio_b64) == b"\x00\xffaudio"
 
     def test_normalize_text_colloquial_symptoms(self):
         payload = {
@@ -111,41 +137,28 @@ class TestWhisperEngineAndEndpoints:
         assert any("opresi" in mt for mt in medical_terms)
         assert any("disnea" in mt for mt in medical_terms)
 
-    def test_whisper_engine_constructor_failure_redacts_details(self):
-        with patch("transcription.views.WhisperEngine", side_effect=RuntimeError("GPU driver missing CudaLib.so")):
-            res_health = self.client.get("/api/health_check/")
-            assert res_health.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-            data_health = res_health.json()
-            assert data_health["status"] == "unhealthy"
-            assert data_health["error"] == "Whisper Engine could not be initialized"
-            assert "details" not in data_health
-            assert "GPU driver missing CudaLib.so" not in res_health.content.decode()
-
-            audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
-            res_transcribe = self.client.post(
-                "/api/transcribe/",
-                {"audio": audio_file, "session_id": "err-session-uuid"},
-                format="multipart"
+    def test_normalize_falls_back_to_rules_when_worker_unavailable(self):
+        with patch("transcription.views.run_task", side_effect=TaskUnavailable("worker sin respuesta")):
+            response = self.client.post(
+                "/api/transcribe/normalize/",
+                data=json.dumps({"raw_text": "tengo calentura y mareo"}),
+                content_type="application/json",
             )
-            assert res_transcribe.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-            data_transcribe = res_transcribe.json()
-            assert data_transcribe["error"] == "Whisper Engine could not be initialized"
-            assert "details" not in data_transcribe
-            assert "GPU driver missing CudaLib.so" not in res_transcribe.content.decode()
+        assert response.status_code == status.HTTP_200_OK
+        assert {m["raw_term"] for m in response.json()["mappings"]} == {"calentura", "mareo"}
 
-            res_reset = self.client.post(
-                "/api/transcribe/reset/",
-                {"session_id": "err-session-uuid"}
+    def test_worker_unavailable_returns_503_without_details(self):
+        audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
+        with patch("transcription.views.transcribe_audio", side_effect=TaskUnavailable("broker no disponible")):
+            response = self.client.post(
+                "/api/transcribe/", {"audio": audio_file, "session_id": "err-session-uuid"}, format="multipart"
             )
-            assert res_reset.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-            data_reset = res_reset.json()
-            assert data_reset["error"] == "Whisper Engine is not initialized"
-            assert "details" not in data_reset
-            assert "GPU driver missing CudaLib.so" not in res_reset.content.decode()
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.json() == {"error": "Whisper Engine could not be initialized"}
 
     def test_transcribe_chunk_failure_path_redacts_details(self):
         audio_file = SimpleUploadedFile("chunk.wav", b"RIFFfakeaudiobytes123456", content_type="audio/wav")
-        with patch("transcription.views.WhisperEngine") as mock_cls:
+        with patch("transcription.tasks.WhisperEngine") as mock_cls:
             mock_cls.return_value.transcribe_chunk.side_effect = RuntimeError("Internal core dump stack trace")
             response = self.client.post(
                 "/api/transcribe/",
@@ -155,12 +168,18 @@ class TestWhisperEngineAndEndpoints:
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
             data = response.json()
             assert data == {"error": "Internal transcription failure"}
-            assert "details" not in data
             assert "Internal core dump stack trace" not in response.content.decode()
 
+    def test_reset_session_does_not_load_engine(self):
+        append_session_context("sid-reset", "contexto")
+        with patch("transcription.tasks.WhisperEngine") as engine_cls:
+            response = self.client.post("/api/transcribe/reset/", {"session_id": "sid-reset"})
+        assert response.status_code == status.HTTP_200_OK
+        engine_cls.assert_not_called()
+        assert get_session_context("sid-reset") == ""
+
     def test_reset_session_failure_path_redacts_details(self):
-        with patch("transcription.views.WhisperEngine") as mock_cls:
-            mock_cls.return_value.reset_session.side_effect = RuntimeError("Sensitive memory lock deadlock")
+        with patch("transcription.views.reset_session_context", side_effect=RuntimeError("Sensitive memory lock deadlock")):
             response = self.client.post(
                 "/api/transcribe/reset/",
                 {"session_id": "err-session-uuid"}
@@ -168,7 +187,6 @@ class TestWhisperEngineAndEndpoints:
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
             data = response.json()
             assert data == {"error": "Failed to reset session"}
-            assert "details" not in data
             assert "Sensitive memory lock deadlock" not in response.content.decode()
 
     def test_asr_endpoints_require_authentication(self):
@@ -190,11 +208,9 @@ class TestWhisperEngineAndEndpoints:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_health_check_failure_path_redacts_details(self):
-        with patch("transcription.views.WhisperEngine") as mock_cls:
-            mock_cls.return_value.get_status.side_effect = RuntimeError("Hardware GPU driver crash")
+        with patch("transcription.views.get_asr_status", side_effect=RuntimeError("Hardware GPU driver crash")):
             response = self.client.get("/api/health_check/")
-            assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+            assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
             data = response.json()
-            assert data == {"status": "unhealthy", "error": "Failed to get Whisper Engine status"}
-            assert "details" not in data
+            assert data == {"status": "unhealthy", "error": "Whisper Engine could not be initialized"}
             assert "Hardware GPU driver crash" not in response.content.decode()

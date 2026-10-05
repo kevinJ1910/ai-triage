@@ -1,0 +1,66 @@
+"""
+Tareas Celery de transcripcion y normalizacion.
+transcribe_audio_chunk va a la cola 'asr' (worker con el modelo Whisper cargado una sola vez);
+normalize_clinical_text_task va a la cola 'llm' (ver CELERY_TASK_ROUTES).
+"""
+import base64
+import logging
+import os
+
+from celery import shared_task
+from celery.signals import worker_ready, worker_shutdown
+from django.conf import settings
+from django.core.cache import cache
+
+from core.task_runner import run_task
+from .normalizer import normalize_clinical_text
+from .whisper_engine import WhisperEngine
+
+logger = logging.getLogger(__name__)
+
+# Estado del motor publicado por el worker ASR para que el health check web lo lea sin cargar el modelo.
+ASR_STATUS_KEY = "asr:engine_status"
+
+
+@shared_task
+def transcribe_audio_chunk(audio_b64: str, session_id: str) -> dict:
+    return WhisperEngine().transcribe_chunk(base64.b64decode(audio_b64), session_id)
+
+
+@shared_task
+def normalize_clinical_text_task(raw_text: str, custom_instruction: str = "") -> dict:
+    return normalize_clinical_text(raw_text, custom_instruction)
+
+
+def transcribe_audio(audio_bytes: bytes, session_id: str) -> dict:
+    """Transcribe en el worker ASR y espera el resultado (en linea si no hay broker)."""
+    audio_b64 = base64.b64encode(audio_bytes).decode('ascii')
+    return run_task(transcribe_audio_chunk, audio_b64, session_id, timeout=settings.ASR_TASK_TIMEOUT)
+
+
+def worker_mode() -> bool:
+    """True si la inferencia corre en workers separados; False si se ejecuta en el proceso web."""
+    return not settings.CELERY_TASK_ALWAYS_EAGER
+
+
+def get_asr_status() -> dict:
+    if not worker_mode():
+        return WhisperEngine().get_status()
+    status = cache.get(ASR_STATUS_KEY)
+    return status or {"model_loaded": False, "device": "unavailable", "detail": "worker ASR sin publicar estado"}
+
+
+@worker_ready.connect
+def _preload_whisper(**_kwargs):
+    # Solo el worker ASR (WHISPER_PRELOAD=True) carga el modelo; el worker LLM no lo necesita.
+    if os.getenv('WHISPER_PRELOAD', 'False') != 'True':
+        return
+    status = WhisperEngine().get_status()
+    cache.set(ASR_STATUS_KEY, status, timeout=None)
+    logger.info(f"Worker ASR listo: {status}")
+
+
+@worker_shutdown.connect
+def _clear_whisper_status(**_kwargs):
+    if os.getenv('WHISPER_PRELOAD', 'False') == 'True':
+        cache.delete(ASR_STATUS_KEY)

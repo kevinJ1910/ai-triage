@@ -4,7 +4,7 @@ import tempfile
 import logging
 import threading
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # --- Dynamic Path Resolution for CUDA/cuDNN DLLs on Windows ---
 if sys.platform == 'win32':
@@ -28,9 +28,35 @@ except ImportError:
     WhisperModel = None
 
 from django.conf import settings
+from django.core.cache import cache
 from .medical_prompts import CLINICAL_INITIAL_PROMPT
 
 logger = logging.getLogger(__name__)
+
+# El contexto de cada sesion vive en la cache compartida (Redis en Docker): cualquier proceso
+# del worker puede continuar una sesion y la expiracion por TTL la gestiona la propia cache.
+_CONTEXT_KEY = "asr:ctx:{}"
+# Solo se usan los ultimos 400 caracteres en el prompt; se guarda algo mas de margen.
+_MAX_CONTEXT_CHARS = 2000
+
+
+def _context_key(session_id: str) -> str:
+    return _CONTEXT_KEY.format(session_id)
+
+
+def get_session_context(session_id: str) -> str:
+    return cache.get(_context_key(session_id), "")
+
+
+def append_session_context(session_id: str, text: str) -> None:
+    previous = get_session_context(session_id)
+    combined = f"{previous} {text}".strip() if previous else text
+    cache.set(_context_key(session_id), combined[-_MAX_CONTEXT_CHARS:], timeout=settings.ASR_SESSION_TTL)
+
+
+def reset_session_context(session_id: str) -> None:
+    """Borra el contexto de una sesion sin necesidad de cargar el modelo Whisper."""
+    cache.delete(_context_key(session_id))
 
 # FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual duplicado.
 
@@ -38,7 +64,7 @@ logger = logging.getLogger(__name__)
 class WhisperEngine:
     """
     Motor ASR de alta eficiencia basado en Faster-Whisper.
-    Implementa patron Singleton con Thread Lock, limpieza automatica de buffers con TTL,
+    Implementa patron Singleton con Thread Lock, contexto por sesion en cache compartida con TTL,
     filtro de actividad de voz (VAD) de baja latencia y fallback seguro para host local.
     """
     _instance = None
@@ -98,32 +124,7 @@ class WhisperEngine:
                 self.model = None
                 self.device_used = 'unavailable'
                 self.compute_type_used = 'unavailable'
-
-        # Gestion de sesiones en memoria con control de expiracion TTL
-        self._session_contexts: Dict[str, str] = {}
-        self._session_timestamps: Dict[str, float] = {}
-        self._session_lock = threading.Lock()
-
-    def _prune_inactive_sessions(self, max_age_seconds: int = 1800, max_sessions: int = 50) -> None:
-        """
-        Elimina sesiones inactivas (por defecto > 30 minutos) o las mas antiguas si se supera el tope.
-        Previene fugas de memoria en buffers de streaming.
-        """
-        now = time.time()
-        with self._session_lock:
-            # 1. Purgar expiradas por tiempo
-            expired = [sid for sid, ts in self._session_timestamps.items() if (now - ts) > max_age_seconds]
-            for sid in expired:
-                self._session_contexts.pop(sid, None)
-                self._session_timestamps.pop(sid, None)
-
-            # 2. Purgar LRU si se supera el maximo de sesiones activas
-            if len(self._session_timestamps) > max_sessions:
-                sorted_sessions = sorted(self._session_timestamps.items(), key=lambda x: x[1])
-                excess = len(self._session_timestamps) - max_sessions
-                for sid, _ in sorted_sessions[:excess]:
-                    self._session_contexts.pop(sid, None)
-                    self._session_timestamps.pop(sid, None)
+        self.model_size_used = model_size
 
     def transcribe_chunk(self, audio_bytes: bytes, session_id: str) -> Dict[str, Any]:
         """
@@ -132,8 +133,6 @@ class WhisperEngine:
         """
         if self.model is None:
             raise RuntimeError("Whisper Engine no disponible en entorno actual")
-
-        self._prune_inactive_sessions()
 
         logger.info(f"Procesando chunk de audio para sesion {session_id} ({len(audio_bytes)} bytes)")
         start_time = time.perf_counter()
@@ -145,10 +144,7 @@ class WhisperEngine:
                 temp_file_path = temp_file.name
 
             # Construir prompt con historial clinico reciente (ultimos 400 caracteres)
-            with self._session_lock:
-                previous_context = self._session_contexts.get(session_id, "")
-                self._session_timestamps[session_id] = time.time()
-            
+            previous_context = get_session_context(session_id)
             history_slice = previous_context[-400:] if len(previous_context) > 400 else previous_context
             full_prompt = CLINICAL_INITIAL_PROMPT
             if history_slice:
@@ -174,12 +170,7 @@ class WhisperEngine:
 
             # Actualizar buffer de contexto de la sesion
             if transcribed_text:
-                with self._session_lock:
-                    if session_id in self._session_contexts:
-                        self._session_contexts[session_id] += " " + transcribed_text
-                    else:
-                        self._session_contexts[session_id] = transcribed_text
-                    self._session_timestamps[session_id] = time.time()
+                append_session_context(session_id, transcribed_text)
 
             elapsed_time_ms = int((time.perf_counter() - start_time) * 1000)
             logger.info(f"Chunk transcrito para sesion {session_id} en {elapsed_time_ms}ms: '{transcribed_text}'")
@@ -203,19 +194,14 @@ class WhisperEngine:
                     logger.error(f"Fallo al eliminar archivo temporal {temp_file_path}: {cleanup_err}")
 
     def reset_session(self, session_id: str) -> None:
-        with self._session_lock:
-            self._session_contexts.pop(session_id, None)
-            self._session_timestamps.pop(session_id, None)
-            logger.info(f"Contexto reseteado para sesion {session_id}")
+        reset_session_context(session_id)
+        logger.info(f"Contexto reseteado para sesion {session_id}")
 
     def get_status(self) -> Dict[str, Any]:
-        with self._session_lock:
-            active_sessions = list(self._session_contexts.keys())
-        
+        # No se exponen identificadores de sesion: el health check es publico.
         return {
-            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo'),
+            "model_size": getattr(self, 'model_size_used', getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')),
             "device": getattr(self, 'device_used', 'unknown'),
             "compute_type": getattr(self, 'compute_type_used', 'unknown'),
-            "active_sessions_count": len(active_sessions),
-            "active_session_ids": active_sessions
+            "model_loaded": getattr(self, 'model', None) is not None,
         }

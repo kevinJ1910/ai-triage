@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -12,7 +13,6 @@ load_dotenv(BASE_DIR.parent / '.env')
 # FIX-SEC-001: SECRET_KEY sin fallback inseguro.
 _secret_key = os.getenv('SECRET_KEY')
 if not _secret_key:
-    import sys
     if 'test' in sys.argv or 'pytest' in sys.modules:
         _secret_key = 'test-insecure-key-only-for-testing-purposes'
     else:
@@ -214,6 +214,46 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+# --- Redis: cache compartida entre procesos y cola de tareas (Celery) ---
+# En pytest nunca se usa Redis: tareas en linea y cache en memoria, aunque el .env defina REDIS_HOST.
+_TESTING = 'pytest' in sys.modules or 'test' in sys.argv
+_redis_host = '' if _TESTING else os.getenv('REDIS_HOST', '').strip()
+REDIS_BASE_URL = f"redis://{_redis_host}:{os.getenv('REDIS_PORT', '6379')}" if _redis_host else ''
+
+if REDIS_BASE_URL:
+    # Cache clinica, contexto ASR por sesion y contadores de throttling compartidos por web y workers.
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': f'{REDIS_BASE_URL}/1',
+            'KEY_PREFIX': 'ai_triage',
+        }
+    }
+else:
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
+
+CELERY_BROKER_URL = f'{REDIS_BASE_URL}/0' if REDIS_BASE_URL else 'memory://'
+CELERY_RESULT_BACKEND = f'{REDIS_BASE_URL}/0' if REDIS_BASE_URL else 'cache+memory://'
+# Sin broker real las tareas corren en el proceso web (desarrollo local y tests).
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', str(not REDIS_BASE_URL)) == 'True'
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_EXPIRES = 3600
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ROUTES = {
+    'transcription.tasks.transcribe_audio_chunk': {'queue': 'asr'},
+    'transcription.tasks.normalize_clinical_text_task': {'queue': 'llm'},
+    'triage.tasks.*': {'queue': 'llm'},
+}
+# Tiempo maximo que la peticion web espera al worker antes de degradar (segundos).
+ASR_TASK_TIMEOUT = int(os.getenv('ASR_TASK_TIMEOUT', '90'))
+LLM_TASK_TIMEOUT = int(os.getenv('LLM_TASK_TIMEOUT', '100'))
+# Vida del contexto de transcripcion por sesion (prompt de continuidad de Whisper).
+ASR_SESSION_TTL = int(os.getenv('ASR_SESSION_TTL', '1800'))
 
 # --- Whisper ASR Configuration ---
 WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'large-v3-turbo')

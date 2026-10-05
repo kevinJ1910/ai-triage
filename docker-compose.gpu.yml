@@ -1,11 +1,12 @@
 # Override opcional para hosts con GPU NVIDIA y nvidia-container-toolkit instalado.
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+# La GPU la usa solo el worker ASR, que es quien carga el modelo Whisper.
 services:
-  backend:
+  worker-asr:
     environment:
-      - WHISPER_DEVICE=cuda
-      - WHISPER_COMPUTE_TYPE=float16
+      WHISPER_DEVICE: cuda
+      WHISPER_COMPUTE_TYPE: float16
     deploy:
       resources:
         reservations:
