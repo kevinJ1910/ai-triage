@@ -67,7 +67,8 @@ services:
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY:-}
       - DEBUG=${DEBUG:-False}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-nginx,localhost,127.0.0.1}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://localhost,http://localhost:3000}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://localhost}
       - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-large-v3-turbo}
       - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
@@ -109,7 +110,7 @@ services:
     restart: unless-stopped
     # Sin env_file: el frontend no necesita SECRET_KEY ni las API keys del backend.
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL=https://localhost/api
       - NEXT_PUBLIC_FHIR_URL=${FHIR_SERVER_URL:-}
     networks:
       - ai_triage_network
@@ -123,8 +124,16 @@ services:
     image: cantor11/ai-triage-nginx:latest
     container_name: ai_triage_nginx
     restart: unless-stopped
+    environment:
+      # Nombre del certificado autofirmado y duracion de HSTS (0 en desarrollo; 31536000 en produccion).
+      - TLS_SERVER_NAME=${TLS_SERVER_NAME:-localhost}
+      - HSTS_MAX_AGE=${HSTS_MAX_AGE:-0}
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # Certificados persistentes; para produccion montar aqui fullchain.pem y privkey.pem reales.
+      - nginx_certs:/etc/nginx/certs
     networks:
       - ai_triage_network
     depends_on:
@@ -145,3 +154,4 @@ volumes:
   postgres_data:
   redis_data:
   audio_uploads:
+  nginx_certs:

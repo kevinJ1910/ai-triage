@@ -152,8 +152,28 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Cookie del refresh token solo por HTTPS fuera de DEBUG (sobrescribible si el despliegue usa HTTP interno).
-JWT_COOKIE_SECURE = os.getenv('JWT_COOKIE_SECURE', str(not DEBUG)) == 'True'
+# --- HTTPS detras de nginx ---
+# nginx termina TLS y siempre sobrescribe X-Forwarded-Proto; el backend no se expone al host,
+# por lo que el cliente no puede falsear la cabecera. Con esto request.is_secure() es fiable.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# La redireccion HTTP->HTTPS la hace nginx; activarla aqui romperia el healthcheck interno por HTTP.
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
+# HSTS lo emite nginx (HSTS_MAX_AGE). Solo definirlo aqui si se despliega sin ese proxy.
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0'))
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+
+# Cookies solo por HTTPS fuera de DEBUG (sobrescribible si el despliegue usa HTTP en red local).
+SECURE_COOKIES = os.getenv('SECURE_COOKIES', str(not DEBUG)) == 'True'
+SESSION_COOKIE_SECURE = SECURE_COOKIES
+CSRF_COOKIE_SECURE = SECURE_COOKIES
+JWT_COOKIE_SECURE = os.getenv('JWT_COOKIE_SECURE', str(SECURE_COOKIES)) == 'True'
+
+# Origenes HTTPS desde los que se aceptan formularios con CSRF (Django Admin), p. ej. https://localhost:8443
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
+]
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', '127.0.0.1')
