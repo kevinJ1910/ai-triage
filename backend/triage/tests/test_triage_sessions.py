@@ -379,3 +379,15 @@ class TestTriageSessions:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert TriageSession.objects.count() == 0
 
+    def test_evaluation_metrics_hides_patient_identity_without_emr_permission(self):
+        TriageSession.objects.create(
+            patient=self.patient, level=2, ai_level=2, final_level=2, justification="Caso"
+        )
+        response = self.client.get("/api/triage/sessions/evaluation_metrics/")
+        assert response.data["recent_evaluations"][0]["patient"] == "Alejandro Morales"
+
+        self.user.permissions.can_view_emr = False
+        self.user.permissions.save()
+        response = self.client.get("/api/triage/sessions/evaluation_metrics/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["recent_evaluations"][0]["patient"] == f"Paciente #{self.patient.id}"

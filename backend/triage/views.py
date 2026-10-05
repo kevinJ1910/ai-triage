@@ -9,7 +9,7 @@ from .models import TriageSession, Transcription, FHIRRecord, FHIRMessageLog
 from patients.models import Patient
 from accounts.models import AuditLog
 from core.timeutils import local_strftime
-from core.permissions import is_admin_user, CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
+from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .ai_analyzer import analyze_triage_transcript
 from .clinical_cache import ClinicalQueryCache
 from .fhir_validation import validate_fhir_bundle
@@ -275,9 +275,12 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 retention_sum += 1.0 if not ai_s else len(ai_s & fin_s) / len(ai_s)
             symptom_retention = round((retention_sum / total) * 100, 1)
 
+        # Las metricas son agregadas y visibles para todo el personal; la identidad del paciente
+        # solo se muestra a quien ya puede consultar la HCE.
+        can_see_identity = user_has_flag(request.user, 'can_view_emr')
         recent = [{
             "id": s.id,
-            "patient": s.patient.full_name or s.patient.document_id,
+            "patient": (s.patient.full_name or s.patient.document_id) if can_see_identity else f"Paciente #{s.patient_id}",
             "ai_level": s.ai_level,
             "final_level": s.final_level,
             "is_modified": s.is_level_modified,
