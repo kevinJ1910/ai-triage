@@ -109,13 +109,13 @@ ai-triage/
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        NAVEGADOR / TERMINAL CLÍNICO                    │
-│                      http://localhost (Puerto 80)                       │
+│              https://localhost (443; el 80 redirige a HTTPS)            │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                              NGINX (Puerto 80)                         │
-│                           API Gateway / Proxy Inverso                  │
+│                       NGINX (TLS 443 / redirección 80)                 │
+│          Proxy inverso + cabeceras de seguridad (CSP, HSTS, ...)       │
 ├───────────────────────────────────┬────────────────────────────────────┤
 │  /                                │ → frontend:3000 (Next.js 15)       │
 │  /api/auth/, /api/security/       │ → backend:8000  (Django REST)      │
@@ -126,23 +126,28 @@ ai-triage/
                 │                                     │
                 ▼                                     ▼
      ┌──────────────────────┐              ┌──────────────────────┐
-     │  FRONTEND CONTAINER  │              │  BACKEND CONTAINER   │
+     │  FRONTEND CONTAINER  │              │  BACKEND (Gunicorn)  │
      │   (Node 20 Alpine)   │              │ (Python 3.12-slim)   │
      │                      │              │                      │
-     │  • Next.js App       │              │  • Faster-Whisper    │
+     │  • Next.js App       │              │  • API REST + RBAC   │
      │  • fetchWithAuth     │              │  • Pydantic v2       │
      │  • Auto-refresh JWT  │              │  • SimpleJWT + Auth  │
-     │  • Reactive UI       │              │  • AES-256 Vault     │
+     │  • Reactive UI       │              │  • Encola inferencia │
      └──────────────────────┘              └──────────┬───────────┘
-                                                      │
-         ┌──────────────────┬─────────────────────────┼──────────────────┐
-         │                  │                         │                  │
-         ▼                  ▼                         ▼                  ▼
-┌─────────────────┐┌─────────────────┐       ┌─────────────────┐┌─────────────────┐
-│   POSTGRESQL    ││   REDIS 7       │       │    MAILPIT      ││  GOOGLE GEMINI  │
-│  (Persistencia) ││  (Cache / ASR)  │       │  (SMTP 1025 /   ││  (Inferencia    │
-│  Puerto interno ││  Puerto interno │       │   Web UI 8025)  ││   IA Externa)   │
-└─────────────────┘└─────────────────┘       └─────────────────┘└─────────────────┘
+                                                      │ Celery (Redis)
+                          ┌───────────────────────────┼──────────────────────┐
+                          ▼                           ▼                      ▼
+               ┌─────────────────────┐    ┌─────────────────────┐  ┌─────────────────┐
+               │ WORKER-ASR (asr)    │    │ WORKER-LLM (llm)    │  │    REDIS 7      │
+               │ Faster-Whisper, GPU │    │ Gemini: triaje y    │  │ Broker, cache   │
+               │ 1 proceso           │    │ normalización       │  │ clínica, ASR    │
+               └─────────────────────┘    └──────────┬──────────┘  └─────────────────┘
+                                                     ▼
+┌─────────────────┐  ┌─────────────────┐   ┌─────────────────┐
+│   POSTGRESQL    │  │    MAILPIT      │   │  GOOGLE GEMINI  │
+│  (Persistencia) │  │  (SMTP 1025 /   │   │  (Inferencia    │
+│  Puerto interno │  │   Web UI 8025)  │   │   IA Externa)   │
+└─────────────────┘  └─────────────────┘   └─────────────────┘
 ```
 
 ---
@@ -228,16 +233,16 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml down
 docker compose ps
 
 # Verificar health check del backend a traves del proxy
-curl http://localhost/api/health_check/
+curl -k https://localhost/api/health_check/
 
-# Visualizar logs del backend
-docker compose logs -f backend
+# Visualizar logs del backend y de los workers de inferencia
+docker compose logs -f backend worker-asr worker-llm
 ```
 
 Acceder a las interfaces en el navegador:
-* **Aplicación Clínica:** `http://localhost/`
+* **Aplicación Clínica:** `https://localhost/` (certificado autofirmado en desarrollo: aceptar la advertencia del navegador)
 * **Visor de Correos OTP (Mailpit):** `http://localhost:8025/`
-* **Django Admin:** `http://localhost/admin/`
+* **Django Admin:** `https://localhost/admin/`
 
 ---
 
