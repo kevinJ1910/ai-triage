@@ -1,6 +1,6 @@
 # Benchmark de triaje
 
-`casos_sinteticos.json` contiene 65 casos de consulta (entre 10 y 15 por nivel) para medir de forma reproducible el motor de reglas y el pipeline completo con `evaluate_benchmark`.
+`casos_sinteticos.json` contiene 65 casos de consulta (entre 11 y 15 por nivel) para medir de forma reproducible el motor de reglas y el pipeline completo con `evaluate_benchmark`.
 
 ```bash
 python manage.py evaluate_benchmark triage/benchmark/casos_sinteticos.json --engine reglas

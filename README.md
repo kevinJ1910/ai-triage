@@ -317,9 +317,9 @@ Todas las rutas requieren `Authorization: Bearer <access token>` salvo las marca
 
 ## Ejecución de Pruebas Automatizadas
 
-### Backend (Django + Pytest): 168 pruebas
+### Backend (Django + Pytest): 253 pruebas
 
-Cubren autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico, compresión, RAG, caché, métricas y validación ciega, FHIR, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y el comando de benchmark.
+Además hay 4 `xfail` estrictos que documentan limitaciones conocidas del motor de reglas. Cubren autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico (un caso por criterio y regresiones), compresión, RAG, caché, métricas y validación ciega, FHIR, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y el comando de benchmark.
 
 ```bash
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
@@ -339,14 +339,14 @@ pnpm --dir frontend run build
 
 ### Benchmark del motor de triaje
 
-Mide el motor contra un conjunto de casos con nivel de referencia asignado por expertos (`id`, `transcript`, `reference_level` en JSON o CSV):
+Mide el motor contra un conjunto de casos con nivel de referencia (`id`, `transcript`, `reference_level` en JSON o CSV). El repositorio incluye 65 casos sintéticos en [`backend/triage/benchmark/`](backend/triage/benchmark/README.md):
 
 ```bash
-backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark casos.json --engine reglas --output resultados.json
-backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark casos.csv --engine pipeline
+backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark backend/triage/benchmark/casos_sinteticos.json --engine reglas
+backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark casos.csv --engine pipeline --output resultados.json
 ```
 
-`--engine pipeline` usa el análisis completo (Gemini si hay clave) sin caché.
+`--engine pipeline` usa el análisis completo (Gemini si hay clave) sin caché. Los casos sintéticos los redactó el equipo a partir del protocolo: sirven como línea base de regresión, no como validación clínica. Para eso hace falta un conjunto con nivel asignado por clínicos (por ejemplo, mediante la validación ciega de la aplicación).
 
 ---
 
