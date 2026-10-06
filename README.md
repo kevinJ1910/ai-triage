@@ -180,7 +180,7 @@ SECRET_KEY=...
 # Clave de Google Gemini para triaje y normalización (sin ella se usa el motor de reglas)
 GEMINI_API_KEY=...
 
-# Usuarios demo: sin contraseña definida se generan contraseñas aleatorias que no se muestran
+# Usuarios demo: solo se crean los que tengan contraseña definida
 CREATE_DEMO_USERS=True
 DEMO_ADMIN_PASSWORD=una_contraseña_segura
 DEMO_NURSE_PASSWORD=otra_contraseña_segura
@@ -273,7 +273,7 @@ El modelo se decide por equipo con `WHISPER_MODEL_SIZE` (`tiny`, `base`, `small`
 | :--- | :--- |
 | `dependency failed to start: container ai_triage_backend is unhealthy` y en `docker compose logs backend` aparece `password authentication failed` | El volumen de Postgres se creó con otra contraseña (por ejemplo, de una versión anterior del proyecto); `POSTGRES_PASSWORD` solo se aplica al crear el volumen. Si no hay datos que conservar: `docker compose down`, `docker volume ls` para ver el nombre exacto y `docker volume rm <carpeta>_postgres_data`. **Esto borra la base de datos.** |
 | `could not select device driver "nvidia"` | Docker no tiene acceso a la GPU: revisar los requisitos del modo GPU o arrancar en modo CPU (sin el override). |
-| No se puede iniciar sesión con los usuarios demo | Definir `DEMO_ADMIN_PASSWORD`, `DEMO_NURSE_PASSWORD` y `RESET_DEMO_PASSWORDS=True` en `.env` y ejecutar `docker compose up -d backend`. |
+| No se puede iniciar sesión con los usuarios demo | Si no existen, definir `CREATE_DEMO_USERS=True`, `DEMO_ADMIN_PASSWORD` y `DEMO_NURSE_PASSWORD` en `.env`; si ya existen con otra contraseña, añadir también `RESET_DEMO_PASSWORDS=True`. Luego `docker compose up -d backend`. |
 | El navegador no permite el micrófono desde otro equipo de la red | Los navegadores solo permiten el micrófono en HTTPS o `localhost`: acceder por `https://` y aceptar el certificado. |
 | `health_check` devuelve `"status": "degraded"` | `worker-asr` no ha terminado de cargar el modelo o está caído: `docker compose logs worker-asr`. |
 
