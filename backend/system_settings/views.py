@@ -195,6 +195,9 @@ class VocabularySyncView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        if not (request.user.role == 'admin' or request.user.is_superuser or getattr(request.user.permissions, 'can_manage_config', False)):
+            return Response({"detail": "Permiso denegado. Solo administradores pueden sincronizar vocabularios."}, status=status.HTTP_403_FORBIDDEN)
+
         vocab_type = request.data.get('type', 'snomed').lower()
         action = request.data.get('action', 'sync')
         config = SystemConfiguration.get_solo()

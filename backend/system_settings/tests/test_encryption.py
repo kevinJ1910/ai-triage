@@ -98,6 +98,15 @@ class TestSystemSettingsAndEncryption:
         assert runtime["asr_model_in_use"] == (published or {}).get("model_size")
         cache.delete(ASR_STATUS_KEY)
 
+    def test_vocabulary_sync_requires_config_permission(self):
+        self.client.force_authenticate(user=self.nurse)
+        denied = self.client.post("/api/config/vocabulary/sync/", {"type": "snomed"}, format="json")
+        assert denied.status_code == status.HTTP_403_FORBIDDEN
+
+        self.client.force_authenticate(user=self.admin)
+        allowed = self.client.post("/api/config/vocabulary/sync/", {"type": "snomed"}, format="json")
+        assert allowed.status_code == status.HTTP_200_OK
+
     def test_system_config_update_admin_allowed(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post("/api/config/", {
