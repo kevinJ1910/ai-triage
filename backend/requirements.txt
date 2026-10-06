@@ -13,6 +13,8 @@ blinker==1.9.0
 Django==5.2.8
 django-cors-headers==4.8.0
 faster-whisper==1.1.0
+# PyAV 19 elimino el argumento metadata_errors que faster-whisper (<=1.2.1) usa en decode_audio.
+av==18.1.0
 filelock==3.20.0
 frozenlist==1.7.0
 fsspec==2025.12.0
