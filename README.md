@@ -317,7 +317,7 @@ Todas las rutas requieren `Authorization: Bearer <access token>` salvo las marca
 
 ## Ejecución de Pruebas Automatizadas
 
-### Backend (Django + Pytest): 253 pruebas
+### Backend (Django + Pytest): 261 pruebas
 
 Además hay 4 `xfail` estrictos que documentan limitaciones conocidas del motor de reglas. Cubren autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico (un caso por criterio y regresiones), compresión, RAG, caché, métricas y validación ciega, FHIR, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y el comando de benchmark.
 

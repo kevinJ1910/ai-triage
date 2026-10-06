@@ -17,7 +17,7 @@ Desde la versión anterior de este informe, los cambios principales son:
 - **Benchmark reproducible.** El comando `evaluate_benchmark` y un conjunto de 65 casos sintéticos permiten medir el motor de reglas y el pipeline completo. La medición destapó fallos en los patrones del motor de reglas, ya corregidos, y cuantifica sus límites: sensibilidad del 28,6 % en casos críticos sobre el conjunto sintético.
 - **Seguridad.** HTTPS con TLS en nginx, cabeceras de seguridad y CSP; refresh token en cookie httpOnly y access token solo en memoria; permisos aplicados en el servidor en todos los endpoints clínicos; límites de intentos en login, OTP y confirmación de contraseña.
 - **Arquitectura de inferencia.** Whisper y Gemini se ejecutan en workers Celery con Redis (colas `asr` y `llm`). El estado compartido (caché clínica, contexto ASR, throttling) vive en Redis. Por defecto la plataforma corre en CPU; un override de Compose activa la GPU NVIDIA.
-- **Calidad.** 253 pruebas de backend y 67 de frontend, y CI en GitHub Actions (tests, lint y build).
+- **Calidad.** 261 pruebas de backend y 67 de frontend, y CI en GitHub Actions (tests, lint y build).
 
 ---
 
@@ -80,7 +80,7 @@ Sin `REDIS_HOST`, y siempre en pytest, las tareas se ejecutan en línea (`CELERY
 
 ### 3.5. Métricas de evaluación
 - `triage/metrics.py` contiene funciones puras: matriz de confusión, Kappa de Cohen con ponderación cuadrática, tasas de infratriaje y sobretriaje, y sensibilidad en niveles críticos (1–2). Devuelven `null` cuando no hay datos, en lugar de cifras inventadas.
-- `GET /api/triage/sessions/evaluation_metrics/` informa la concordancia IA–médico (descrita como acuerdo, no como validación), las métricas contra la referencia ciega y la telemetría de tokens. La identidad del paciente solo se muestra a quien tenga `can_view_emr`.
+- `GET /api/triage/sessions/evaluation_metrics/` informa la concordancia IA–médico (descrita como acuerdo, no como validación), las métricas contra la referencia ciega y la telemetría de tokens. La identidad del paciente solo se muestra a quien tenga `can_view_emr`. Todo se calcula con agregaciones en la base de datos (matrices con `GROUP BY` y totales con `aggregate()`), sin cargar las sesiones en memoria.
 
 ### 3.6. Validación ciega del nivel de referencia
 - Campos `reference_level`, `reference_by` y `reference_at` en `TriageSession` (migración `0005`).
@@ -110,7 +110,7 @@ Sin `REDIS_HOST`, y siempre en pytest, las tareas se ejecutan en línea (`CELERY
 - `NormalizationMonitor` compara el texto crudo con el estandarizado y muestra una tabla de códigos filtrable por categoría.
 
 ### 3.9. Simulador HCE e interoperabilidad
-- `GET /api/triage/sessions/emr_patients/` y `POST /api/triage/sessions/<id>/assign_box/` permiten la asignación persistente y auditada de box. No se inventan box, estado, fecha de nacimiento ni EPS cuando faltan los datos.
+- `GET /api/triage/sessions/emr_patients/` y `POST /api/triage/sessions/<id>/assign_box/` permiten la asignación persistente y auditada de box, guardada en las columnas `assigned_box` y `care_status` de `TriageSession` (no en el JSON de entidades clínicas). No se inventan box, estado, fecha de nacimiento ni EPS cuando faltan los datos.
 - `POST /api/fhir/` valida la estructura de Bundles FHIR R4 (`triage/fhir_validation.py`), responde 422 si el Bundle no es válido y registra cada transacción en `FHIRMessageLog`. Los identificadores de encuentro usan `uuid4`. El frontend exporta Bundles FHIR R4 y mensajes HL7 v2.5.1.
 
 ### 3.10. ASR (`backend/transcription/`)
@@ -132,7 +132,7 @@ Sin `REDIS_HOST`, y siempre en pytest, las tareas se ejecutan en línea (`CELERY
 - Diseño responsivo con drawer móvil y vistas de lista o detalle; accesibilidad WCAG 2.1 AA en el formulario de paciente; modales de confirmación al iniciar una nueva consulta y al ajustar el nivel; banner regulatorio minimizable. Las métricas de Lighthouse se optimizaron (CLS, contraste, peso de recursos).
 
 ### 3.14. Pruebas e integración continua
-- **Backend (pytest):** 253 pruebas que pasan y 4 marcadas `xfail` estrictas, que documentan limitaciones conocidas del motor de reglas. Cubren autenticación, OTP y throttling, RBAC, cifrado, pacientes, sesiones y guardado atómico, motor de reglas (un caso por criterio, prioridad entre niveles, contrato de salida y regresiones), compresión, RAG, caché, métricas, validación ciega, benchmark, FHIR, tareas Celery, ASR con Whisper simulado y configuración de seguridad.
+- **Backend (pytest):** 261 pruebas que pasan y 4 marcadas `xfail` estrictas, que documentan limitaciones conocidas del motor de reglas. Cubren autenticación, OTP y throttling, RBAC, cifrado, pacientes, sesiones y guardado atómico, motor de reglas (un caso por criterio, prioridad entre niveles, contrato de salida y regresiones), compresión, RAG, caché, métricas, validación ciega, benchmark, FHIR, tareas Celery, ASR con Whisper simulado y configuración de seguridad.
 - **Frontend (Vitest + Testing Library):** 67 pruebas.
 - **CI** (`.github/workflows/ci.yml`): tests de backend y frontend, lint y build.
 
@@ -166,10 +166,8 @@ Sin `REDIS_HOST`, y siempre en pytest, las tareas se ejecutan en línea (`CELERY
 - El modo GPU solo admite NVIDIA (CTranslate2 usa CUDA); en equipos con GPU AMD se ejecuta en CPU. El modo GPU está configurado pero no se ha probado en esta iteración sobre hardware NVIDIA real.
 - El estado del motor que publica el worker (`asr:engine_status`) no caduca: se borra al apagar el worker de forma ordenada, pero si el proceso muere de golpe, el panel de configuración puede mostrar un estado obsoleto. `health_check` sí refleja si el worker responde.
 
-### 4.7. Escalabilidad y mantenibilidad
-- `evaluation_metrics` carga todas las sesiones en memoria para calcular las métricas; con volúmenes grandes conviene agregar en SQL o precalcular.
+### 4.7. Mantenibilidad
 - `TriageDashboard.tsx` tiene 1.731 líneas y combina grabación, transcripción, formulario, resultado, historial y exportaciones; está pendiente dividirlo en componentes.
-- El frontend declara la dependencia `@google/genai` sin usarla.
 
 ### 4.8. Seguridad residual
 - La CSP incluye `'unsafe-inline'` en `script-src`, porque Next.js inyecta scripts de hidratación sin nonce. Para eliminarlo hace falta un middleware que genere nonces.

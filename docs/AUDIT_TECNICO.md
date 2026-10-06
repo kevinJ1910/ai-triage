@@ -24,9 +24,9 @@ Esta revisión actualiza el estado de los hallazgos de la auditoría inicial, co
 
 | | Resueltos | Pendientes |
 | :--- | ---: | ---: |
-| Auditoría inicial (A-01 … A-34) | 32 | 2 |
-| Hallazgos posteriores (N-01 … N-20) | 20 | 0 |
-| Riesgos abiertos de esta revisión (P-01 … P-09) | — | 9 |
+| Auditoría inicial (A-01 … A-34) | 33 | 1 |
+| Hallazgos posteriores (N-01 … N-22) | 22 | 0 |
+| Riesgos abiertos de esta revisión (P-01 … P-08) | — | 8 |
 
 Lo más importante de esta revisión:
 
@@ -53,15 +53,15 @@ Lo más importante de esta revisión:
 | A-11 | ALTO | Llamada a Gemini sin timeout | **Resuelto** (corrección de estado) | `9267476` añadió el timeout en `ai_analyzer`, pero la imagen Docker instalaba `google-genai==0.3.0`, que lo ignora (`requests` sin timeout), y la normalización tampoco lo aplicaba. Corregido en `dae83f4` (normalización) y `e79dbfa` (SDK 2.28.0). Además, `run_task` limita la espera del backend con `LLM_TASK_TIMEOUT`. |
 | A-12 | ALTO | `TriageSession.save()` recalcula en guardados parciales | **Resuelto** | `9267476`. |
 | A-13 | MEDIO | `AuditLog` con `except Exception: pass` | **Resuelto** | Los fallos se registran con `logger.error(..., exc_info=True)`. |
-| A-14 | MEDIO | `evaluation_metrics` carga todas las sesiones | **Pendiente** | Las métricas se calculan con funciones puras (`triage/metrics.py`), pero la vista sigue materializando todas las sesiones. Ver P-06. |
+| A-14 | MEDIO | `evaluation_metrics` carga todas las sesiones | **Resuelto** | `131c74e`: matrices con `GROUP BY` (como máximo 25 filas), totales con `aggregate()` y retención de síntomas recorrida por lotes. El número de consultas no crece con las sesiones (test dedicado). |
 | A-15 | MEDIO | Valores inventados en `emr_patients` (box, fecha de nacimiento, EPS) | **Resuelto** | `63a62fa`: se devuelve `null` y la UI muestra «No registrado». |
 | A-16 | MEDIO | `SystemConfigUpdateSchema` desalineado con el modelo | **Resuelto** | El esquema coincide con `SystemConfiguration`, rechaza campos extra y se aplica en la vista. |
 | A-17 | MEDIO | `db.sqlite3` versionado | **Resuelto** | Excluido en `.gitignore`. |
 | A-18 | BAJO | Logging duplicado con `FileHandler` manual | **Resuelto** | `LOGGING` centralizado en `settings.py`. |
 | A-19 | ALTO | `useState<any>` en datos clínicos | **Resuelto** | `4e31c14`: interfaces tipadas. |
-| A-20 | ALTO | `TriageDashboard.tsx` monolítico | **Pendiente** | Ha crecido de 1.451 a 1.731 líneas. Ver P-07. |
+| A-20 | ALTO | `TriageDashboard.tsx` monolítico | **Pendiente** | Ha crecido de 1.451 a 1.731 líneas. Ver P-06. |
 | A-21 | MEDIO | `fetchWithAuth` sin renovación automática | **Resuelto** | `4e31c14` y `c400bed`: una renovación compartida por las peticiones concurrentes. |
-| A-22 | MEDIO | Perfil leído de `localStorage` sin validar | **Mitigado** | El shell obtiene el perfil de `/api/auth/me/`; `TriageDashboard` aún lee la copia cacheada, pero solo para mostrar u ocultar controles, porque la autorización ocurre en el servidor. Ver P-09. |
+| A-22 | MEDIO | Perfil leído de `localStorage` sin validar | **Mitigado** | El shell obtiene el perfil de `/api/auth/me/`; `TriageDashboard` aún lee la copia cacheada, pero solo para mostrar u ocultar controles, porque la autorización ocurre en el servidor. Ver P-08. |
 | A-23 | MEDIO | Validación de frontend no centralizada | **Parcial** | `lib/validation.tsx` (Zod) se usa en login y triaje; `ConfigPanel` y `SecurityPanel` siguen validando por su cuenta (BAJO). |
 | A-24 | MEDIO | `GEMINI_API_KEY` en el contenedor del frontend | **Resuelto** | La clave solo está en el entorno compartido de backend y workers. |
 | A-25 | BAJO | Puerto 5432 expuesto | **Resuelto** | `012d8a6`. |
@@ -125,6 +125,12 @@ Lo más importante de esta revisión:
 
 **N-20 [ALTO] El timeout de Gemini no se aplicaba en Docker.** Ver A-11. *Resolución:* `e79dbfa`, verificado con una llamada real desde `worker-llm` (respuesta 200, timeout de 30.000 ms aplicado).
 
+### Mantenibilidad
+
+**N-21 [MEDIO] El box y el estado asistencial se guardaban dentro de `clinical_entities`.** Mezclaban datos operativos con las entidades clínicas extraídas por la IA, no se podían filtrar ni indexar y se colaban en las respuestas que exponen las entidades. *Resolución:* `666b569`: columnas `assigned_box` y `care_status` en `TriageSession`, con una migración (`0006`) que traslada los datos existentes, los retira del JSON y es reversible. El contrato de la API (`assigned_box`, `status`) no cambia.
+
+**N-22 [BAJO] Restos de la plantilla de AI Studio en el frontend.** `next.config.ts` permitía imágenes remotas de `picsum.photos` (no se usa `next/image`) y contenía un ajuste de HMR para AI Studio; además había dependencias sin uso (`@google/genai`, `firebase-tools`) y el paquete se llamaba `ai-studio-applet`. *Resolución:* `f2c1ac1`.
+
 ---
 
 ## 5. Riesgos Abiertos
@@ -136,10 +142,9 @@ Lo más importante de esta revisión:
 | P-03 | MEDIO | **Envío del relato clínico a un proveedor externo** (Gemini), aunque seudonimizado. | Acuerdo de tratamiento de datos (Ley 1581 de 2012) o un modelo desplegado localmente. |
 | P-04 | MEDIO | **CSP con `'unsafe-inline'` en `script-src`** (scripts de hidratación de Next.js sin nonce). | Middleware de Next.js que genere nonces por petición. |
 | P-05 | MEDIO | **El estado del motor ASR (`asr:engine_status`) no caduca**: si el worker muere de golpe, el panel de configuración muestra un estado obsoleto. | Publicar el estado con TTL y renovarlo periódicamente (heartbeat). |
-| P-06 | MEDIO | **`evaluation_metrics` carga todas las sesiones en memoria** (A-14). | Agregación en SQL o métricas precalculadas. |
-| P-07 | MEDIO | **`TriageDashboard.tsx` monolítico** (1.731 líneas, A-20). | Dividirlo en grabador, editor de transcripción, formulario, resultado, historial y exportaciones. |
-| P-08 | BAJO | **Restos sin uso**: la dependencia `@google/genai` en el frontend. El modo GPU no se ha probado en hardware NVIDIA real y el CI no se ha ejecutado aún en GitHub. | Eliminar la dependencia, probar el modo GPU y ejecutar el CI tras el push. |
-| P-09 | BAJO | **Perfil cacheado en `localStorage`** para la UI (A-22). | Leer el perfil del estado del shell en lugar de `localStorage`. |
+| P-06 | MEDIO | **`TriageDashboard.tsx` monolítico** (1.731 líneas, A-20). | Dividirlo en grabador, editor de transcripción, formulario, resultado, historial y exportaciones. |
+| P-07 | BAJO | **Sin verificar en entorno real**: el modo GPU no se ha probado en hardware NVIDIA y el CI no se ha ejecutado aún en GitHub. | Probar el modo GPU y ejecutar el CI tras el push. |
+| P-08 | BAJO | **Perfil cacheado en `localStorage`** para la UI (A-22). | Leer el perfil del estado del shell en lugar de `localStorage`. |
 
 ---
 
@@ -158,4 +163,4 @@ Lo más importante de esta revisión:
 | `core` | Esquemas Pydantic y `run_task` (`TaskUnavailable`). |
 | Frontend | Navegación y drawer, validación ciega, métricas y referencia ciega, configuración, HCE, FHIR, normalización, seguridad, `fetchWithAuth` y validadores Zod. |
 
-**Totales actuales:** backend, 253 pruebas que pasan y 4 `xfail` estrictos; frontend, 67 pruebas. CI en `.github/workflows/ci.yml`.
+**Totales actuales:** backend, 261 pruebas que pasan y 4 `xfail` estrictos; frontend, 67 pruebas. CI en `.github/workflows/ci.yml`.
