@@ -40,7 +40,9 @@ def _resolve_gemini_key() -> str:
 
 def _normalize_with_gemini(raw_text: str, custom_instruction: str, api_key: str) -> Dict[str, Any]:
     from google import genai
-    client = genai.Client(api_key=api_key)
+    from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT
+    # Sin timeout, una llamada colgada bloquearia indefinidamente un hilo del worker LLM.
+    client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
     prompt = f"""
 Eres un motor de normalizacion clinica hospitalaria de alta precision para sistemas de triaje de urgencias.
 Tu objetivo es traducir el siguiente relato crudo o coloquial a terminologia medica profesional:

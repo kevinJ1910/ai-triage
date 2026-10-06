@@ -241,3 +241,30 @@ class TestWhisperModelSelection:
         cfg.save()
         _, model_cls = self._init_engine(mocker)
         assert model_cls.call_args.args[0] == "medium"
+
+
+@pytest.mark.django_db
+class TestNormalizerGemini:
+    def test_gemini_call_has_request_timeout(self, mocker):
+        from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT
+        from transcription import normalizer
+        mocker.patch.object(normalizer, "_resolve_gemini_key", return_value="test-key")
+        client_cls = mocker.patch("google.genai.Client")
+        client_cls.return_value.models.generate_content.return_value = SimpleNamespace(
+            text=json.dumps({"normalized_text": "disnea", "summary": "s", "mappings": []})
+        )
+
+        result = normalizer.normalize_clinical_text("me falta el aire")
+
+        assert result["normalized_text"] == "disnea"
+        assert client_cls.call_args.kwargs["http_options"] == {"timeout": GEMINI_REQUEST_TIMEOUT * 1000}
+
+    def test_gemini_timeout_falls_back_to_catalog(self, mocker):
+        from transcription import normalizer
+        mocker.patch.object(normalizer, "_resolve_gemini_key", return_value="test-key")
+        client_cls = mocker.patch("google.genai.Client")
+        client_cls.return_value.models.generate_content.side_effect = TimeoutError("deadline exceeded")
+
+        result = normalizer.normalize_clinical_text("me falta el aire")
+
+        assert [m["raw_term"] for m in result["mappings"]] == ["falta el aire"]
