@@ -20,6 +20,9 @@ class TriageSession(models.Model):
     total_tokens = models.IntegerField(default=0, help_text="Total tokens consumed in inference")
     is_cached = models.BooleanField(default=False, help_text="True if response was served from semantic cache")
     rag_context = models.JSONField(default=list, blank=True, help_text="Criteria retrieved via clinical RAG")
+    # Ubicacion y estado asistencial en urgencias (simulador HCE); antes vivian dentro de clinical_entities.
+    assigned_box = models.CharField(max_length=50, blank=True, default='', help_text="Box o cama asignada")
+    care_status = models.CharField(max_length=50, default='Pendiente de Box', help_text="Estado asistencial del paciente")
     # Nivel de referencia independiente (adjudicacion ciega): lo asigna un clinico distinto al tratante
     # viendo solo la transcripcion, sin conocer ai_level ni final_level. Evita el sesgo de anclaje
     # de comparar la IA contra un nivel final que el medico fijo despues de ver la propuesta de la IA.

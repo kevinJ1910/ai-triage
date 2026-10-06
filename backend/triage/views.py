@@ -387,7 +387,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
     def emr_patients(self, request):
         """
         Returns patients list from real database for the EMR simulator.
-        Reads persisted assigned_box and status if available.
+        Reads persisted assigned_box and care_status.
         """
         sessions = TriageSession.objects.select_related('patient').all().order_by('-created_at')[:20]
         results = []
@@ -395,9 +395,6 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         for s in sessions:
             pat = s.patient
             entities = s.clinical_entities or {}
-            # Solo se informa la ubicacion realmente asignada (assign_box); nunca se inventa.
-            box_num = entities.get("assigned_box") or ""
-            status_val = entities.get("status") or "Pendiente de Box"
 
             results.append({
                 "id": s.id,
@@ -410,8 +407,9 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "insurance": pat.insurance,
                 "level": s.final_level,
                 "ai_level": s.ai_level,
-                "assigned_box": box_num,
-                "status": status_val,
+                # Solo se informa la ubicacion realmente asignada (assign_box); nunca se inventa.
+                "assigned_box": s.assigned_box,
+                "status": s.care_status,
                 "admission_time": local_strftime(s.created_at, '%H:%M:%S'),
                 "justification": s.justification,
                 "entities": entities
@@ -423,7 +421,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
     def assign_box(self, request, pk=None):
         """
         Assigns a hospital box/bed to a triage session patient.
-        Validates payload with EMRBoxAssignSchema and persists in clinical_entities.
+        Validates payload with EMRBoxAssignSchema and persists assigned_box / care_status.
         """
         session = self.get_object()
         from core.validation import validate_payload, EMRBoxAssignSchema
@@ -432,11 +430,9 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         box = validated.assigned_box
         status_str = validated.status or 'En Atencion'
 
-        entities = session.clinical_entities or {}
-        entities['assigned_box'] = box
-        entities['status'] = status_str
-        session.clinical_entities = entities
-        session.save(update_fields=['clinical_entities'])
+        session.assigned_box = box
+        session.care_status = status_str
+        session.save(update_fields=['assigned_box', 'care_status'])
 
         AuditLog.objects.create(
             user=request.user,

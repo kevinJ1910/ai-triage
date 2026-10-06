@@ -171,8 +171,40 @@ class TestTriageSessions:
         assert response.data["status"] == "En Atencion"
 
         session.refresh_from_db()
-        assert session.clinical_entities["assigned_box"] == "BOX-03"
-        assert session.clinical_entities["status"] == "En Atencion"
+        assert session.assigned_box == "BOX-03"
+        assert session.care_status == "En Atencion"
+        # La ubicacion ya no se mezcla con las entidades clinicas
+        assert session.clinical_entities == {"vitals": {"fc": "88"}}
+
+        listed = self.client.get("/api/triage/sessions/emr_patients/").data[0]
+        assert listed["assigned_box"] == "BOX-03"
+        assert listed["status"] == "En Atencion"
+
+    def test_box_migration_moves_entities_to_columns(self):
+        import importlib
+        from django.apps import apps
+        migration = importlib.import_module("triage.migrations.0006_triagesession_assigned_box_care_status")
+        legacy = TriageSession.objects.create(
+            patient=self.patient, level=2, ai_level=2, final_level=2, justification="Legado",
+            clinical_entities={"symptoms": ["dolor"], "assigned_box": "REAN-01", "status": "En Atencion"},
+        )
+        untouched = TriageSession.objects.create(
+            patient=self.patient, level=4, ai_level=4, final_level=4, justification="Sin box",
+            clinical_entities={"symptoms": ["tos"]},
+        )
+
+        migration.entities_to_fields(apps, None)
+        legacy.refresh_from_db()
+        untouched.refresh_from_db()
+        assert (legacy.assigned_box, legacy.care_status) == ("REAN-01", "En Atencion")
+        assert legacy.clinical_entities == {"symptoms": ["dolor"]}
+        assert (untouched.assigned_box, untouched.care_status) == ("", "Pendiente de Box")
+
+        migration.fields_to_entities(apps, None)
+        legacy.refresh_from_db()
+        untouched.refresh_from_db()
+        assert legacy.clinical_entities["assigned_box"] == "REAN-01"
+        assert "assigned_box" not in untouched.clinical_entities
 
     def test_assign_box_endpoint_invalid_name(self):
         session = TriageSession.objects.create(
