@@ -116,6 +116,9 @@ services:
       WHISPER_COMPUTE_TYPE: int8
       WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-4}
     command: ["celery", "-A", "config", "worker", "-Q", "asr", "--pool", "solo", "-n", "asr@%h", "--loglevel", "INFO"]
+    volumes:
+      # Modelos Whisper descargados: se conservan entre reinicios y reconstrucciones.
+      - asr_model_cache:/home/appuser/.cache/huggingface
     networks:
       - ai_triage_network
     depends_on:
@@ -214,3 +217,4 @@ volumes:
   redis_data:
   audio_uploads:
   nginx_certs:
+  asr_model_cache:

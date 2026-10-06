@@ -30,7 +30,9 @@ RUN pip install --no-cache-dir gunicorn
 COPY . .
 # Las migraciones deben estar versionadas en el repo; en runtime el entrypoint ejecuta migrate
 
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# La cache de Hugging Face (modelos Whisper) se monta como volumen: debe existir y ser de appuser.
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app \
+    && mkdir -p /home/appuser/.cache/huggingface && chown -R appuser:appuser /home/appuser/.cache
 
 # Configure entrypoint script
 RUN dos2unix /app/scripts/entrypoint.sh
