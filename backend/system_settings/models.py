@@ -4,6 +4,8 @@ from .crypto import encrypt_secret, decrypt_secret, mask_api_key, detect_key_pro
 
 class SystemConfiguration(models.Model):
     ASR_CHOICES = (
+        # 'auto': cada equipo usa su WHISPER_MODEL_SIZE (small en CPU, large-v3-turbo con GPU).
+        ('auto', 'Segun entorno (WHISPER_MODEL_SIZE)'),
         ('large-v3-turbo', 'Faster-Whisper (large-v3-turbo)'),
         ('large-v3', 'Whisper Large V3'),
         ('medium', 'Faster-Whisper (medium)'),
@@ -24,7 +26,7 @@ class SystemConfiguration(models.Model):
         ('PubMedBERT (Experimental)', 'PubMedBERT (Experimental)'),
     )
 
-    active_asr_model = models.CharField(max_length=50, choices=ASR_CHOICES, default='large-v3-turbo')
+    active_asr_model = models.CharField(max_length=50, choices=ASR_CHOICES, default='auto')
     active_llm_engine = models.CharField(max_length=50, choices=LLM_CHOICES, default='gemini-2.5-flash')
     active_ner_model = models.CharField(max_length=60, choices=NER_CHOICES, default='ClinicalBERT (v2.1 - Recomendado)')
     snomed_version = models.CharField(max_length=100, default='SNOMED CT (Edicion en Espanol)')

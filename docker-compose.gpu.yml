@@ -1,14 +1,25 @@
-# Override opcional para hosts con GPU NVIDIA y nvidia-container-toolkit instalado.
+# Override para hosts con GPU NVIDIA y NVIDIA Container Toolkit instalado.
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
-# La GPU la usa solo el worker ASR, que es quien carga el modelo Whisper.
+# O de forma permanente en el .env de ese equipo (separador ';' en Windows, ':' en Linux/macOS):
+#   COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml
 services:
+  backend:
+    build:
+      args:
+        # Instala las librerias CUDA/cuDNN (nvidia-*) en la imagen; en CPU se omiten.
+        WITH_CUDA: "true"
+
+  # La GPU la usa solo el worker ASR, que es quien carga el modelo Whisper.
   worker-asr:
     environment:
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
       WHISPER_DEVICE: cuda
       WHISPER_COMPUTE_TYPE: float16
     deploy:
       resources:
+        limits:
+          memory: 8G
         reservations:
           devices:
             - driver: nvidia

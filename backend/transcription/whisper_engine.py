@@ -82,7 +82,8 @@ class WhisperEngine:
         try:
             from system_settings.models import SystemConfiguration
             cfg = SystemConfiguration.get_solo()
-            if cfg.active_asr_model:
+            # 'auto' respeta WHISPER_MODEL_SIZE del equipo; otro valor es una eleccion explicita del admin.
+            if cfg.active_asr_model and cfg.active_asr_model != 'auto':
                 model_size = cfg.active_asr_model
         except Exception:
             pass

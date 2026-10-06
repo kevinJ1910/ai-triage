@@ -43,9 +43,15 @@ def worker_mode() -> bool:
     return not settings.CELERY_TASK_ALWAYS_EAGER
 
 
-def get_asr_status() -> dict:
+def get_asr_status(load: bool = True) -> dict:
+    """
+    Estado del motor ASR. En modo worker se lee lo publicado por worker-asr (nunca carga el modelo
+    en el proceso web). En modo en linea, load=False evita cargar Whisper solo para consultarlo.
+    """
     if not worker_mode():
-        return WhisperEngine().get_status()
+        if load or WhisperEngine._instance is not None:
+            return WhisperEngine().get_status()
+        return {"model_loaded": False, "device": "unknown", "detail": "modelo aun no cargado"}
     status = cache.get(ASR_STATUS_KEY)
     return status or {"model_loaded": False, "device": "unavailable", "detail": "worker ASR sin publicar estado"}
 

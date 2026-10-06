@@ -98,6 +98,8 @@ services:
           memory: 2G
 
   # Worker ASR: un unico proceso (pool solo) con el modelo Whisper cargado una sola vez.
+  # Por defecto corre en CPU (int8), valido en cualquier equipo; con GPU NVIDIA se activa
+  # docker-compose.gpu.yml, que cambia a CUDA, un modelo mayor y reserva la GPU.
   worker-asr:
     image: cantor11/ai-triage-backend:latest
     container_name: ai_triage_worker_asr
@@ -108,9 +110,11 @@ services:
       <<: *backend-env
       RUN_STARTUP_TASKS: "False"
       WHISPER_PRELOAD: "True"
-      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
-      WHISPER_DEVICE: ${WHISPER_DEVICE:-cuda}
-      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-float16}
+      # 'small' mantiene la latencia por fragmento de 4 s asumible en CPU; ajustable en .env.
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-4}
     command: ["celery", "-A", "config", "worker", "-Q", "asr", "--pool", "solo", "-n", "asr@%h", "--loglevel", "INFO"]
     networks:
       - ai_triage_network
@@ -127,13 +131,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8G
-        reservations:
-          memory: 4G
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+          memory: 6G
 
   # Worker LLM: llamadas a Gemini (triaje y normalizacion); I/O, por eso pool de hilos.
   worker-llm:

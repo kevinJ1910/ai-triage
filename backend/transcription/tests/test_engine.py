@@ -214,3 +214,30 @@ class TestWhisperEngineAndEndpoints:
             data = response.json()
             assert data == {"status": "unhealthy", "error": "Whisper Engine could not be initialized"}
             assert "Hardware GPU driver crash" not in response.content.decode()
+
+
+@pytest.mark.django_db
+class TestWhisperModelSelection:
+    def _init_engine(self, mocker):
+        model_cls = mocker.patch("transcription.whisper_engine.WhisperModel")
+        engine = object.__new__(WhisperEngine)  # instancia aislada, sin tocar el singleton
+        engine._initialize()
+        return engine, model_cls
+
+    @override_settings(WHISPER_MODEL_SIZE="small", WHISPER_DEVICE="cpu", WHISPER_COMPUTE_TYPE="int8")
+    def test_auto_uses_model_from_environment(self, mocker):
+        from system_settings.models import SystemConfiguration
+        assert SystemConfiguration.get_solo().active_asr_model == "auto"
+        engine, model_cls = self._init_engine(mocker)
+        assert model_cls.call_args.args[0] == "small"
+        assert model_cls.call_args.kwargs["device"] == "cpu"
+        assert engine.get_status()["model_size"] == "small"
+
+    @override_settings(WHISPER_MODEL_SIZE="small")
+    def test_explicit_admin_choice_overrides_environment(self, mocker):
+        from system_settings.models import SystemConfiguration
+        cfg = SystemConfiguration.get_solo()
+        cfg.active_asr_model = "medium"
+        cfg.save()
+        _, model_cls = self._init_engine(mocker)
+        assert model_cls.call_args.args[0] == "medium"

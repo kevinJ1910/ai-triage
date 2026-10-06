@@ -77,6 +77,27 @@ class TestSystemSettingsAndEncryption:
         assert "config" in response.data
         assert "available_options" in response.data
 
+    @pytest.mark.parametrize("published, label", [
+        ({"model_loaded": True, "device": "cuda", "compute_type": "float16", "model_size": "large-v3-turbo"}, "GPU CUDA (NVIDIA)"),
+        ({"model_loaded": True, "device": "cpu", "compute_type": "int8", "model_size": "small"}, "CPU (INT8)"),
+        (None, "ASR sin iniciar"),
+    ])
+    def test_runtime_status_reports_asr_worker_device(self, published, label):
+        from django.core.cache import cache
+        from django.test import override_settings
+        from transcription.tasks import ASR_STATUS_KEY
+        cache.delete(ASR_STATUS_KEY)
+        if published:
+            cache.set(ASR_STATUS_KEY, published)
+        self.client.force_authenticate(user=self.admin)
+        with override_settings(CELERY_TASK_ALWAYS_EAGER=False):
+            response = self.client.get("/api/config/")
+        runtime = response.data["runtime_status"]
+        assert runtime["hardware_device"] == label
+        assert runtime["cuda_available"] is (label.startswith("GPU"))
+        assert runtime["asr_model_in_use"] == (published or {}).get("model_size")
+        cache.delete(ASR_STATUS_KEY)
+
     def test_system_config_update_admin_allowed(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post("/api/config/", {

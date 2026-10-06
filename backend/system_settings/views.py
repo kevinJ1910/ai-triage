@@ -20,16 +20,21 @@ class SystemConfigView(APIView):
         config = SystemConfiguration.get_solo()
         keys = APIKeyCredential.objects.filter(is_active=True).order_by('-created_at')
         
-        # Deteccion real de entorno de ejecucion
+        # Dispositivo real del motor ASR: lo publica worker-asr (o el proceso web en modo en linea).
         import os
-        cuda_available = False
+        from transcription.tasks import get_asr_status
         try:
-            import torch
-            cuda_available = torch.cuda.is_available()
+            asr_status = get_asr_status(load=False)
         except Exception:
-            pass
-
-        device_info = "GPU CUDA (NVIDIA)" if cuda_available else "CPU (Fallback INT8)"
+            asr_status = {"device": "unknown"}
+        asr_device = asr_status.get("device")
+        cuda_available = asr_device == "cuda"
+        if cuda_available:
+            device_info = "GPU CUDA (NVIDIA)"
+        elif asr_device == "cpu":
+            device_info = f"CPU ({asr_status.get('compute_type', 'int8').upper()})"
+        else:
+            device_info = "ASR sin iniciar"
         has_gemini = bool(os.environ.get("GEMINI_API_KEY") or keys.filter(provider='gemini').exists())
 
         return Response({
@@ -38,6 +43,7 @@ class SystemConfigView(APIView):
             "runtime_status": {
                 "cuda_available": cuda_available,
                 "hardware_device": device_info,
+                "asr_model_in_use": asr_status.get("model_size"),
                 "gemini_configured": has_gemini,
                 "active_keys_count": keys.count(),
                 "system_timezone": str(timezone.get_current_timezone()),
@@ -70,7 +76,8 @@ class SystemConfigView(APIView):
             },
             "available_options": {
                 "asr_models": [
-                    {"id": "large-v3-turbo", "name": "Faster-Whisper (large-v3-turbo)", "recommended": True, "type": "GPU/CPU", "description": "Alta precision clinica optimizada"},
+                    {"id": "auto", "name": "Segun entorno (WHISPER_MODEL_SIZE)", "recommended": True, "type": "CPU/GPU", "description": "small en CPU, large-v3-turbo con GPU NVIDIA"},
+                    {"id": "large-v3-turbo", "name": "Faster-Whisper (large-v3-turbo)", "recommended": False, "type": "GPU/CPU", "description": "Alta precision clinica optimizada"},
                     {"id": "large-v3", "name": "Whisper Large V3 (Standard)", "recommended": False, "type": "GPU", "description": "Modelo de referencia OpenAI"},
                     {"id": "medium", "name": "Faster-Whisper Medium", "recommended": False, "type": "CPU/GPU", "description": "Balance velocidad/precision"},
                     {"id": "small", "name": "Faster-Whisper Small", "recommended": False, "type": "CPU", "description": "Baja latencia en equipos livianos"},

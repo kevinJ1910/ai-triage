@@ -84,7 +84,7 @@ interface VocabulariesData {
 
 export default function ConfigPanel() {
   const [config, setConfig] = useState<ConfigData>({
-    active_asr_model: 'large-v3-turbo',
+    active_asr_model: 'auto',
     active_llm_engine: 'gemini-2.5-flash',
     active_ner_model: 'ClinicalBERT (v2.1 - Recomendado)',
     snomed_version: 'SNOMED CT (Edicion en Espanol)',
@@ -355,7 +355,8 @@ export default function ConfigPanel() {
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 {(availableOptions?.asr_models || [
-                  { id: 'large-v3-turbo', name: 'Faster-Whisper (large-v3-turbo) - Alta Precision GPU/CPU (Recomendado)' },
+                  { id: 'auto', name: 'Segun entorno (WHISPER_MODEL_SIZE) - Recomendado' },
+                  { id: 'large-v3-turbo', name: 'Faster-Whisper (large-v3-turbo) - Alta Precision (GPU)' },
                   { id: 'large-v3', name: 'Whisper Large V3 - Modelo Completo (Requiere GPU dedicada)' },
                   { id: 'medium', name: 'Faster-Whisper Medium - Balance Precision/Velocidad' },
                   { id: 'small', name: 'Faster-Whisper Small - Liviano / Baja Latencia' },
@@ -368,7 +369,7 @@ export default function ConfigPanel() {
                 ))}
               </select>
               <span className="text-[10px] text-slate-500 mt-1 block">
-                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8.
+                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8. El cambio de modelo se aplica al reiniciar el worker ASR.
               </span>
             </div>
 
