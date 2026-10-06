@@ -17,6 +17,15 @@ def confusion_matrix(pairs: Iterable[Tuple[int, int]]) -> List[List[int]]:
     return matrix
 
 
+def confusion_matrix_from_counts(rows: Iterable[Tuple[int, int, int]]) -> List[List[int]]:
+    """Matriz 5x5 a partir de conteos agregados (nivel evaluado, nivel referencia, n), p. ej. un GROUP BY."""
+    matrix = [[0] * len(LEVELS) for _ in LEVELS]
+    for ai, final, count in rows:
+        if ai in LEVELS and final in LEVELS:
+            matrix[ai - 1][final - 1] += count
+    return matrix
+
+
 def cohen_kappa(matrix: List[List[int]], weights: str = 'quadratic') -> Optional[float]:
     """
     Kappa de Cohen sobre la matriz de confusion.
@@ -66,16 +75,20 @@ def reference_agreement(pairs: List[Tuple[int, int]]) -> Dict[str, Optional[floa
     Concordancia de un evaluador (IA o medico tratante) contra el nivel de referencia ciego.
     pairs: (nivel_evaluado, nivel_referencia). Sin pares devuelve metricas null.
     """
-    matrix = confusion_matrix(pairs)
-    total = len(pairs)
-    exact = sum(1 for predicted, reference in pairs if predicted == reference)
+    return reference_agreement_from_matrix(confusion_matrix(pairs))
+
+
+def reference_agreement_from_matrix(matrix: List[List[int]]) -> Dict[str, Optional[float]]:
+    """Igual que reference_agreement, sobre la matriz (filas = evaluado, columnas = referencia)."""
+    total = sum(sum(row) for row in matrix)
+    exact = sum(matrix[i][i] for i in range(len(matrix)))
     kappa = cohen_kappa(matrix, weights='quadratic')
     return {
         "n": total,
         "exact_agreement": round(exact / total * 100, 1) if total else None,
         "cohen_kappa": kappa,
         "kappa_interpretation": interpret_kappa(kappa),
-        **triage_safety_metrics(pairs),
+        **triage_safety_metrics_from_matrix(matrix),
         "confusion_matrix": matrix,
     }
 
@@ -89,7 +102,12 @@ def triage_safety_metrics(pairs: List[Tuple[int, int]]) -> Dict[str, Optional[fl
       porcentaje que la IA tambien clasifico como 1-2.
     - critical_undertriage_count: casos criticos (final 1-2) que la IA envio a nivel 3-5.
     """
-    total = len(pairs)
+    return triage_safety_metrics_from_matrix(confusion_matrix(pairs))
+
+
+def triage_safety_metrics_from_matrix(matrix: List[List[int]]) -> Dict[str, Optional[float]]:
+    """Igual que triage_safety_metrics, sobre la matriz (filas = IA, columnas = referencia)."""
+    total = sum(sum(row) for row in matrix)
     if total == 0:
         return {
             "undertriage_rate": None,
@@ -99,15 +117,17 @@ def triage_safety_metrics(pairs: List[Tuple[int, int]]) -> Dict[str, Optional[fl
             "critical_undertriage_count": 0,
         }
 
-    under = sum(1 for ai, final in pairs if ai > final)
-    over = sum(1 for ai, final in pairs if ai < final)
-    critical = [(ai, final) for ai, final in pairs if final in CRITICAL_LEVELS]
-    detected = sum(1 for ai, _ in critical if ai in CRITICAL_LEVELS)
+    n = len(matrix)
+    critical_idx = [lvl - 1 for lvl in CRITICAL_LEVELS]
+    under = sum(matrix[i][j] for i in range(n) for j in range(n) if i > j)
+    over = sum(matrix[i][j] for i in range(n) for j in range(n) if i < j)
+    critical = sum(matrix[i][j] for i in range(n) for j in critical_idx)
+    detected = sum(matrix[i][j] for i in critical_idx for j in critical_idx)
 
     return {
         "undertriage_rate": round(under / total * 100, 1),
         "overtriage_rate": round(over / total * 100, 1),
-        "critical_cases": len(critical),
-        "critical_sensitivity": round(detected / len(critical) * 100, 1) if critical else None,
-        "critical_undertriage_count": len(critical) - detected,
+        "critical_cases": critical,
+        "critical_sensitivity": round(detected / critical * 100, 1) if critical else None,
+        "critical_undertriage_count": critical - detected,
     }

@@ -1,4 +1,10 @@
-from triage.metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics, reference_agreement
+from collections import Counter
+
+from triage.metrics import (
+    confusion_matrix, confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
+    triage_safety_metrics, triage_safety_metrics_from_matrix,
+    reference_agreement, reference_agreement_from_matrix,
+)
 
 
 class TestConcordanceMetrics:
@@ -69,3 +75,29 @@ class TestTriageSafetyMetrics:
         assert result["overtriage_rate"] == 25.0
         assert result["critical_cases"] == 2
         assert result["critical_sensitivity"] == 50.0
+
+
+class TestMatrixBasedMetrics:
+    """Las variantes sobre la matriz (usadas con GROUP BY en la vista) equivalen a las de pares."""
+    PAIRS = [(1, 1), (2, 1), (3, 2), (2, 2), (4, 4), (5, 3), (3, 3), (1, 2), (4, 5)]
+
+    def test_matrix_from_counts_equals_matrix_from_pairs(self):
+        counts = [(ai, final, n) for (ai, final), n in Counter(self.PAIRS).items()]
+        assert confusion_matrix_from_counts(counts) == confusion_matrix(self.PAIRS)
+
+    def test_counts_outside_scale_are_ignored(self):
+        matrix = confusion_matrix_from_counts([(0, 3, 4), (3, 6, 2), (2, 2, 5)])
+        assert sum(map(sum, matrix)) == 5
+
+    def test_safety_metrics_match(self):
+        matrix = confusion_matrix(self.PAIRS)
+        assert triage_safety_metrics_from_matrix(matrix) == triage_safety_metrics(self.PAIRS)
+
+    def test_reference_agreement_matches(self):
+        matrix = confusion_matrix(self.PAIRS)
+        assert reference_agreement_from_matrix(matrix) == reference_agreement(self.PAIRS)
+
+    def test_empty_matrix(self):
+        empty = confusion_matrix([])
+        assert triage_safety_metrics_from_matrix(empty)["undertriage_rate"] is None
+        assert reference_agreement_from_matrix(empty)["exact_agreement"] is None

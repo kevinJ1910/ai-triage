@@ -1,5 +1,6 @@
 from datetime import date
 from django.db import transaction
+from django.db.models import Avg, Count, F, FloatField, Q, Sum
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -14,7 +15,10 @@ from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanR
 from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
 from .fhir_validation import validate_fhir_bundle
-from .metrics import confusion_matrix, cohen_kappa, interpret_kappa, triage_safety_metrics, reference_agreement
+from .metrics import (
+    confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
+    triage_safety_metrics_from_matrix, reference_agreement_from_matrix,
+)
 from core.task_runner import TaskUnavailable
 from transcription.tasks import transcribe_audio
 from transcription.whisper_engine import reset_session_context
@@ -256,16 +260,22 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         - Matriz de confusion 5x5, deriva de severidad y retencion de sintomas
         Sin sesiones no se inventan valores: las metricas se devuelven como null.
         """
-        sessions = list(TriageSession.objects.select_related('patient').order_by('-created_at'))
-        total = len(sessions)
-        referenced = [s for s in sessions if s.reference_level is not None]
-        pairs = [(s.ai_level, s.final_level) for s in sessions]
-        matrix = confusion_matrix(pairs)
+        # Agregaciones en la base de datos: no se cargan todas las sesiones en memoria.
+        qs = TriageSession.objects.order_by()
+        matrix = _level_matrix(qs, 'ai_level', 'final_level')
         dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
         dist_phy = {lvl: sum(row[lvl - 1] for row in matrix) for lvl in range(1, 6)}
 
-        concordant_count = sum(1 for s in sessions if not s.is_level_modified)
-        modified_count = total - concordant_count
+        totals = qs.aggregate(
+            total=Count('id'),
+            modified=Count('id', filter=Q(is_level_modified=True)),
+            drift=Avg(F('final_level') - F('ai_level'), output_field=FloatField()),
+            tokens=Sum('total_tokens'),
+            cached=Count('id', filter=Q(is_cached=True)),
+        )
+        total = totals['total']
+        modified_count = totals['modified']
+        concordant_count = total - modified_count
 
         kappa_weighted = cohen_kappa(matrix, weights='quadratic')
         kappa_unweighted = cohen_kappa(matrix, weights='none')
@@ -273,14 +283,19 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         concordance_rate = severity_drift = symptom_retention = None
         if total:
             concordance_rate = round((concordant_count / total) * 100, 1)
-            severity_drift = round(sum(final - ai for ai, final in pairs) / total, 2)
+            severity_drift = round(totals['drift'], 2)
 
+            # La interseccion de listas JSON no es portable en SQL: se recorre por lotes solo con esas columnas.
             retention_sum = 0.0
-            for s in sessions:
-                ai_s = {str(x).lower() for x in (s.ai_symptoms or [])}
-                fin_s = {str(x).lower() for x in (s.final_symptoms or [])}
+            for ai_symptoms, final_symptoms in qs.values_list('ai_symptoms', 'final_symptoms').iterator(chunk_size=1000):
+                ai_s = {str(x).lower() for x in (ai_symptoms or [])}
+                fin_s = {str(x).lower() for x in (final_symptoms or [])}
                 retention_sum += 1.0 if not ai_s else len(ai_s & fin_s) / len(ai_s)
             symptom_retention = round((retention_sum / total) * 100, 1)
+
+        referenced = qs.filter(reference_level__isnull=False)
+        ai_vs_reference = _level_matrix(referenced, 'ai_level', 'reference_level')
+        physician_vs_reference = _level_matrix(referenced, 'final_level', 'reference_level')
 
         # Las metricas son agregadas y visibles para todo el personal; la identidad del paciente
         # solo se muestra a quien ya puede consultar la HCE.
@@ -293,7 +308,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "is_modified": s.is_level_modified,
             "agreement_score": round(s.agreement_score * 100, 1),
             "date": local_strftime(s.created_at, '%Y-%m-%d %H:%M')
-        } for s in sessions[:10]]
+        } for s in TriageSession.objects.select_related('patient').order_by('-created_at')[:10]]
 
         return Response({
             "total_triages": total,
@@ -304,21 +319,21 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "cohen_kappa_unweighted": kappa_unweighted,
             "kappa_type": "quadratic_weighted",
             "kappa_interpretation": interpret_kappa(kappa_weighted),
-            **triage_safety_metrics(pairs),
+            **triage_safety_metrics_from_matrix(matrix),
             "confusion_matrix": matrix,
             "modified_count": modified_count,
             "unmodified_count": concordant_count,
             "distribution_ai": dist_ai,
             "distribution_physician": dist_phy,
-            "total_tokens_consumed": sum(s.total_tokens for s in sessions),
-            "cached_triages_count": sum(1 for s in sessions if s.is_cached),
+            "total_tokens_consumed": totals['tokens'] or 0,
+            "cached_triages_count": totals['cached'],
             "clinical_cache_stats": ClinicalQueryCache.stats(),
             "recent_evaluations": recent,
             # Validacion contra el nivel de referencia ciego: es la medida sin sesgo de anclaje.
             "reference_validation": {
-                "referenced_count": len(referenced),
-                "ai_vs_reference": reference_agreement([(s.ai_level, s.reference_level) for s in referenced]),
-                "physician_vs_reference": reference_agreement([(s.final_level, s.reference_level) for s in referenced]),
+                "referenced_count": sum(map(sum, ai_vs_reference)),
+                "ai_vs_reference": reference_agreement_from_matrix(ai_vs_reference),
+                "physician_vs_reference": reference_agreement_from_matrix(physician_vs_reference),
             },
         })
 
@@ -593,3 +608,11 @@ def _split_transcript(full_text: str) -> list:
         speaker, sep, text = line.partition(': ')
         turns.append({"speaker": speaker, "text": text} if sep else {"speaker": "Transcripcion", "text": line})
     return turns
+
+
+def _level_matrix(queryset, evaluated_field: str, reference_field: str):
+    """Matriz de confusion 5x5 calculada con un GROUP BY (como maximo 25 filas)."""
+    rows = (queryset.order_by()
+            .values_list(evaluated_field, reference_field)
+            .annotate(n=Count('id')))
+    return confusion_matrix_from_counts(rows)

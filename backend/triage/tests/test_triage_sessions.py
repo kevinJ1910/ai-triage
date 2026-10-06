@@ -132,6 +132,44 @@ class TestTriageSessions:
         assert response.data["confusion_matrix"][1][2] == 1  # IA 2 -> medico 3
         assert response.data["overtriage_rate"] == 50.0
         assert response.data["undertriage_rate"] == 0.0
+        assert response.data["severity_drift"] == 0.5
+        assert response.data["distribution_ai"][2] == 2
+        assert response.data["distribution_physician"][3] == 1
+
+    def test_evaluation_metrics_aggregates_tokens_cache_and_retention(self):
+        TriageSession.objects.create(
+            patient=self.patient, level=3, ai_level=3, final_level=3, justification="a",
+            ai_symptoms=["Tos", "Fiebre"], final_symptoms=["tos"], total_tokens=120, is_cached=True,
+        )
+        TriageSession.objects.create(
+            patient=self.patient, level=4, ai_level=4, final_level=4, justification="b",
+            ai_symptoms=[], final_symptoms=["cefalea"], total_tokens=80,
+        )
+        data = self.client.get("/api/triage/sessions/evaluation_metrics/").data
+        assert data["total_tokens_consumed"] == 200
+        assert data["cached_triages_count"] == 1
+        # (1/2 + 1) / 2: sin sintomas de la IA la retencion cuenta como completa
+        assert data["symptom_retention"] == 75.0
+
+    def test_evaluation_metrics_query_count_does_not_grow_with_sessions(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                assert self.client.get("/api/triage/sessions/evaluation_metrics/").status_code == status.HTTP_200_OK
+            return len(ctx.captured_queries)
+
+        TriageSession.objects.bulk_create([
+            TriageSession(patient=self.patient, level=3, ai_level=3, final_level=3, justification="x")
+            for _ in range(3)
+        ])
+        few = count_queries()
+        TriageSession.objects.bulk_create([
+            TriageSession(patient=self.patient, level=2, ai_level=3, final_level=2, justification="y", reference_level=2)
+            for _ in range(40)
+        ])
+        assert count_queries() == few
 
     def test_emr_patients_endpoint(self):
         TriageSession.objects.create(
