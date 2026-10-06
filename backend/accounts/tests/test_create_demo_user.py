@@ -47,9 +47,9 @@ class TestCreateDemoUserCommand:
         assert hasattr(admin_user, 'permissions')
         assert hasattr(nurse_user, 'permissions')
 
-    def test_opt_in_creation_via_debug_with_generated_passwords(self, monkeypatch, settings):
+    def test_without_passwords_no_unusable_accounts_are_created(self, monkeypatch, settings):
         settings.DEBUG = True
-        monkeypatch.setenv('CREATE_DEMO_USERS', 'False')
+        monkeypatch.setenv('CREATE_DEMO_USERS', 'True')
         monkeypatch.delenv('DEMO_ADMIN_PASSWORD', raising=False)
         monkeypatch.delenv('DEMO_NURSE_PASSWORD', raising=False)
 
@@ -57,9 +57,25 @@ class TestCreateDemoUserCommand:
         call_command('create_demo_user', stdout=out)
         output = out.getvalue()
 
-        assert "Generada contrasena de un solo uso" in output
-        assert self.User.objects.filter(email=self.admin_email).exists()
-        assert self.User.objects.filter(email=self.nurse_email).exists()
+        # Una contrasena aleatoria que nadie conoce dejaria cuentas imposibles de usar
+        assert "defina DEMO_ADMIN_PASSWORD" in output
+        assert "defina DEMO_NURSE_PASSWORD" in output
+        assert not self.User.objects.filter(email=self.admin_email).exists()
+        assert not self.User.objects.filter(email=self.nurse_email).exists()
+
+    def test_creates_only_users_with_configured_password(self, monkeypatch, settings):
+        # Fuera de DEBUG tampoco debe abortar el arranque del backend por una contrasena ausente
+        settings.DEBUG = False
+        monkeypatch.setenv('CREATE_DEMO_USERS', 'True')
+        monkeypatch.setenv('DEMO_ADMIN_PASSWORD', 'SecureAdminPass2026!')
+        monkeypatch.delenv('DEMO_NURSE_PASSWORD', raising=False)
+
+        out = StringIO()
+        call_command('create_demo_user', stdout=out)
+
+        assert self.User.objects.get(email=self.admin_email).check_password('SecureAdminPass2026!')
+        assert not self.User.objects.filter(email=self.nurse_email).exists()
+        assert "defina DEMO_NURSE_PASSWORD" in out.getvalue()
 
     def test_remediation_of_weak_passwords_in_production(self, monkeypatch, settings):
         # Simular entorno produccion (no dev, creacion deshabilitada)
