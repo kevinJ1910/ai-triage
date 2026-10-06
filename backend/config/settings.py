@@ -79,6 +79,8 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Sirve /static/ (CSS y JS del Django Admin) sin depender de DEBUG ni de un servidor aparte.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -130,8 +132,10 @@ TIME_ZONE = os.getenv('TIME_ZONE', 'America/Bogota')
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# En desarrollo y en tests los estaticos se sirven desde las apps sin ejecutar collectstatic.
+WHITENOISE_USE_FINDERS = DEBUG or 'pytest' in sys.modules
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [

@@ -17,3 +17,9 @@ class TestSecuritySettings:
         assert response["X-Content-Type-Options"] == "nosniff"
         assert response["X-Frame-Options"] == "DENY"
         assert response["Referrer-Policy"] == "same-origin"
+
+    def test_django_admin_static_files_are_served(self, client):
+        # Sin servir /static/, el Django Admin carga sin estilos con DEBUG=False
+        response = client.get("/static/admin/css/base.css")
+        assert response.status_code == 200
+        assert response["Content-Type"].startswith("text/css")
