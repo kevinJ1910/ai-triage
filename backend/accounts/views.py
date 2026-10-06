@@ -25,6 +25,8 @@ from core.timeutils import local_strftime
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    # Fuerza bruta de contrasenas: mismo limite que el resto de flujos de autenticacion.
+    throttle_classes = [AuthThrottle]
 
     def post(self, request, *args, **kwargs):
         return move_refresh_to_cookie(super().post(request, *args, **kwargs))
@@ -141,6 +143,8 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
+    # El codigo OTP de 6 digitos se valida aqui: sin limite se podria adivinar por fuerza bruta.
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
