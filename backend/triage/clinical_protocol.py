@@ -142,7 +142,8 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
 
     # 1. Reglas de Triage 1 (Reanimacion - Inmediata)
     triage1_patterns = [
-        (r"\b(paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado sin responder|coma)\b", "Inconciencia o ausencia de signos vitales"),
+        # "paro" y "coma" sueltos casaban con frases cotidianas ("cuando me paro", "que coma").
+        (r"\b(paro (?:cardiaco|cardiorrespiratorio|respiratorio)|(?:un|en) paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado sin responder|(?:en|estado de) coma|comatoso)\b", "Inconciencia o ausencia de signos vitales"),
         (r"\b(asfixia|cianosis severa|paro respiratorio|dificultad respiratoria severa|no puede respirar nada)\b", "Dificultad respiratoria severa con riesgo vital"),
         (r"\b(hemorragia masiva|desangrando|sangrado exanguinante|amputacion|perdida de miembro|perdida de organo)\b", "Hemorragia masiva o pérdida de miembro u órgano"),
         (r"\b(parto expulsivo|coronando|bebe saliendo|naciendo ya)\b", "Trabajo de parto expulsivo"),
@@ -163,12 +164,12 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
     # 2. Reglas de Triage 2 (Emergencia - < 30 min)
     triage2_patterns = [
         (r"\b(dolor (de|en el) pecho|opresion toracica|dolor toracico|infarto|angina|irradiado al brazo|irradiado a la mandibula)\b", "Dolor torácico con signos de alarma (sospecha SCA)"),
-        (r"\b(convulsion|convulsionando|estado convulsivo|crisis epileptica|estatus)\b", "Estado convulsivo"),
+        (r"\b(convulsion(?:es)?|convulsionando|estado convulsivo|crisis epilepticas?|estatus)\b", "Estado convulsivo"),
         (r"\b(crisis hipertensiva|presion muy alta|presion 180|presion 200|emergencia hipertensiva)\b", "Crisis hipertensiva"),
-        (r"\b(diabetes descompensada|cetoacidosis|glucosa >|azucar 400|azucar 500|coma diabetico)\b", "Diabetes descompensada"),
+        (r"\b(diabetes descompensada|cetoacidosis|glucosa ?> ?\d+|azucar 400|azucar 500|coma diabetico)\b", "Diabetes descompensada"),
         (r"\b(dificultad respiratoria moderada|ahogo moderado|tirajes intercostales|saturacion menor|sat < 90)\b", "Dificultad respiratoria moderada"),
         (r"\b(fractura expuesta|hueso afuera|hueso visible)\b", "Fractura expuesta"),
-        (r"\b(sangrado vaginal.*embaraz|embarazada.*sangr|metrorragia)\b", "Sangrado vaginal en paciente embarazada"),
+        (r"\b(sangrado vaginal.*embaraz\w*|embarazada.*sangr\w*|metrorragia)\b", "Sangrado vaginal en paciente embarazada"),
         (r"\b(intoxicacion|envenenamiento|tomo veneno|ingestion de toxicos|sobredosis)\b", "Ingestión de sustancias tóxicas o envenenamiento"),
         (r"\b(agitacion psicomotora|brote psicotico|intento de suicidio|agresivo incontrolable)\b", "Agitación psicomotora aguda"),
         (r"\b(quemadura de tercer grado|quemadura profunda|quemadura de 3er grado)\b", "Quemadura de III grado")
@@ -187,8 +188,8 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
     # 3. Reglas de Triage 3 (Urgencia - < 120 min)
     triage3_patterns = [
         (r"\b(vertigo severo|mareo incapacitante|no se puede parar)\b", "Vértigo severo incapacitante"),
-        (r"\b(dificultad respiratoria leve|disnea leve|silbido en el pecho|sibilancia)\b", "Dificultad respiratoria leve"),
-        (r"\b(vomito y diarrea|deshidratacion|no tolera via oral|vomitando todo|diarrea abundante)\b", "Vómito y diarrea con signos de deshidratación"),
+        (r"\b(dificultad respiratoria leve|disnea leve|silbidos? en el pecho|sibilancias?)\b", "Dificultad respiratoria leve"),
+        (r"\b(vomito y diarrea(?! sin deshidrat)|(?<!sin )deshidratacion|no tolera via oral|vomitando todo|diarrea abundante)\b", "Vómito y diarrea con signos de deshidratación"),
         (r"\b(dialisis|fistula arteriovenosa|insuficiencia renal aguda)\b", "Síntomas asociados a tratamiento de diálisis"),
         (r"\b(reaccion alergica|alergia con brote|urticaria generalizada|ronchas en todo el cuerpo)\b", "Reacción alérgica con brote generalizado"),
         (r"\b(quemadura de segundo grado|quemadura 2do grado|ampollas por quemadura)\b", "Quemadura de II o III grado localizada"),
@@ -207,9 +208,9 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
 
     # 4. Reglas de Triage 4 (Consulta Prioritaria - Direccionamiento EPS)
     triage4_patterns = [
-        (r"\b(tos y congestion|gripe|resfriado comun|congestiona|rinorrea|moqueo)\b", "Tos y congestión respiratoria alta"),
+        (r"\b(tos y congestion|gripe|gripa|resfriado comun|congestiona|rinorrea|moqueo)\b", "Tos y congestión respiratoria alta"),
         (r"\b(faringitis|amigdalitis|dolor de garganta|placas en la garganta|odinofagia)\b", "Faringitis o amigdalitis aguda"),
-        (r"\b(vomito.*sin deshidrat|diarrea.*sin deshidrat|gastroenteritis leve)\b", "Vómito o diarrea sin deshidratación"),
+        (r"\b(vomito.*sin deshidrat\w*|diarrea.*sin deshidrat\w*|gastroenteritis leve)\b", "Vómito o diarrea sin deshidratación"),
         (r"\b(ardor al orinar|chistata|infeccion urinaria leve|disuria)\b", "Ardor al orinar o sospecha de infección local"),
         (r"\b(dolor de cabeza leve|dolor leve.*24 horas|dolor moderado.*dias)\b", "Dolor leve a moderado de más de 24 horas de evolución"),
         (r"\b(trauma leve|golpe leve|raspada|herida superficial)\b", "Trauma menor superficial"),
