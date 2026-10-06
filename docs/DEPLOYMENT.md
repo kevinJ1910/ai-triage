@@ -30,7 +30,24 @@ Dado que el procesamiento acústico de transcripción requiere inferencias neuro
 | **Almacenamiento** | 50 GB SSD | 100 GB NVMe (logs y audios) |
 | **GPU (NVIDIA)** | No requerida (Fallback CPU) | NVIDIA RTX 3060 (12GB VRAM) o superior |
 
-> **Passthrough de GPU:** Si se cuenta con una GPU NVIDIA, el host debe tener instalados los controladores oficiales y el **NVIDIA Container Toolkit** para que Docker pueda delegar el acelerador al contenedor `worker-asr`. La reserva de GPU está en el bloque `deploy.resources.reservations.devices` de ese servicio en `docker-compose.yml` (y en `docker-compose.gpu.yml`).
+### 2.1. Modo CPU (por defecto) y modo GPU NVIDIA
+
+`docker-compose.yml` funciona en cualquier equipo: `worker-asr` usa CPU con `int8`, el modelo `small` y la imagen se construye **sin** las librerías CUDA (varios GB menos). Es el modo para equipos sin GPU o con GPU AMD (faster-whisper/CTranslate2 no soporta AMD dentro de Docker).
+
+`docker-compose.gpu.yml` añade, solo para hosts con NVIDIA y **NVIDIA Container Toolkit**:
+- reserva de la GPU para `worker-asr`, `WHISPER_DEVICE=cuda`, `float16` y modelo `large-v3-turbo`;
+- construcción de la imagen con `WITH_CUDA=true` (instala `nvidia-cublas`/`nvidia-cudnn`).
+
+```bash
+docker compose up --build -d                                                   # CPU
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d   # GPU NVIDIA
+```
+
+En el equipo con GPU se puede fijar de forma permanente en su `.env` (separador `;` en Windows, `:` en Linux/macOS) para usar `docker compose up` sin más:
+```env
+COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml
+```
+Al cambiar de modo hay que reconstruir (`--build`), porque la imagen difiere. El modelo puede ajustarse en cada equipo con `WHISPER_MODEL_SIZE`; en el Panel de Configuración, la opción **"Según entorno"** (por defecto) respeta ese valor, y elegir un modelo concreto lo impone en esa instalación (se aplica al reiniciar `worker-asr`).
 
 ---
 
