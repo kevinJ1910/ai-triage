@@ -89,21 +89,28 @@ interface TriageSession {
   analysisResult: AnalysisResult | null;
 }
 
-export default function TriageDashboard() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+interface TriageDashboardProps {
+  userProfile?: UserProfile | null;
+}
+
+export default function TriageDashboard({ userProfile }: TriageDashboardProps = {}) {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(userProfile || null);
 
   const canUseTranscriber = currentUser?.permissions ? currentUser.permissions.can_use_transcriber : true;
   const canEditSymptoms = currentUser?.permissions ? currentUser.permissions.can_edit_symptoms : true;
 
-
   useEffect(() => {
+    if (userProfile) {
+      setCurrentUser(userProfile);
+      return;
+    }
     try {
       const stored = localStorage.getItem('user_profile');
       if (stored) {
         setCurrentUser(JSON.parse(stored));
       }
     } catch (e) {}
-  }, []);
+  }, [userProfile]);
 
   const {
     isRecording,

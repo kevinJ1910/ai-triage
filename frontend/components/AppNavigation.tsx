@@ -325,7 +325,7 @@ export default function AppNavigation() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-950 p-2 md:p-3">
         <Toaster theme="dark" position="top-right" richColors />
-        {activeTab === 'triage' && <TriageDashboard />}
+        {activeTab === 'triage' && <TriageDashboard userProfile={currentUser} />}
         {activeTab === 'config' && <ConfigPanel />}
         {activeTab === 'security' && <SecurityPanel />}
         {activeTab === 'normalization' && <NormalizationMonitor />}
