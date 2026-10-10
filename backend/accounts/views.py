@@ -20,6 +20,7 @@ from .serializers import (
 from .emails import send_verification_email, send_password_reset_email
 from .throttles import AuthThrottle, OTPThrottle
 from core.permissions import IsAdminRole
+from core.validation import validate_payload, UserPermissionUpdateSchema
 from .jwt_cookies import move_refresh_to_cookie
 from core.timeutils import local_strftime
 
@@ -186,14 +187,10 @@ class UserListView(APIView):
         data = UserSerializer(users, many=True).data
         return Response(data)
 
-from core.validation import validate_payload, UserPermissionUpdateSchema
-
 class UserPermissionUpdateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def patch(self, request, user_id):
-        if not (request.user.role == 'admin' or request.user.is_superuser):
-            return Response({"detail": "Permiso denegado. Solo administradores pueden modificar roles y permisos."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             validate_payload(UserPermissionUpdateSchema, request.data)
