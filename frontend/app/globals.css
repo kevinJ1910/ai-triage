@@ -5,13 +5,18 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-disp: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Clinical Depth Tokens */
-  --surface-base: #0b1120;
-  --surface-panel: #0f172a;
-  --surface-card: #1e293b;
-  --surface-card-hover: #273549;
-  --border-subtle: rgba(148, 163, 184, 0.12);
-  --border-medium: rgba(148, 163, 184, 0.22);
+  /* Clinical Workstation Surface Tokens */
+  --surface-base: #0a0f1d;
+  --surface-panel: #101728;
+  --surface-card: #151f32;
+  --surface-card-hover: #1c2840;
+  --surface-input: #0c1322;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-border-subtle: rgba(255, 255, 255, 0.05);
+  --surface-border-hover: rgba(255, 255, 255, 0.16);
+  --surface-border-active: rgba(2, 132, 199, 0.4);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.12);
 
   /* Medical Accents */
   --clinical-blue: #0284c7;

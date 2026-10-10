@@ -809,9 +809,11 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
             {/* ASR Transcription Box */}
             <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0 lg:h-[55%] shadow-sm">
               <div className="flex justify-between items-center mb-3.5 shrink-0">
-                <h3 className="text-xs font-semibold uppercase text-slate-300 tracking-wider flex items-center gap-2">
-                  <Mic className="w-4 h-4 text-sky-400" />
-                  {isVerifyingTranscript ? 'Verificación de Transcripción' : 'Transcripción ASR'}
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <Mic className="w-3.5 h-3.5" />
+                  </div>
+                  <span>{isVerifyingTranscript ? 'Verificación de Transcripción' : 'Transcripción de Consulta (ASR)'}</span>
                 </h3>
                 <div className="flex gap-2">
                   {isVerifyingTranscript ? (
@@ -948,9 +950,24 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
               
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                 {transcript.length === 0 && !isRecording && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
-                        <Mic className="w-6 h-6 mb-2 opacity-30" />
-                        Esperando entrada de audio...
+                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3 shadow-inner">
+                            <Mic className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-xs font-semibold text-slate-200">
+                          Esperando Entrada de Audio
+                        </h4>
+                        <p className="text-[11px] text-slate-400 max-w-xs mt-1 leading-relaxed">
+                          Inicie la grabación para capturar el diálogo médico en tiempo real con transcripción continua.
+                        </p>
+                        <button
+                          onClick={handleToggleRecording}
+                          disabled={isAnalyzing}
+                          className="mt-4 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Iniciar Grabación</span>
+                        </button>
                     </div>
                 )}
                 <AnimatePresence>
@@ -1051,32 +1068,39 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
             {/* Patient Info Box */}
             <div className="flex-1 bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shadow-sm">
-              <h3 className="text-xs font-semibold uppercase text-slate-300 tracking-wider flex items-center gap-2 mb-3.5 shrink-0">
-                <User className="w-4 h-4 text-sky-400" />
-                Información del Paciente
-              </h3>
-              <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="flex items-center justify-between mb-3.5 shrink-0">
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Datos del Paciente</span>
+                </h3>
+                <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md bg-[#0d1422] border border-slate-800">
+                  Admisión
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div>
-                  <label htmlFor="patient-name" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Nombre Completo</label>
+                  <label htmlFor="patient-name" className="text-xs text-slate-300 font-medium block mb-1.5">Nombre Completo</label>
                   <input
                     id="patient-name"
                     aria-label="Nombre Completo"
                     type="text"
                     value={patientInfo.name}
                     onChange={e => setPatientInfo({ ...patientInfo, name: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Nombre del paciente"
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-document-id" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Documento Identidad</label>
+                  <label htmlFor="patient-document-id" className="text-xs text-slate-300 font-medium block mb-1.5">Documento Identidad</label>
                   <input
                     id="patient-document-id"
                     aria-label="Documento Identidad"
                     type="text"
                     value={patientInfo.documentId}
                     onChange={e => setPatientInfo({ ...patientInfo, documentId: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="C.C., T.I., etc."
                   />
                   <InputWarning 
@@ -1085,14 +1109,14 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-birth-date" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Fecha Nacimiento</label>
+                  <label htmlFor="patient-birth-date" className="text-xs text-slate-300 font-medium block mb-1.5">Fecha Nacimiento</label>
                   <input
                     id="patient-birth-date"
                     aria-label="Fecha Nacimiento"
                     type="date"
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                   />
                   <InputWarning 
                     warning={patientInfo.birthDate ? validateDate(patientInfo.birthDate, { maxDate: new Date().toISOString().split('T')[0], label: 'Fecha de nacimiento' }).warning : null} 
@@ -1100,13 +1124,13 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-gender" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Género</label>
+                  <label htmlFor="patient-gender" className="text-xs text-slate-300 font-medium block mb-1.5">Género</label>
                   <select
                     id="patient-gender"
                     aria-label="Género"
                     value={patientInfo.gender}
                     onChange={e => setPatientInfo({ ...patientInfo, gender: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                   >
                     <option value="unknown">Desconocido</option>
                     <option value="male">Masculino</option>
@@ -1115,14 +1139,14 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="patient-phone" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Teléfono</label>
+                  <label htmlFor="patient-phone" className="text-xs text-slate-300 font-medium block mb-1.5">Teléfono</label>
                   <input
                     id="patient-phone"
                     aria-label="Teléfono"
                     type="text"
                     value={patientInfo.phone}
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="Número telefónico"
                   />
                   <InputWarning 
@@ -1131,14 +1155,14 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-insurance" className="text-[11px] text-slate-400 uppercase font-medium block mb-1">Aseguradora / EPS</label>
+                  <label htmlFor="patient-insurance" className="text-xs text-slate-300 font-medium block mb-1.5">Aseguradora / EPS</label>
                   <input
                     id="patient-insurance"
                     aria-label="Aseguradora / EPS"
                     type="text"
                     value={patientInfo.insurance}
                     onChange={e => setPatientInfo({ ...patientInfo, insurance: e.target.value })}
-                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Empresa promotora de salud"
                   />
                 </div>
@@ -1163,9 +1187,11 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
             {/* NER Module */}
             <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0 lg:h-[60%] shadow-sm">
               <div className="flex justify-between items-center shrink-0 mb-3.5">
-                <h3 className="text-xs font-semibold uppercase text-slate-300 tracking-wider flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                  Entidades Clínicas (NER)
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Activity className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Entidades Clínicas Detectadas</span>
                 </h3>
                 <div className="flex gap-2 items-center">
                   {isAnalyzing && <span className="text-[10px] font-mono text-emerald-400/80 animate-pulse flex items-center gap-1"><Activity className="w-3 h-3"/> Analizando...</span>}
@@ -1229,16 +1255,18 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
             {/* Triage Output */}
             <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col gap-3.5 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700 shadow-sm">
                 <div className="flex items-center justify-between gap-2 mb-1 shrink-0 flex-wrap">
-                  <h2 className="text-xs font-semibold uppercase text-slate-300 tracking-wider flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-amber-400" />
-                    Motor de Triaje Clínico
+                  <h2 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Motor de Triaje Clínico</span>
                   </h2>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[10px] font-semibold uppercase tracking-wider">
+                    <span className="px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300 text-[10px] font-medium">
                       Christus Sinergia Salud
                     </span>
                     {analysisResult?.engine_used && (
-                      <span className="px-2 py-0.5 rounded-full bg-[var(--surface-card)] border border-[var(--surface-border)] text-slate-400 text-[10px] font-mono">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-400 text-[10px] font-mono">
                         {analysisResult.engine_used}
                       </span>
                     )}
@@ -1441,18 +1469,33 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                       </div>
                     </div>
                 ) : !triageError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
-                    Esperando datos de la consulta para análisis...
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl bg-[#0c1322]/50 border border-slate-800/80">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                      <ShieldAlert className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-300">
+                      Evaluación de Triaje en Espera
+                    </p>
+                    <p className="text-[11px] text-slate-400 max-w-sm mt-1 leading-relaxed">
+                      El nivel de urgencia según el protocolo Christus Sinergia se determinará al procesar la transcripción y los signos vitales del paciente.
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-4 text-[10px] text-slate-400 flex-wrap justify-center">
+                      <span className="px-2 py-0.5 rounded-md bg-red-950/40 border border-red-800/40 text-red-400 font-semibold">I Reanimación</span>
+                      <span className="px-2 py-0.5 rounded-md bg-orange-950/40 border border-orange-800/40 text-orange-400 font-semibold">II Emergencia</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-950/40 border border-amber-800/40 text-amber-400 font-semibold">III Urgencia</span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 font-semibold">IV Prioritaria</span>
+                      <span className="px-2 py-0.5 rounded-md bg-sky-950/40 border border-sky-800/40 text-sky-400 font-semibold">V Externa</span>
+                    </div>
                   </div>
                 ) : null}
 
             </div>
 
             {/* Sync Module */}
-            <div className="shrink-0 bg-slate-800/50 rounded-lg border border-slate-700 p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-slate-400 flex items-center gap-2 truncate">
-                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
-                 <span className="truncate">Estado: {syncStatus === 'success' ? 'Guardado Exitoso' : 'Esperando'}</span>
+            <div className="shrink-0 bg-[var(--surface-panel)] rounded-xl border border-[var(--surface-border)] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+              <div className="text-xs text-slate-400 flex items-center gap-2 truncate">
+                 <div className={`w-2 h-2 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                 <span className="truncate font-medium">Estado: <span className="text-slate-300">{syncStatus === 'success' ? 'Guardado Exitoso' : 'En Espera'}</span></span>
               </div>
               <div className="flex w-full sm:w-auto gap-2 shrink-0 flex-wrap">
                 <button
@@ -1470,11 +1513,11 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                      downloadFHIRJson(currentSession);
                      toast.success('Descargando HL7 FHIR R4 JSON');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#141e30] hover:bg-[#1a273e] text-cyan-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
                 >
-                   <Code className="w-3 h-3 text-cyan-400" />
-                   FHIR R4
+                   <Code className="w-3.5 h-3.5 text-cyan-400" />
+                   <span>FHIR R4</span>
                 </button>
                 <button
                    disabled={!analysisResult}
@@ -1491,37 +1534,37 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                      downloadHL7v2Message(currentSession);
                      toast.success('Descargando HL7 v2.5.1 ER7');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-blue-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#141e30] hover:bg-[#1a273e] text-blue-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
                 >
-                   <FileText className="w-3 h-3 text-blue-400" />
-                   HL7 v2.5.1
+                   <FileText className="w-3.5 h-3.5 text-blue-400" />
+                   <span>HL7 v2.5.1</span>
                 </button>
                 <button
                    disabled={!analysisResult}
                    onClick={handleSaveSession}
-                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       !analysisResult 
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border border-slate-600'
+                      ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-40' 
+                      : 'bg-[#141e30] text-slate-200 hover:bg-[#1a273e] border border-slate-800 hover:border-slate-700 shadow-xs'
                    }`}
                 >
-                   <Save className="w-3 h-3" />
-                   Guardar en Historial
+                   <Save className="w-3.5 h-3.5" />
+                   <span>Guardar en Historial</span>
                 </button>
                 <button
                    disabled={!analysisResult || syncStatus === 'syncing' || syncStatus === 'success'}
                    onClick={handleSyncFHIR}
-                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       !analysisResult 
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
+                      ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-40' 
                       : syncStatus === 'success'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-                      : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500 shadow-md'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-sky-600 hover:bg-sky-500 text-white border border-sky-500/40 shadow-sm'
                    }`}
                 >
-                   {syncStatus === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <Send className="w-3 h-3" />}
-                   {syncStatus === 'success' ? 'SINCRONIZADO' : syncStatus === 'syncing' ? 'SINCRONIZANDO...' : 'SINCRONIZAR FHIR R4'}
+                   {syncStatus === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
+                   <span>{syncStatus === 'success' ? 'Sincronizado' : syncStatus === 'syncing' ? 'Sincronizando...' : 'Sincronizar FHIR R4'}</span>
                 </button>
               </div>
             </div>
@@ -1588,19 +1631,31 @@ function EntityGroup({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <h3 className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${color}`}>
-        {icon} {title}
-      </h3>
-      <div className="flex flex-col gap-1.5 min-h-[44px] bg-[var(--surface-base)] p-2 rounded-xl border border-[var(--surface-border)]">
-        {!entities && !loading && <span className="text-[11px] text-slate-400 italic px-2 py-1">Pendiente...</span>}
+      <div className="flex items-center justify-between px-0.5">
+        <h3 className={`text-xs font-medium flex items-center gap-1.5 ${color}`}>
+          {icon} <span>{title}</span>
+        </h3>
+        {entities && entities.length > 0 ? (
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 border border-slate-700/60">
+            {entities.length}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-1.5 min-h-[48px] bg-[#0c1322]/50 p-2.5 rounded-xl border border-slate-800/80">
+        {!entities && !loading && (
+          <div className="flex items-center gap-2 py-1.5 px-2 text-slate-500 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0"></span>
+            <span className="italic">Sin hallazgos preliminares</span>
+          </div>
+        )}
         {loading && (
-            <div className="w-full flex flex-col gap-1.5 opacity-70">
-                <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg`}></div>
-                <div className={`h-6 w-3/4 ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg delay-75`}></div>
-            </div>
+          <div className="w-full flex flex-col gap-1.5 opacity-70">
+            <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg`}></div>
+            <div className={`h-6 w-3/4 ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg delay-75`}></div>
+          </div>
         )}
         {!loading && entities?.map((e, idx) => (
-          <div key={idx} className={`flex items-center justify-between p-2 bg-[var(--surface-card)] rounded-lg border-l-2 ${border} border border-[var(--surface-border)] shadow-xs`}>
+          <div key={idx} className={`flex items-center justify-between px-2.5 py-2 bg-[#131d2e] rounded-lg border-l-2 ${border} border border-slate-800/80 hover:border-slate-700/80 transition-colors shadow-xs`}>
             <span className="text-xs font-medium text-slate-200 truncate">{e}</span>
             {isEditMode && (
               <button onClick={() => onRemove?.(idx)} className="text-red-400 hover:text-red-300 ml-2 shrink-0">
@@ -1621,12 +1676,17 @@ function EntityGroup({
                   setNewVal("");
                 }
               }}
-              className="flex-1 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="flex-1 bg-[#101728] border border-slate-800 hover:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30"
               placeholder="Añadir..."
             />
           </div>
         )}
-        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-400 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
+        {!loading && entities?.length === 0 && !isEditMode && (
+          <div className="flex items-center gap-2 py-1 px-2 text-slate-500 text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0"></span>
+            <span>No detectado en transcripción</span>
+          </div>
+        )}
       </div>
     </div>
   );
