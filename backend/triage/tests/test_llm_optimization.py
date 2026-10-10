@@ -337,3 +337,56 @@ class TestAIAnalyzerEndToEnd:
         second = analyze_triage_transcript(query, use_cache=True)
         assert second["cached"] is True
         assert second["patientInfo"]["documentId"] is None
+
+    def test_rag_enriched_coverage_and_synonym_expansion(self):
+        # 1. Stroke / ACV
+        acv_query = "Paciente con boca torcida y se le durmio el brazo de forma repentina"
+        acv_res = ClinicalKnowledgeRAG.retrieve(acv_query, top_k=3)
+        assert any(c["id"] == "c2_stroke_acv" for c in acv_res)
+
+        # 2. Expresion coloquial 'chistata' -> disuria (Nivel 4)
+        chistata_query = "Tengo chistata y me arde mucho al mear"
+        chistata_res = ClinicalKnowledgeRAG.retrieve(chistata_query, top_k=3)
+        assert any("disuria" in c["id"] or c["level"] == 4 for c in chistata_res)
+
+        # 3. Expresion coloquial 'azucar por las nubes' -> descompensacion diabetica (Nivel 2)
+        diab_query = "Paciente diabetico con el azucar por las nubes y respiracion profunda"
+        diab_res = ClinicalKnowledgeRAG.retrieve(diab_query, top_k=3)
+        assert any(c["id"] == "c2_diabetes_decompensation" for c in diab_res)
+
+    def test_cache_semantic_canonicalization_hits_across_synonyms(self):
+        ClinicalQueryCache.clear()
+        # Dos consultas con redaccion coloquial distinta pero significado clinico identico
+        transcript_a = "tengo dolor de cabeza fuerte desde ayer"
+        transcript_b = "tengo cefalea fuerte desde ayer"
+
+        fp_a = ClinicalQueryCache.generate_fingerprint(transcript_a, {})
+        fp_b = ClinicalQueryCache.generate_fingerprint(transcript_b, {})
+
+        # La canonicalizacion ontologica unifica los fingerprints ahorrando tokens
+        assert fp_a == fp_b
+
+        # Simular cache set con A y acierto inmediato con B
+        payload = {
+            "triage": {"level": 4, "name": "Consulta Prioritaria", "attention_time": "Direccionamiento a su EPS", "justification": "Cefalea subaguda"},
+            "entities": {"symptoms": ["cefalea"]},
+            "confidence": 0.95
+        }
+        ClinicalQueryCache.set(fp_a, payload, estimated_tokens=600)
+
+        hit = ClinicalQueryCache.get(fp_b)
+        assert hit is not None
+        assert hit["cached"] is True
+        assert hit["tokens_used"] == 0
+        assert ClinicalQueryCache.stats()["hits"] == 1
+        assert ClinicalQueryCache.stats()["estimated_tokens_saved"] == 600
+
+    def test_extended_vitals_extraction_glu_eva_gcs(self):
+        text = "Paciente con glucometria de 380 mg/dl, dolor 9 sobre 10 y glasgow de 14 sobre 15"
+        compact, structured = ClinicalTranscriptCompressor.extract_vitals(text)
+        assert any("GLU: 380 mg/dL" in v for v in compact)
+        assert any("EVA: 9/10" in v for v in compact)
+        assert any("GCS: 14/15" in v for v in compact)
+        assert structured["glucose"] == 380
+        assert structured["eva"] == 9
+        assert structured["gcs"] == 14

@@ -2,11 +2,12 @@ import re
 import unicodedata
 from typing import Dict, Any, List, Tuple, Optional
 
-# Expresiones regulares para muletillas y ruido conversacional en consultas de voz
+# Expresiones regulares para muletillas, redundancias y ruido conversacional en consultas de voz
 FILLER_PATTERNS = [
     r"\b(eh+|eh+m+|este+|mmm+|ah+|oh+|uh+)\b",
-    r"\b(o sea|digamos que|por decirlo asi|bueno|como le digo|como le explicaba|mire doctor|mire doctora|buenas tardes|buenos dias)\b",
-    r"\b(pues nada|la verdad es que|como le venia diciendo|segun parece|por asi decirlo)\b",
+    r"\b(o sea|digamos que|por decirlo asi|bueno|como le digo|como le explicaba|mire doctor|mire doctora|buenas tardes|buenos dias|buenas noches|hola doctor|hola doctora)\b",
+    r"\b(pues nada|la verdad es que|como le venia diciendo|segun parece|por asi decirlo|si me entiende|usted sabe|como quien dice|la cosa es que|le cuento que|imaginese que)\b",
+    r"\b(yo estaba en la casa y|entonces vine a ver si|a ver que me dice|a ver si me manda|desde hace rato|hace unos dias por ahi)\b",
     r"\s{2,}",
 ]
 
@@ -32,17 +33,30 @@ VITAL_PATTERNS = {
     "respiratory_rate": [
         (r"\b(?:frecuencia respiratoria|fr|respiraciones)\s*(?:de)?\s*([0-9]{1,2})\s*(?:rpm|respiraciones|por minuto)?\b", "FR: {0} rpm"),
         (r"\b([0-9]{1,2})\s*(?:respiraciones por minuto|rpm|respiraciones)\b", "FR: {0} rpm"),
+    ],
+    "glucose": [
+        (r"\b(?:glucometria|azucar|glucemia|dextrostix)\s*(?:de)?\s*([0-9]{2,3})\s*(?:mg\/dl)?\b", "GLU: {0} mg/dL"),
+    ],
+    "pain_scale": [
+        (r"\b(?:dolor|eva)\s*(?:de)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*10\b", "EVA: {0}/10"),
+    ],
+    "glasgow": [
+        (r"\b(?:glasgow|gcs)\s*(?:de)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*15\b", "GCS: {0}/15"),
     ]
 }
 
 # Banderas rojas clinicas criticas
 RED_FLAGS = [
-    (r"\b(paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado)\b", "Riesgo Vital Inmediato"),
-    (r"\b(dolor (?:en el|de) pecho|dolor toracico|opresion precordial|irradia.*brazo)\b", "Sospecha Síndrome Coronario Agudo"),
-    (r"\b(convulsion|convulsionando|estatus convulsivo)\b", "Convulsión en Curso"),
-    (r"\b(dificultad respiratoria severa|asfixia|ahogo severo|cianosis)\b", "Insuficiencia Respiratoria Aguda"),
-    (r"\b(hemorragia masiva|desangrando|sangrado profuso|amputacion)\b", "Hemorragia Exanguinante"),
-    (r"\b(parto expulsivo|coronando|bebe naciendo)\b", "Parto Inminente")
+    (r"\b(paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado|sin responder)\b", "Riesgo Vital Inmediato"),
+    (r"\b(dolor (?:en el|de) pecho|dolor toracico|opresion precordial|irradia.*brazo|irradia.*mandibula)\b", "Sospecha Síndrome Coronario Agudo"),
+    (r"\b(asimetria facial|boca torcida|medio cuerpo dormido|hemiparesia|afasia|no puede hablar bien|disartria)\b", "Sospecha ACV / Déficit Neurológico Agudo"),
+    (r"\b(convulsion|convulsionando|estatus convulsivo|crisis epileptica)\b", "Convulsión en Curso"),
+    (r"\b(dificultad respiratoria severa|asfixia|ahogo severo|cianosis|tirajes severos)\b", "Insuficiencia Respiratoria Aguda"),
+    (r"\b(hemorragia masiva|desangrando|sangrado profuso|amputacion|sangrado arterial)\b", "Hemorragia Exanguinante"),
+    (r"\b(parto expulsivo|coronando|bebe naciendo|cabeza asomando)\b", "Parto Inminente"),
+    (r"\b(abdomen en tabla|defensa involuntaria|irritacion peritoneal|peritonitis)\b", "Abdomen Agudo Peritoneal"),
+    (r"\b(quemadura quimica ojo|acido en el ojo|ojo perforado)\b", "Emergencia Oftalmológica Aguda"),
+    (r"\b(sangrado.*embaraz\w*|embarazada.*sangr\w*|metrorragia)\b", "Hemorragia Obstétrica")
 ]
 
 
@@ -54,7 +68,7 @@ def _strip_accents(text: str) -> str:
 class ClinicalTranscriptCompressor:
     """
     Optimizador y compresor determinista de transcripciones clinicas.
-    Elimina ruido conversacional, extrae y compacta signos vitales, detecta alertas
+    Elimina ruido conversacional, extrae y compacta constantes vitales, detecta alertas
     criticas y maximiza la densidad informativa del prompt para reducir consumo de tokens.
     """
 
@@ -127,39 +141,67 @@ class ClinicalTranscriptCompressor:
                 parsed_vitals["respiratory_rate"] = int(rr)
                 break
 
+        # Glucometria
+        for pat, fmt in VITAL_PATTERNS["glucose"]:
+            match = re.search(pat, norm_text)
+            if match:
+                glu = match.group(1)
+                compact_vitals.append(fmt.format(glu))
+                parsed_vitals["glucose"] = int(glu)
+                break
+
+        # Escala del dolor EVA
+        for pat, fmt in VITAL_PATTERNS["pain_scale"]:
+            match = re.search(pat, norm_text)
+            if match:
+                eva = match.group(1)
+                compact_vitals.append(fmt.format(eva))
+                parsed_vitals["eva"] = int(eva)
+                break
+
+        # Glasgow
+        for pat, fmt in VITAL_PATTERNS["glasgow"]:
+            match = re.search(pat, norm_text)
+            if match:
+                gcs = match.group(1)
+                compact_vitals.append(fmt.format(gcs))
+                parsed_vitals["gcs"] = int(gcs)
+                break
+
         return compact_vitals, parsed_vitals
 
     @classmethod
     def detect_red_flags(cls, text: str) -> List[str]:
-        """Identifica banderas rojas de emergencia medica inmediata."""
-        norm_text = _strip_accents(text)
+        """Identifica signos de alarma clinica de maxima criticidad."""
+        norm = _strip_accents(text)
         detected = []
-        for pat, alert in RED_FLAGS:
-            if re.search(pat, norm_text):
-                detected.append(alert)
-        return list(dict.fromkeys(detected))
+        for pat, label in RED_FLAGS:
+            if re.search(pat, norm, flags=re.IGNORECASE):
+                if label not in detected:
+                    detected.append(label)
+        return detected
 
     @classmethod
     def process(cls, transcript: str) -> Dict[str, Any]:
         """
-        Ejecuta el pipeline completo de pre-procesamiento clinico y compresion de entrada.
+        Ejecuta el pipeline de compresion y enriquecimiento clinico sobre la transcripcion.
+        Calcula la tasa de reduccion de caracteres y prepara la estructura densa.
         """
-        raw_text = transcript.strip()
-        cleaned_text = cls.clean_filler_words(raw_text)
-        compact_vitals, structured_vitals = cls.extract_vitals(raw_text)
-        red_flags = cls.detect_red_flags(raw_text)
+        original_len = len(transcript)
+        cleaned = cls.clean_filler_words(transcript)
+        compact_vitals, structured_vitals = cls.extract_vitals(transcript)
+        red_flags = cls.detect_red_flags(transcript)
 
-        # Calculo de tasa de compresion
-        orig_chars = len(raw_text)
-        clean_chars = len(cleaned_text)
-        char_reduction_pct = round(max(0.0, (orig_chars - clean_chars) / max(1, orig_chars)) * 100, 1)
+        cleaned_len = len(cleaned)
+        reduction = 0.0
+        if original_len > 0 and cleaned_len < original_len:
+            reduction = round(((original_len - cleaned_len) / original_len) * 100, 1)
 
         return {
-            "original_transcript": raw_text,
-            "cleaned_transcript": cleaned_text,
+            "original_transcript": transcript,
+            "cleaned_transcript": cleaned,
             "compact_vitals": compact_vitals,
             "structured_vitals": structured_vitals,
             "red_flags": red_flags,
-            "reduction_percentage": char_reduction_pct,
-            "is_emergency": len(red_flags) > 0 or structured_vitals.get("spo2", 100) < 90 or structured_vitals.get("bp_sys", 120) >= 180
+            "reduction_percentage": reduction
         }

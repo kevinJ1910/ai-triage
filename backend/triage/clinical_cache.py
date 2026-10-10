@@ -1,14 +1,15 @@
 import re
 import time
+import copy
 import hashlib
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 
 from django.core.cache import cache
 
 from .clinical_protocol import _normalize_text
 
 # Palabras cortas que invierten o modifican el sentido clinico y nunca se descartan.
-_SEMANTIC_SHORT_WORDS = {"no", "sin", "ni", "nunca", "nada", "niega", "poco", "muy", "mas", "ya"}
+_SEMANTIC_SHORT_WORDS = {"no", "sin", "ni", "nunca", "nada", "niega", "poco", "muy", "mas", "ya", "bajo", "alto"}
 
 # Campos que identifican al paciente: jamas se guardan en cache ni se comparten entre casos.
 _PATIENT_SCOPED_KEYS = ("patientInfo",)
@@ -21,7 +22,40 @@ _COUNTER_KEYS = {
     "misses": "clinical_cache:misses",
     "tokens_saved": "clinical_cache:tokens_saved",
 }
-_MAX_ENTRIES = 5000
+_MAX_ENTRIES = 10000
+
+# Lemas semanticos canonicos para maximizar la tasa de acierto del cache sin perdida de precision
+CANONICAL_CLINICAL_LEMMAS: List[Tuple[str, str]] = [
+    # Cefalea / cabeza
+    (r"\b(dolor de cabeza|dolor en la cabeza|jaqueca|migrana|puntadas en la cabeza)\b", "cefalea"),
+    # Dolor toracico
+    (r"\b(dolor en el pecho|dolor de pecho|opresion en el pecho|opresion toracica|punzada en el pecho|dolor precordial)\b", "dolortoracico"),
+    # Disnea / respiracion
+    (r"\b(falta de aire|dificultad para respirar|no puedo respirar|dificultad respiratoria|ahogo|fatiga al respirar)\b", "disnea"),
+    # Disuria / urinario
+    (r"\b(ardor al orinar|dolor al orinar|chistata|infeccion urinaria|quema al orinar|molestia para orinar)\b", "disuria"),
+    # Abdominal / digestivo
+    (r"\b(dolor de estomago|dolor de barriga|dolor de panza|dolor en el abdomen|retorcijones|dolor abdominal)\b", "dolorabdominal"),
+    # Respiratorio alto / gripa
+    (r"\b(gripe|resfriado|congestion nasal|nariz tapada|catarro|cuadro gripal)\b", "gripa"),
+    # Garganta / odinofagia
+    (r"\b(dolor de garganta|ardor de garganta|carraspeo|infeccion en la garganta|dolor al tragar)\b", "odinofagia"),
+    # Nauseas y vomito
+    (r"\b(ganas de vomitar|nauseas|vomitando|arcadas)\b", "vomito"),
+    # Diarrea
+    (r"\b(soltura|estomago suelto|cagadera|evacuaciones liquidas|deposiciones liquidas)\b", "diarrea"),
+    # Lumbar
+    (r"\b(dolor de espalda baja|dolor de cintura|dolor lumbar|lumbago|tiron en la espalda)\b", "lumbalgia"),
+    # Mareo / vertigo
+    (r"\b(todo le da vueltas|mareo fuerte|inestabilidad al caminar|vertigo severo)\b", "vertigo"),
+    # Tramites administrativos
+    (r"\b(renovar formula|renovacion de medicamentos|receta medica|orden de medicamentos|pedir formula)\b", "formulacion"),
+    (r"\b(lectura de examenes|mostrar examenes|resultados de laboratorio|ver laboratorios|revisar examenes)\b", "lecturaexamenes"),
+]
+
+# Cache L1 en memoria de proceso (ultrarrapido < 0.1ms)
+_L1_CACHE: Dict[str, Tuple[Dict[str, Any], float]] = {}
+_L1_MAX_SIZE = 1000
 
 
 def _incr(name: str, amount: int = 1) -> None:
@@ -30,20 +64,18 @@ def _incr(name: str, amount: int = 1) -> None:
     try:
         cache.incr(key, amount)
     except ValueError:
-        # La clave expiro o fue borrada entre add e incr: se reinicia el contador.
         cache.set(key, amount, timeout=None)
 
 
 class ClinicalQueryCache:
     """
     Cache semantico y canonico de consultas de triaje clinico.
-    Evita invocar el LLM para cuadros clinicos identicos o equivalentes,
-    reduciendo a 0 el consumo de tokens y respondiendo en pocos milisegundos.
+    Evita invocar el LLM para cuadros clinicos identicos o semanticamente equivalentes,
+    reduciendo a 0 el consumo de tokens y respondiendo en tiempo sub-milisegundo.
 
-    Vive en la cache de Django (Redis en Docker), compartida por el proceso web y los workers,
-    de modo que las entradas y la telemetria son las mismas en todos los procesos.
-    Solo almacena la parte clinica del resultado (triaje, entidades, confianza);
-    los datos del paciente deben extraerse de nuevo en cada consulta.
+    Arquitectura L1/L2:
+    - Nivel 1 (L1): Diccionario LRU en memoria local (< 0.1 ms).
+    - Nivel 2 (L2): Cache distribuida en Redis compartida entre gunicorn y workers celery (< 2 ms).
     """
 
     @staticmethod
@@ -60,11 +92,16 @@ class ClinicalQueryCache:
     def generate_fingerprint(cls, cleaned_transcript: str, structured_vitals: Optional[Dict[str, Any]] = None) -> str:
         """
         Genera una firma hash representativa del cuadro clinico.
-        Conserva el orden de las palabras y las negaciones ("no", "sin"), porque
-        "no tiene dolor de pecho" y "tiene dolor de pecho" son cuadros distintos.
-        Los signos vitales ausentes se codifican como 'na', nunca como normales.
+        Aplica lematizacion canonica para agrupar expresiones semanticamente identicas
+        (ej. 'dolor de cabeza' y 'cefalea' producen el mismo fingerprint),
+        preservando el orden y las negaciones ('no', 'sin', 'niega').
         """
         norm_text = _normalize_text(cleaned_transcript)
+
+        # Canonicalizacion semantica de lemas clinicos
+        for pat, canonical in CANONICAL_CLINICAL_LEMMAS:
+            norm_text = re.sub(pat, canonical, norm_text)
+
         tokens = re.findall(r"[a-z0-9]+", norm_text)
         words = [w for w in tokens if len(w) > 3 or w in _SEMANTIC_SHORT_WORDS]
 
@@ -75,6 +112,8 @@ class ClinicalQueryCache:
             "hr:" + cls._bucket(v.get("heart_rate"), [(50, "low"), (100, "norm"), (130, "high")]),
             "rr:" + cls._bucket(v.get("respiratory_rate"), [(12, "low"), (21, "norm"), (30, "high")]),
             "t:" + cls._bucket(v.get("temperature"), [(36.0, "low"), (38.0, "norm"), (39.5, "high")]),
+            "glu:" + cls._bucket(v.get("glucose"), [(70, "low"), (140, "norm"), (250, "high")]),
+            "eva:" + cls._bucket(v.get("eva"), [(4, "mild"), (7, "mod"), (11, "sev")]),
         ])
 
         canonical_str = " ".join(words) + "||" + vitals_repr
@@ -82,7 +121,24 @@ class ClinicalQueryCache:
 
     @classmethod
     def get(cls, fingerprint: str) -> Optional[Dict[str, Any]]:
-        """Recupera el resultado de clasificacion cacheado si no ha expirado."""
+        """Recupera el resultado de clasificacion cacheado consultando L1 y L2."""
+        now = time.time()
+
+        # 1. Chequeo rapido L1 (Memoria de proceso)
+        if fingerprint in _L1_CACHE:
+            entry_data, exp_time = _L1_CACHE[fingerprint]
+            if exp_time > now:
+                _incr("hits")
+                _incr("tokens_saved", entry_data.get("estimated_tokens", 850))
+                res = copy.deepcopy(entry_data["data"])
+                res["cached"] = True
+                res["engine_used"] = "Cache Semántico de Consultas (L1 In-Memory)"
+                res["tokens_used"] = 0
+                return res
+            else:
+                _L1_CACHE.pop(fingerprint, None)
+
+        # 2. Chequeo L2 (Redis)
         entry = cache.get(_ENTRY_KEY.format(fingerprint))
         if entry is None:
             _incr("misses")
@@ -90,8 +146,12 @@ class ClinicalQueryCache:
 
         _incr("hits")
         _incr("tokens_saved", entry.get("estimated_tokens", 850))
-        # La cache serializa los valores: el resultado ya es una copia independiente.
-        result = entry["data"]
+
+        # Poblar L1
+        if len(_L1_CACHE) < _L1_MAX_SIZE:
+            _L1_CACHE[fingerprint] = (copy.deepcopy(entry), now + 3600)
+
+        result = copy.deepcopy(entry["data"])
         result["cached"] = True
         result["engine_used"] = "Cache Semántico de Consultas"
         result["tokens_used"] = 0
@@ -99,16 +159,24 @@ class ClinicalQueryCache:
 
     @classmethod
     def set(cls, fingerprint: str, result: Dict[str, Any], ttl_seconds: int = 86400, estimated_tokens: int = 850) -> None:
-        """Almacena el resultado validado en cache con tiempo de vida (TTL)."""
+        """Almacena el resultado validado en cache L1 y L2 con tiempo de vida (TTL)."""
         now = time.time()
-        clinical_only = {k: v for k, v in result.items() if k not in _PATIENT_SCOPED_KEYS}
+        clinical_only = copy.deepcopy({k: v for k, v in result.items() if k not in _PATIENT_SCOPED_KEYS})
+        entry = {"data": clinical_only, "estimated_tokens": estimated_tokens}
+
+        # Guardar en L1
+        if len(_L1_CACHE) >= _L1_MAX_SIZE:
+            _L1_CACHE.pop(next(iter(_L1_CACHE)))
+        _L1_CACHE[fingerprint] = (entry, now + ttl_seconds)
+
+        # Guardar en L2
         cache.set(
             _ENTRY_KEY.format(fingerprint),
-            {"data": clinical_only, "estimated_tokens": estimated_tokens},
+            entry,
             timeout=ttl_seconds,
         )
 
-        # El indice solo alimenta la telemetria: una escritura concurrente perdida no afecta al triaje.
+        # Gestion del indice para telemetria
         index = {fp: exp for fp, exp in cls._index().items() if exp > now}
         index[fingerprint] = now + ttl_seconds
         if len(index) > _MAX_ENTRIES:
@@ -125,6 +193,7 @@ class ClinicalQueryCache:
     @classmethod
     def clear(cls) -> None:
         """Limpia todo el almacenamiento del cache y reinicia metricas."""
+        _L1_CACHE.clear()
         cache.delete_many([_ENTRY_KEY.format(fp) for fp in cls._index()] + [_INDEX_KEY, *_COUNTER_KEYS.values()])
 
     @classmethod

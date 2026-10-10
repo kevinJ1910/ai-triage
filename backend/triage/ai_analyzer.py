@@ -229,27 +229,22 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True, allow_llm
 
     # 6. Construccion de Prompt Optimizado con Prioridad Christus Sinergia Salud
     system_instruction = (
-        "Eres un Especialista Médico de Triaje de Urgencias del sistema CHRISTUS SINERGIA Salud "
-        "(Resolución 5596 Ministerio de Salud de Colombia). Tu labor es clasificar rigurosamente la "
-        "gravedad del paciente y extraer entidades clínicas clave dando máxima prioridad a los criterios "
-        "institucionales de Christus Sinergia Salud proporcionados."
+        "Especialista de Triaje de Urgencias CHRISTUS SINERGIA (Res. 5596 Minsalud Colombia). "
+        "Clasifica rigurosamente el nivel de gravedad y extrae entidades clínicas con máxima fidelidad a los criterios institucionales."
     )
 
     pseudonymized = _pseudonymize(cleaned_transcript)
+    vitals_str = ", ".join(compact_vitals) if compact_vitals else "Sin reporte"
+    alerts_str = ", ".join(red_flags) if red_flags else "Sin banderas rojas"
 
     user_prompt = f"""{rag_context_text}
 
-PAUTA CLÍNICA INSTITUCIONAL PREVIA (CHRISTUS SINERGIA SALUD / RESOLUCIÓN 5596):
-- Nivel Base por Reglas: Nivel {rule_baseline['level']} ({rule_baseline['name']})
-- Ventana de Atención: {rule_baseline['attention_time']}
-- Criterio Base: {rule_baseline['justification']}
+PAUTA CLÍNICA BASE (CHRISTUS SINERGIA / RES. 5596):
+Nivel {rule_baseline['level']} ({rule_baseline['name']}) | Ventana: {rule_baseline['attention_time']}
+Criterio: {rule_baseline['justification']}
 
-INSTRUCCIÓN DE PRIORIDAD: Debes tomar la pauta de Christus Sinergia Salud como referencia institucional prioritaria. A menos que identifiques signos adicionales de gravedad o estabilidad en la conversación, confirma o refina esta clasificación conforme a la escala Christus Sinergia Salud (Niveles 1 a 5).
-
-SIGNOS VITALES IDENTIFICADOS: {", ".join(compact_vitals) if compact_vitals else "Ninguno reportado"}
-ALERTAS CLÍNICAS: {", ".join(red_flags) if red_flags else "Ninguna bandera roja inmediata"}
-
-CONSULTA MÉDICA COMPRIMIDA (identificadores seudonimizados):
+SIGNOS VITALES: {vitals_str} | ALERTAS: {alerts_str}
+CONSULTA COMPRIMIDA:
 "{pseudonymized['text']}"
 """
 
