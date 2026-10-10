@@ -78,7 +78,7 @@ class WhisperEngine:
             return cls._instance
 
     def _initialize(self) -> None:
-        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')
+        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'small')
         try:
             from system_settings.models import SystemConfiguration
             cfg = SystemConfiguration.get_solo()
@@ -121,10 +121,29 @@ class WhisperEngine:
                 self.compute_type_used = 'int8'
                 logger.info(f"Modelo fallback CPU (int8) cargado en {time.perf_counter() - start_time:.2f}s")
             except Exception as cpu_err:
-                logger.error(f"Fallo inicializacion de WhisperEngine: {cpu_err}")
-                self.model = None
-                self.device_used = 'unavailable'
-                self.compute_type_used = 'unavailable'
+                if model_size != 'small':
+                    logger.warning(f"Fallo fallback con '{model_size}' ({cpu_err}). Intentando con modelo liviano 'small'.")
+                    try:
+                        self.model = WhisperModel(
+                            'small', 
+                            device='cpu', 
+                            compute_type='int8',
+                            cpu_threads=cpu_threads
+                        )
+                        self.device_used = 'cpu'
+                        self.compute_type_used = 'int8'
+                        model_size = 'small'
+                        logger.info("Modelo de rescate 'small' cargado exitosamente")
+                    except Exception as rescue_err:
+                        logger.error(f"Fallo inicializacion de WhisperEngine: {rescue_err}")
+                        self.model = None
+                        self.device_used = 'unavailable'
+                        self.compute_type_used = 'unavailable'
+                else:
+                    logger.error(f"Fallo inicializacion de WhisperEngine: {cpu_err}")
+                    self.model = None
+                    self.device_used = 'unavailable'
+                    self.compute_type_used = 'unavailable'
         self.model_size_used = model_size
 
     def transcribe_chunk(self, audio_bytes: bytes, session_id: str) -> Dict[str, Any]:
