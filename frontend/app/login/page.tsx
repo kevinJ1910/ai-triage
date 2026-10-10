@@ -353,81 +353,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface-base)] text-slate-100 flex flex-col justify-center items-center p-4 lg:p-8 selection:bg-sky-600 selection:text-white relative overflow-hidden">
-      {/* Background clinical subtle ambient */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 bg-sky-500/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/5 blur-3xl pointer-events-none" />
-
-      {/* Workstation Grid Container */}
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10">
-        {/* Left Column: Clinical Workstation Presentation (visible on lg+) */}
-        <div className="hidden lg:flex lg:col-span-6 flex-col justify-between space-y-8 pr-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-6">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Estacion Clinica Asistencial Conectada
-            </div>
-
-            <h1 className="text-3xl xl:text-4xl font-bold tracking-tight text-white mb-4 leading-tight">
-              AI-Triage Hospitalario
-            </h1>
-
-            <p className="text-sm text-slate-400 leading-relaxed max-w-lg mb-8">
-              Sistema de clasificacion clinica de urgencias y soporte a la decision medica en tiempo real. Estandarizado bajo el Protocolo Manchester y normalizacion terminologica CIE-10 / SNOMED-CT.
-            </p>
-
-            <div className="space-y-3.5 max-w-lg">
-              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
-                <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shrink-0">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-200">Protocolo Manchester R4</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">Clasificacion automatizada en 5 niveles de discriminacion clinica con tiempos objetivo de atencion.</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
-                <div className="p-2.5 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 shrink-0">
-                  <Stethoscope className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-200">Asistencia de Voz e IA Clinica</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">Transcripcion continua Whisper y analisis estructurado con modelos de soporte diagnostico asistencial.</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-200">Seguridad y Trazabilidad HL7 FHIR</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">Control de acceso RBAC estricto, cifrado criptografico en reposo y registro de auditoria inmutable.</p>
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 selection:bg-slate-700 selection:text-white">
+      {/* Hospital Institutional Header */}
+      <header className="w-full max-w-4xl flex items-center justify-between py-4 border-b border-slate-800 text-xs text-slate-400">
+        <div className="flex items-center gap-2.5 font-medium text-slate-200">
+          <div className="w-6 h-6 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-semibold text-xs">
+            +
           </div>
-
-          <div className="pt-6 border-t border-[var(--surface-border)] flex items-center justify-between text-xs text-slate-500">
-            <span>Red Hospitalaria Christus Sinergia</span>
-            <span>Acceso Seguro Restringido</span>
-          </div>
+          <span>Christus Sinergia Salud</span>
+          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="text-slate-400 hidden sm:inline">Servicio de Urgencias y Admision</span>
         </div>
+        <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+          <span>Estacion Asistencial Conectada</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        </div>
+      </header>
 
-        {/* Right Column: Authentication Card */}
-        <div className="w-full lg:col-span-6 bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-3xl shadow-2xl p-6 md:p-8">
+      {/* Main Authentication Box */}
+      <main className="w-full max-w-md my-auto py-8 z-10">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 sm:p-8">
           {/* Header / Logo */}
           <div className="flex flex-col items-center mb-6 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20 text-sky-400 mb-3 shadow-sm">
-              <Activity className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-sky-400 mb-3 shadow-sm">
+              <Activity className="w-5 h-5" />
             </div>
-            <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
-              <span className="lg:hidden">AI-Triage Hospitalario</span>
-              <span className="hidden lg:inline">Autenticacion Institucional</span>
-            </h2>
+            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-white flex items-center gap-2">
+              AI-Triage Hospitalario
+            </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Acceso seguro para personal medico, asistencial y de enfermeria
+              Sistema de Clasificacion Clinica y Soporte a la Decision Medica
             </p>
           </div>
 
@@ -732,16 +687,29 @@ export default function LoginPage() {
             </button>
           </form>
         )}
+
+          {/* Institutional Compliance Disclaimer */}
+          <div className="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-500 leading-relaxed">
+            <p>
+              Acceso restringido a personal de salud autorizado. La informacion clinica esta protegida por secreto profesional y la normatividad vigente de historia clinica.
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Hospital Footer */}
+      <footer className="w-full max-w-4xl py-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+        <span>AI-Triage v2.4 — Sistema Hospitalario de Urgencias</span>
+        <span>Soporte Tecnico: ext. 4100 | soporte@hospital.com</span>
+      </footer>
 
       {/* Modal: OTP Verification */}
       {isVerifyModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-sky-500/10 rounded-xl text-sky-400 border border-sky-500/20">
+                <div className="p-2 bg-slate-800 rounded-lg text-sky-400 border border-slate-700">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <h3 className="font-semibold text-slate-100 text-sm">Verificacion de Seguridad OTP</h3>
@@ -800,11 +768,11 @@ export default function LoginPage() {
 
       {/* Modal: Forgot Password */}
       {isForgotModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-sky-500/10 rounded-xl text-sky-400 border border-sky-500/20">
+                <div className="p-2 bg-slate-800 rounded-lg text-sky-400 border border-slate-700">
                   <KeyRound className="w-5 h-5" />
                 </div>
                 <h3 className="font-semibold text-slate-100 text-sm">Recuperacion de Contrasena</h3>
