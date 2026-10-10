@@ -18,7 +18,9 @@ import {
   CheckCircle2, 
   RefreshCw,
   KeyRound,
-  X
+  X,
+  Stethoscope,
+  Check
 } from 'lucide-react';
 import { 
   validateEmail, 
@@ -351,25 +353,83 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--surface-base)] text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-sky-600 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--surface-base)] text-slate-100 flex flex-col justify-center items-center p-4 lg:p-8 selection:bg-sky-600 selection:text-white relative overflow-hidden">
       {/* Background clinical subtle ambient */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-sky-500/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 bg-sky-500/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/5 blur-3xl pointer-events-none" />
 
-      {/* Main card */}
-      <div className="w-full max-w-lg bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-3xl shadow-2xl p-6 md:p-8 z-10">
-        {/* Header / Logo */}
-        <div className="flex flex-col items-center mb-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20 text-sky-400 mb-3 shadow-sm">
-            <Activity className="w-6 h-6" />
+      {/* Workstation Grid Container */}
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10">
+        {/* Left Column: Clinical Workstation Presentation (visible on lg+) */}
+        <div className="hidden lg:flex lg:col-span-6 flex-col justify-between space-y-8 pr-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-6">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Estacion Clinica Asistencial Conectada
+            </div>
+
+            <h1 className="text-3xl xl:text-4xl font-bold tracking-tight text-white mb-4 leading-tight">
+              AI-Triage Hospitalario
+            </h1>
+
+            <p className="text-sm text-slate-400 leading-relaxed max-w-lg mb-8">
+              Sistema de clasificacion clinica de urgencias y soporte a la decision medica en tiempo real. Estandarizado bajo el Protocolo Manchester y normalizacion terminologica CIE-10 / SNOMED-CT.
+            </p>
+
+            <div className="space-y-3.5 max-w-lg">
+              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shrink-0">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-200">Protocolo Manchester R4</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Clasificacion automatizada en 5 niveles de discriminacion clinica con tiempos objetivo de atencion.</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 shrink-0">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-200">Asistencia de Voz e IA Clinica</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Transcripcion continua Whisper y analisis estructurado con modelos de soporte diagnostico asistencial.</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)] flex items-start gap-3.5 shadow-sm">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-200">Seguridad y Trazabilidad HL7 FHIR</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Control de acceso RBAC estricto, cifrado criptografico en reposo y registro de auditoria inmutable.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
-            AI-Triage Hospitalario
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Sistema de Clasificacion Clinica y Soporte a la Decision Medica
-          </p>
+
+          <div className="pt-6 border-t border-[var(--surface-border)] flex items-center justify-between text-xs text-slate-500">
+            <span>Red Hospitalaria Christus Sinergia</span>
+            <span>Acceso Seguro Restringido</span>
+          </div>
         </div>
+
+        {/* Right Column: Authentication Card */}
+        <div className="w-full lg:col-span-6 bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-3xl shadow-2xl p-6 md:p-8">
+          {/* Header / Logo */}
+          <div className="flex flex-col items-center mb-6 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 flex items-center justify-center border border-sky-500/20 text-sky-400 mb-3 shadow-sm">
+              <Activity className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
+              <span className="lg:hidden">AI-Triage Hospitalario</span>
+              <span className="hidden lg:inline">Autenticacion Institucional</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Acceso seguro para personal medico, asistencial y de enfermeria
+            </p>
+          </div>
 
         {/* Global Notifications */}
         {error && (
@@ -672,6 +732,7 @@ export default function LoginPage() {
             </button>
           </form>
         )}
+        </div>
       </div>
 
       {/* Modal: OTP Verification */}
