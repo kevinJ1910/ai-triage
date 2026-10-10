@@ -26,7 +26,7 @@ Esta revisión actualiza el estado de los hallazgos de la auditoría inicial, co
 | :--- | ---: | ---: |
 | Auditoría inicial (A-01 … A-34) | 33 | 1 |
 | Hallazgos posteriores (N-01 … N-22) | 22 | 0 |
-| Riesgos abiertos de esta revisión (P-01 … P-08) | — | 8 |
+| Riesgos abiertos de esta revisión (P-01 … P-08) | 1 | 7 |
 
 Lo más importante de esta revisión:
 
@@ -144,7 +144,7 @@ Lo más importante de esta revisión:
 | P-05 | MEDIO | **El estado del motor ASR (`asr:engine_status`) no caduca**: si el worker muere de golpe, el panel de configuración muestra un estado obsoleto. | Publicar el estado con TTL y renovarlo periódicamente (heartbeat). |
 | P-06 | MEDIO | **`TriageDashboard.tsx` monolítico** (1.731 líneas, A-20). | Dividirlo en grabador, editor de transcripción, formulario, resultado, historial y exportaciones. |
 | P-07 | BAJO | **Sin verificar en entorno real**: el modo GPU no se ha probado en hardware NVIDIA y el CI no se ha ejecutado aún en GitHub. | Probar el modo GPU y ejecutar el CI tras el push. |
-| P-08 | BAJO | **Perfil cacheado en `localStorage`** para la UI (A-22). | Leer el perfil del estado del shell en lugar de `localStorage`. |
+| P-08 | BAJO | **Perfil cacheado en `localStorage`** para la UI (A-22). | **Resuelto** (`a454b08`): Inyectado directamente como prop `userProfile` desde `AppNavigation` hacia `TriageDashboard`, manteniendo compatibilidad con fallback local. |
 
 ---
 
