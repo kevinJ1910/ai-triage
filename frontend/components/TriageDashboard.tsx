@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, ChevronLeft, Search, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
@@ -149,6 +149,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     if (transcript.length > 0 || analysisResult) {
       setShowNewConsultModal(true);
     } else {
+      setShowHistory(false);
       executeResetConsultation();
     }
   };
@@ -166,6 +167,8 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     setIsVerifyingTranscript(false);
     setSyncStatus('idle');
     setActiveSessionId(null);
+    setShowHistory(false);
+    setSelectedSessionId(null);
     setPatientInfo({
       name: '',
       documentId: '',
@@ -690,23 +693,53 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
         {showHistory ? (
           <div className="h-full flex flex-col min-h-0 overflow-y-auto">
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
-               <h2 className="text-sm font-bold uppercase text-slate-300 tracking-widest flex items-center gap-2">
-                  <History className="w-4 h-4 text-blue-400" />
-                  Sesiones Guardadas ({filteredSessions.length})
-               </h2>
-               <div className="relative">
+               <div className="flex items-center gap-3">
+                 <button
+                   onClick={() => setShowHistory(false)}
+                   className="p-1.5 px-2.5 rounded-xl bg-[var(--surface-card)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] transition-colors flex items-center gap-1.5 text-xs font-medium shadow-xs"
+                   title="Volver a la estación de triaje"
+                 >
+                   <ChevronLeft className="w-3.5 h-3.5" />
+                   <span>Volver</span>
+                 </button>
+                 <h2 className="text-xs sm:text-sm font-semibold text-slate-100 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                      <History className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Sesiones Guardadas ({filteredSessions.length})</span>
+                 </h2>
+               </div>
+               <div className="relative w-full sm:w-72">
+                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                  <input 
                    type="text" 
                    placeholder="Filtrar por paciente o nivel..." 
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
-                   className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-blue-500 transition-colors"
+                   className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl py-1.5 pl-8.5 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all font-sans"
                  />
+                 {searchQuery && (
+                   <button
+                     onClick={() => setSearchQuery('')}
+                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-white"
+                     title="Limpiar filtro"
+                   >
+                     <X className="w-3.5 h-3.5" />
+                   </button>
+                 )}
                </div>
              </div>
              {filteredSessions.length === 0 ? (
-               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded-lg p-6">
-                 No se encontraron sesiones.
+               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)]">
+                 <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                   <History className="w-5 h-5 text-slate-400" />
+                 </div>
+                 <p className="text-xs font-semibold text-slate-300">
+                   No se encontraron sesiones registradas
+                 </p>
+                 <p className="text-[11px] text-slate-400 max-w-sm mt-1 leading-relaxed">
+                   {searchQuery ? 'Ninguna sesión coincide con el término de búsqueda ingresado.' : 'Aún no hay consultas archivadas en el historial local.'}
+                 </p>
                </div>
              ) : (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-max pr-1 scrollbar-thin scrollbar-thumb-slate-700">
@@ -1276,12 +1309,21 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                 {/* Error Banner if triage failed */}
                 {triageError && (
                   <div className="shrink-0 p-3 bg-red-950/70 border border-red-500/70 rounded-lg flex flex-col gap-2 text-red-200">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                      <div className="text-xs">
-                        <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
-                        <span className="text-slate-300">{triageError}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
+                          <span className="text-slate-300">{triageError}</span>
+                        </div>
                       </div>
+                      <button 
+                        onClick={() => setTriageError(null)} 
+                        className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors shrink-0"
+                        title="Cerrar aviso de error"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <div className="flex justify-end gap-2 mt-1">
                       <button
@@ -1764,6 +1806,15 @@ function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   const btnClasses = {
@@ -1773,10 +1824,25 @@ function ConfirmModal({
   }[confirmVariant];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={onCancel}
+    >
+      <div 
+        className="relative bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cerrar modal"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-start gap-3.5 pr-6">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="space-y-1">
