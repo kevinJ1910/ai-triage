@@ -86,7 +86,7 @@ interface TriageSession {
   patientName: string;
   patientInfo?: PatientInfo;
   transcript: { speaker: string, text: string }[];
-  analysisResult: any;
+  analysisResult: AnalysisResult | null;
 }
 
 export default function TriageDashboard() {
