@@ -290,12 +290,9 @@ class ClinicalKnowledgeRAG:
 
         # Si no hubo coincidencias especificas, proveer un marco contextual sintetico
         if not retrieved:
-            retrieved = [
-                CLINICAL_KNOWLEDGE_BASE[1],   # Resp failure (T1)
-                CLINICAL_KNOWLEDGE_BASE[5],   # Chest pain SCA (T2)
-                CLINICAL_KNOWLEDGE_BASE[14],  # Upper resp (T4)
-                CLINICAL_KNOWLEDGE_BASE[18],  # Administrative/routine (T5)
-            ]
+            fallback_ids = ["c1_resp_failure", "c2_chest_pain_sca", "c4_upper_respiratory", "c5_administrative_routine"]
+            id_map = {item["id"]: item for item in CLINICAL_KNOWLEDGE_BASE}
+            retrieved = [id_map[fid] for fid in fallback_ids if fid in id_map]
 
         return retrieved
 
