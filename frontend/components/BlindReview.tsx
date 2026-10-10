@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { EyeOff, RefreshCw, CheckCircle2, Inbox } from 'lucide-react';
+import { EyeOff, RefreshCw, CheckCircle2, Inbox, ShieldCheck, Clock, FileText, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -14,11 +14,11 @@ interface BlindCase {
 }
 
 const LEVELS = [
-  { value: 1, roman: 'I', name: 'Resucitacion', color: 'border-red-500/50 text-red-300 hover:bg-red-500/15' },
-  { value: 2, roman: 'II', name: 'Emergencia', color: 'border-orange-500/50 text-orange-300 hover:bg-orange-500/15' },
-  { value: 3, roman: 'III', name: 'Urgencia', color: 'border-amber-500/50 text-amber-300 hover:bg-amber-500/15' },
-  { value: 4, roman: 'IV', name: 'Urgencia Menor', color: 'border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/15' },
-  { value: 5, roman: 'V', name: 'No Urgente', color: 'border-blue-500/50 text-blue-300 hover:bg-blue-500/15' },
+  { value: 1, roman: 'I', name: 'Resucitacion', color: 'border-red-500/40 text-red-300 hover:bg-red-500/10 hover:border-red-500/60' },
+  { value: 2, roman: 'II', name: 'Emergencia', color: 'border-orange-500/40 text-orange-300 hover:bg-orange-500/10 hover:border-orange-500/60' },
+  { value: 3, roman: 'III', name: 'Urgencia', color: 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/60' },
+  { value: 4, roman: 'IV', name: 'Urgencia Menor', color: 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/60' },
+  { value: 5, roman: 'V', name: 'No Urgente', color: 'border-sky-500/40 text-sky-300 hover:bg-sky-500/10 hover:border-sky-500/60' },
 ];
 
 const GENDER_LABELS: Record<string, string> = { male: 'Masculino', female: 'Femenino', other: 'Otro' };
@@ -94,27 +94,29 @@ export default function BlindReview() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-900 border border-slate-800 rounded-xl p-4 md:p-6 overflow-y-auto space-y-5">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400">
+    <div className="flex flex-col h-full w-full bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 md:p-6 overflow-y-auto space-y-6 shadow-xl backdrop-blur-md">
+      {/* Module Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 bg-sky-500/10 rounded-xl border border-sky-500/20 text-sky-400 shrink-0">
             <EyeOff className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-100">Validación Ciega de Triaje</h1>
-            <p className="text-xs text-slate-400">
+            <h1 className="text-base md:text-lg font-semibold text-slate-100 tracking-tight">Validación Ciega de Triaje</h1>
+            <p className="text-xs text-slate-400 mt-0.5">
               Asigne el nivel según su criterio clínico. No se muestra la propuesta de la IA ni el nivel del médico tratante.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
-            {pendingTotal} pendientes
-          </span>
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950/70 text-slate-300 border border-slate-800 text-xs font-mono">
+            <Clock className="w-3.5 h-3.5 text-sky-400" />
+            <span>{pendingTotal} pendientes</span>
+          </div>
           <button
             onClick={loadQueue}
             disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700/60 transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
@@ -123,63 +125,99 @@ export default function BlindReview() {
       </div>
 
       {loading ? (
-        <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Cargando casos...</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-500 rounded-full animate-spin" />
+          <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Cargando casos...</p>
+        </div>
       ) : error ? (
-        <p role="alert" className="text-sm text-amber-300">{error}</p>
+        <div role="alert" className="p-4 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 text-sm">
+          {error}
+        </div>
       ) : !current ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-16 text-slate-400">
-          <Inbox className="w-8 h-8" />
-          <p className="text-sm">No hay casos pendientes de adjudicación.</p>
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-slate-400">
+          <div className="p-3 bg-slate-800/40 rounded-full border border-slate-800">
+            <Inbox className="w-8 h-8 text-slate-500" />
+          </div>
+          <p className="text-sm font-medium text-slate-300">No hay casos pendientes de adjudicación.</p>
+          <p className="text-xs text-slate-500">Todos los triajes activos cuentan con evaluación de referencia.</p>
         </div>
       ) : (
-        <div className="space-y-5">
-          <div className="flex flex-wrap gap-2 text-[11px] font-mono text-slate-300">
-            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">Caso #{current.id}</span>
-            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">{current.date}</span>
-            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">
-              {GENDER_LABELS[current.gender] || 'Sexo no registrado'}
-            </span>
-            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">
-              {current.age != null ? `${current.age} años` : 'Edad no registrada'}
-            </span>
+        <div className="space-y-6 max-w-4xl">
+          {/* Patient case metadata bar */}
+          <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 font-mono">
+              <span className="text-slate-500">CASO</span>
+              <span className="font-semibold text-sky-400">#{current.id}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+              <span className="text-slate-500">FECHA</span>
+              <span>{current.date}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+              <span className="text-slate-500">SEXO</span>
+              <span>{GENDER_LABELS[current.gender] || 'Sexo no registrado'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+              <span className="text-slate-500">EDAD</span>
+              <span>{current.age != null ? `${current.age} años` : 'Edad no registrada'}</span>
+            </div>
           </div>
 
-          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Transcripción de la consulta</h2>
-            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
+          {/* Clinical Transcript Record Card */}
+          <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5 shadow-inner">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800/60">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-sky-400" />
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300">Transcripción de la consulta</h2>
+              </div>
+              <span className="text-[11px] text-slate-500 font-mono">Registro Clínico de Voz</span>
+            </div>
+            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed font-sans bg-slate-900/40 p-4 rounded-xl border border-slate-800/40">
               {current.transcript || 'Sin transcripción registrada.'}
             </p>
           </div>
 
-          <fieldset>
-            <legend className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Nivel de referencia</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-              {LEVELS.map((lvl) => (
-                <button
-                  key={lvl.value}
-                  type="button"
-                  aria-pressed={selected === lvl.value}
-                  onClick={() => setSelected(lvl.value)}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-3 rounded-lg border bg-slate-950/50 transition-colors ${lvl.color} ${
-                    selected === lvl.value ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-indigo-400' : ''
-                  }`}
-                >
-                  <span className="text-lg font-black font-mono">{lvl.roman}</span>
-                  <span className="text-[11px]">{lvl.name}</span>
-                </button>
-              ))}
+          {/* Level adjudication grid */}
+          <fieldset className="space-y-3">
+            <legend className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-sky-400" />
+              <span>Nivel de referencia</span>
+            </legend>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {LEVELS.map((lvl) => {
+                const isSelected = selected === lvl.value;
+                return (
+                  <button
+                    key={lvl.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setSelected(lvl.value)}
+                    className={`flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-xl border bg-slate-950/70 transition-all ${lvl.color} ${
+                      isSelected ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-sky-400 scale-[1.02] shadow-lg' : 'hover:scale-[1.01]'
+                    }`}
+                  >
+                    <span className="text-xl font-bold font-mono tracking-tight">{lvl.roman}</span>
+                    <span className="text-xs font-medium">{lvl.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </fieldset>
 
-          <button
-            onClick={submit}
-            disabled={selected == null || submitting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg text-sm font-semibold transition-colors"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            {submitting ? 'Registrando...' : 'Registrar nivel de referencia'}
-          </button>
-          <p className="text-[11px] text-slate-400">El nivel registrado es definitivo y queda en la auditoría.</p>
+          {/* Submission Action */}
+          <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <button
+              onClick={submit}
+              disabled={selected == null || submitting}
+              className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:border-slate-800 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-sky-600/20"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{submitting ? 'Registrando...' : 'Registrar nivel de referencia'}</span>
+            </button>
+            <p className="text-[11px] text-slate-400">
+              El nivel registrado es definitivo e inmutable para garantizar la trazabilidad del estudio.
+            </p>
+          </div>
         </div>
       )}
     </div>
