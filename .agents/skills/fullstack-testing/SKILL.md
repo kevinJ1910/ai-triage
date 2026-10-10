@@ -1,4 +1,4 @@
-﻿---
+---
 name: fullstack-testing
 description: >-
   Estandar y guia de ejecucion de pruebas automatizadas para el proyecto AI-Triage,
