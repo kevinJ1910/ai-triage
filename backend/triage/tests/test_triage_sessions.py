@@ -563,3 +563,69 @@ class TestTriageSessions:
         # El respaldo no intenta llamar a Gemini desde el proceso web
         resolve_key.assert_not_called()
 
+    def test_release_box_frees_patient_and_audits(self):
+        from accounts.models import AuditLog
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=2,
+            ai_level=2,
+            final_level=2,
+            assigned_box="BOX-02",
+            care_status="En Atencion",
+            justification="Paciente para liberar"
+        )
+        response = self.client.post(
+            f"/api/triage/sessions/{session.id}/release_box/",
+            {"status": "Alta Medica"},
+            format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        session.refresh_from_db()
+        assert session.assigned_box == ""
+        assert session.care_status == "Alta Medica"
+        assert AuditLog.objects.filter(action="EMR_BOX_RELEASED").count() == 1
+
+    def test_boxes_census_and_management_lifecycle(self):
+        # 1. Consultar censo inicial
+        census_res = self.client.get("/api/triage/sessions/boxes_census/")
+        assert census_res.status_code == status.HTTP_200_OK
+        assert "boxes" in census_res.data
+        assert "summary" in census_res.data
+        assert census_res.data["summary"]["total"] >= 10
+
+        # 2. Crear nuevo box personalizado
+        create_res = self.client.post(
+            "/api/triage/sessions/manage_boxes/",
+            {
+                "action": "create",
+                "code": "BOX-TEST-99",
+                "area": "Urgencias Pediatria",
+                "type": "Cuna Hospitalaria",
+                "equipment": "Monitor neonatal"
+            },
+            format="json"
+        )
+        assert create_res.status_code == status.HTTP_201_CREATED
+        assert create_res.data["box"]["code"] == "BOX-TEST-99"
+
+        # 3. Cambiar estado operativo (ej. desinfeccion)
+        state_res = self.client.post(
+            "/api/triage/sessions/manage_boxes/",
+            {"action": "update_state", "code": "BOX-TEST-99", "state": "En Desinfeccion"},
+            format="json"
+        )
+        assert state_res.status_code == status.HTTP_200_OK
+
+        # 4. Verificar en el censo que aparece en desinfeccion
+        updated_census = self.client.get("/api/triage/sessions/boxes_census/")
+        box_item = next(b for b in updated_census.data["boxes"] if b["code"] == "BOX-TEST-99")
+        assert box_item["status"] == "En Desinfeccion"
+
+        # 5. Eliminar box personalizado
+        del_res = self.client.post(
+            "/api/triage/sessions/manage_boxes/",
+            {"action": "delete", "code": "BOX-TEST-99"},
+            format="json"
+        )
+        assert del_res.status_code == status.HTTP_200_OK
+

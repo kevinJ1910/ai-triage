@@ -466,6 +466,169 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "status": status_str
         })
 
+    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
+    def release_box(self, request, pk=None):
+        """
+        Libera el box asignado al paciente y actualiza su estado asistencial
+        (por defecto 'Alta Medica').
+        """
+        session = self.get_object()
+        status_str = request.data.get('status', 'Alta Medica')
+        old_box = session.assigned_box or 'Sin Box'
+        session.assigned_box = ''
+        session.care_status = status_str
+        session.save(update_fields=['assigned_box', 'care_status'])
+
+        AuditLog.objects.create(
+            user=request.user,
+            action="EMR_BOX_RELEASED",
+            resource=f"TriageSession:{session.id}",
+            status="SUCCESS",
+            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+            details=f"Box {old_box} liberado. Estado: {status_str} (Paciente {session.patient.document_id})"
+        )
+
+        return Response({
+            "message": f"Box {old_box} liberado exitosamente. Estado: {status_str}",
+            "session_id": session.id,
+            "patient_id": session.patient.id,
+            "assigned_box": "",
+            "status": status_str
+        })
+
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
+    def boxes_census(self, request):
+        """
+        Retorna el censo hospitalario de boxes y camillas con ocupacion en tiempo real.
+        """
+        from django.core.cache import cache
+        custom_boxes = cache.get('emr_custom_boxes') or []
+        box_states = cache.get('emr_box_operational_states') or {}
+
+        default_boxes = [
+            {"code": "REAN-01", "area": "Reanimacion", "type": "Box Vital", "equipment": "Monitor invasivo, Desfibrilador, Ventilador"},
+            {"code": "REAN-02", "area": "Reanimacion", "type": "Box Vital", "equipment": "Monitor invasivo, Carro de paro"},
+            {"code": "BOX-01", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
+            {"code": "BOX-02", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
+            {"code": "BOX-03", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
+            {"code": "BOX-04", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
+            {"code": "BOX-05", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
+            {"code": "BOX-06", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
+            {"code": "SALA-OBSERVACION", "area": "Observacion", "type": "Cama Hospitalaria", "equipment": "Toma de oxigeno, Succion"},
+            {"code": "AISL-01", "area": "Aislamiento", "type": "Box Presion Negativa", "equipment": "Filtro HEPA, Monitor de signos"},
+        ]
+
+        all_boxes_dict = {b["code"]: b for b in default_boxes}
+        for cb in custom_boxes:
+            all_boxes_dict[cb["code"]] = cb
+
+        active_sessions = (TriageSession.objects
+                           .exclude(assigned_box='')
+                           .exclude(care_status__icontains='Alta')
+                           .select_related('patient')
+                           .order_by('-created_at'))
+
+        occupied_map = {}
+        for s in active_sessions:
+            if s.assigned_box not in occupied_map:
+                occupied_map[s.assigned_box] = {
+                    "session_id": s.id,
+                    "patient_id": s.patient.id,
+                    "patient_name": s.patient.full_name or f"Paciente {s.patient.document_id}",
+                    "document_id": s.patient.document_id,
+                    "triage_level": s.final_level,
+                    "care_status": s.care_status,
+                    "admission_time": local_strftime(s.created_at, '%H:%M:%S'),
+                }
+
+        results = []
+        for code, b in all_boxes_dict.items():
+            occupant = occupied_map.get(code)
+            operational_state = box_states.get(code, 'Libre')
+
+            if occupant:
+                status_val = 'Ocupado'
+            elif operational_state == 'En Desinfeccion':
+                status_val = 'En Desinfeccion'
+            elif operational_state == 'Mantenimiento':
+                status_val = 'Mantenimiento'
+            else:
+                status_val = 'Libre'
+
+            results.append({
+                "code": code,
+                "area": b.get("area", "Boxes Generales"),
+                "type": b.get("type", "Camilla Urgencias"),
+                "equipment": b.get("equipment", ""),
+                "status": status_val,
+                "occupant": occupant,
+                "is_custom": b.get("is_custom", False)
+            })
+
+        total = len(results)
+        occupied_count = sum(1 for r in results if r["status"] == "Ocupado")
+        cleaning_count = sum(1 for r in results if r["status"] == "En Desinfeccion")
+        available_count = sum(1 for r in results if r["status"] == "Libre")
+
+        return Response({
+            "boxes": results,
+            "summary": {
+                "total": total,
+                "occupied": occupied_count,
+                "available": available_count,
+                "cleaning": cleaning_count,
+                "occupancy_rate": round((occupied_count / total * 100) if total > 0 else 0, 1)
+            }
+        })
+
+    @action(detail=False, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
+    def manage_boxes(self, request):
+        """
+        Permite registrar nuevos boxes o actualizar el estado operativo de un box existente.
+        """
+        from django.core.cache import cache
+        action_type = request.data.get('action')
+
+        if action_type == 'create':
+            code = (request.data.get('code') or '').strip().upper()
+            if not code:
+                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+            area = request.data.get('area', 'Boxes Generales')
+            box_type = request.data.get('type', 'Camilla Urgencias')
+            equipment = request.data.get('equipment', '')
+
+            custom_boxes = cache.get('emr_custom_boxes') or []
+            if any(b["code"] == code for b in custom_boxes):
+                return Response({"error": f"El box {code} ya existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+            new_box = {
+                "code": code,
+                "area": area,
+                "type": box_type,
+                "equipment": equipment,
+                "is_custom": True
+            }
+            custom_boxes.append(new_box)
+            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
+            return Response({"message": f"Box {code} creado exitosamente.", "box": new_box}, status=status.HTTP_201_CREATED)
+
+        elif action_type == 'update_state':
+            code = (request.data.get('code') or '').strip().upper()
+            new_state = request.data.get('state', 'Libre')
+            box_states = cache.get('emr_box_operational_states') or {}
+            box_states[code] = new_state
+            cache.set('emr_box_operational_states', box_states, timeout=None)
+            return Response({"message": f"Estado del box {code} actualizado a {new_state}."})
+
+        elif action_type == 'delete':
+            code = (request.data.get('code') or '').strip().upper()
+            custom_boxes = cache.get('emr_custom_boxes') or []
+            custom_boxes = [b for b in custom_boxes if b["code"] != code]
+            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
+            return Response({"message": f"Box {code} eliminado exitosamente."})
+
+        return Response({"error": "Accion no reconocida."}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewFHIR])
     def fhir_logs(self, request):
         """

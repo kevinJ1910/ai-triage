@@ -82,6 +82,7 @@ services:
     environment:
       <<: *backend-env
     volumes:
+      - ./backend:/app
       - audio_uploads:/app/media
     networks:
       - ai_triage_network
