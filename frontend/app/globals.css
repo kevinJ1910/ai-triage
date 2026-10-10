@@ -1,2 +1,101 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-disp: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Clinical Depth Tokens */
+  --surface-base: #0b1120;
+  --surface-panel: #0f172a;
+  --surface-card: #1e293b;
+  --surface-card-hover: #273549;
+  --border-subtle: rgba(148, 163, 184, 0.12);
+  --border-medium: rgba(148, 163, 184, 0.22);
+
+  /* Medical Accents */
+  --clinical-blue: #0284c7;
+  --clinical-teal: #0d9488;
+  --clinical-emerald: #10b981;
+  --clinical-amber: #f59e0b;
+  --clinical-orange: #ea580c;
+  --clinical-red: #dc2626;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+}
+
+/* Base styles and antialiasing */
+html, body {
+  background-color: var(--surface-base);
+  color: #f1f5f9;
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Clinical Glass and Card utilities */
+.glass-panel {
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.clinical-card {
+  background-color: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.clinical-card:hover {
+  border-color: var(--border-medium);
+  background-color: rgba(30, 41, 59, 0.85);
+}
+
+/* Subtle micro-animations */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(0.98);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes wave-bar {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 24px;
+  }
+}
+
+.animate-wave-bar {
+  animation: wave-bar 1.2s ease-in-out infinite;
+}
