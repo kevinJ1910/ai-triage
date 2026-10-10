@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RefreshCw, ArrowRight, Check, Copy, Sparkles, BookOpen, AlertCircle, Database } from 'lucide-react';
+import { RefreshCw, ArrowRight, Check, Copy, BookOpen, AlertCircle, Database, FileCheck, Stethoscope } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 
 interface MappingItem {
@@ -89,20 +89,21 @@ export default function NormalizationMonitor() {
   }) || [];
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-purple-500/10 rounded-xl border border-purple-500/20 text-purple-400">
+    <div className="flex flex-col h-full w-full bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 md:p-6 overflow-y-auto space-y-6 shadow-xl backdrop-blur-md">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 text-teal-400 shrink-0">
             <RefreshCw className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-              Motor de Normalizacion Clinica
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <h1 className="text-base md:text-lg font-semibold text-slate-100 flex items-center gap-2.5 flex-wrap">
+              <span>Motor de Normalizacion Clinica</span>
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20 font-medium">
                 SNOMED-CT / CIE-10
               </span>
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 mt-0.5">
               Conversion semantica de relatos coloquiales a terminologia medica estructurada de urgencias.
             </p>
           </div>
@@ -110,21 +111,24 @@ export default function NormalizationMonitor() {
 
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full font-medium">
-            <Database className="w-3.5 h-3.5" /> Ontologia Activa
+            <Database className="w-3.5 h-3.5" />
+            <span>Ontologia Activa</span>
           </span>
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* Preset selection bar */}
+      <div className="space-y-2.5">
         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-slate-400" /> Casos Clinicos Predefinidos:
+          <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+          <span>Casos Clinicos Predefinidos:</span>
         </label>
         <div className="flex flex-wrap gap-2">
           {PRESET_CASES.map((preset, idx) => (
             <button
               key={idx}
               onClick={() => setRawText(preset.text)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-purple-500/50 transition-colors"
+              className="text-xs px-3 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-slate-300 border border-slate-700/60 hover:border-teal-500/40 transition-colors font-medium shadow-sm"
             >
               {preset.title}
             </button>
@@ -132,35 +136,36 @@ export default function NormalizationMonitor() {
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* Input textarea */}
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
             Texto Crudo del Paciente / Transcripcion ASR
           </label>
-          <span className="text-xs text-slate-500">{rawText.length} caracteres</span>
+          <span className="text-xs text-slate-500 font-mono">{rawText.length} caracteres</span>
         </div>
         <textarea
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
           rows={3}
           placeholder="Ingrese la declaracion verbal del paciente o transcripcion ASR..."
-          className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+          className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800/90 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
         />
         <div className="flex justify-end">
           <button
             onClick={handleNormalize}
             disabled={loading || !rawText.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-all shadow-lg shadow-purple-600/20"
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-teal-600/20"
           >
             {loading ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                Normalizando con IA...
+                <span>Normalizando con IA...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
-                Normalizar Terminologia
+                <FileCheck className="w-4 h-4" />
+                <span>Normalizar Terminologia</span>
               </>
             )}
           </button>
@@ -168,61 +173,65 @@ export default function NormalizationMonitor() {
       </div>
 
       {errorMsg && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 flex items-center gap-2">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          {errorMsg}
+          <span>{errorMsg}</span>
         </div>
       )}
 
+      {/* Side-by-side comparison */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-950/50 rounded-xl border border-slate-800 p-4 flex flex-col space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-2">
+        {/* Raw input */}
+        <div className="bg-slate-950/70 rounded-2xl border border-slate-800/80 p-4.5 flex flex-col space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-rose-400 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-              Entrada Coloquial (Crudo)
+              <span>Entrada Coloquial (Crudo)</span>
             </h2>
             <span className="text-[10px] text-slate-500 uppercase font-mono">Entrada</span>
           </div>
-          <div className="flex-1 p-3 bg-slate-900/90 rounded-lg border border-slate-800/60 font-serif text-sm leading-relaxed text-slate-300 italic min-h-[100px]">
+          <div className="flex-1 p-3.5 bg-slate-900/70 rounded-xl border border-slate-800/60 text-xs sm:text-sm leading-relaxed text-slate-300 italic min-h-[100px]">
             {rawText || <span className="text-slate-600 not-italic">Sin texto de entrada</span>}
           </div>
         </div>
 
-        <div className="bg-slate-950/50 rounded-xl border border-slate-800 p-4 flex flex-col space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+        {/* Standardized medical output */}
+        <div className="bg-slate-950/70 rounded-2xl border border-slate-800/80 p-4.5 flex flex-col space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Salida Clinica Estandarizada
+              <span>Salida Clinica Estandarizada</span>
             </h2>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200 transition-colors bg-slate-800/60 px-2 py-1 rounded border border-slate-700"
+              className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-200 transition-colors bg-slate-800/70 px-2.5 py-1 rounded-lg border border-slate-700/60 font-medium"
             >
-              {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-              {copied ? 'Copiado' : 'Copiar'}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copiado' : 'Copiar'}</span>
             </button>
           </div>
-          <div className="flex-1 p-3 bg-slate-900/90 rounded-lg border border-slate-800/60 font-serif text-sm leading-relaxed text-slate-200 italic min-h-[100px]">
+          <div className="flex-1 p-3.5 bg-slate-900/70 rounded-xl border border-slate-800/60 text-xs sm:text-sm leading-relaxed text-slate-200 italic min-h-[100px]">
             {normalizedData?.normalized_text || (
-              <span className="text-slate-600 not-italic">Esperando normalizacion...</span>
+              <span className="text-slate-500 not-italic">Esperando normalizacion...</span>
             )}
           </div>
           {normalizedData?.summary && (
-            <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg text-xs text-purple-300">
-              <span className="font-bold text-purple-200">Sintesis Clinica: </span>
-              {normalizedData.summary}
+            <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded-xl text-xs text-teal-300">
+              <span className="font-semibold text-teal-200">Sintesis Clinica: </span>
+              <span>{normalizedData.summary}</span>
             </div>
           )}
         </div>
       </div>
 
+      {/* Mappings Table */}
       {normalizedData && normalizedData.mappings && (
-        <div className="bg-slate-950/50 rounded-xl border border-slate-800 p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div className="bg-slate-950/70 rounded-2xl border border-slate-800/80 p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                Tabla de Mapeo Ontologico SNOMED-CT / CIE-10
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                <span>Tabla de Mapeo Ontologico SNOMED-CT / CIE-10</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                   {filteredMappings.length} entidades
                 </span>
               </h2>
@@ -232,10 +241,10 @@ export default function NormalizationMonitor() {
                 <button
                   key={cat}
                   onClick={() => setFilterCategory(cat)}
-                  className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                  className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors font-medium border ${
                     filterCategory === cat
-                      ? 'bg-purple-600 text-white font-bold'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      ? 'bg-teal-600 text-white border-teal-500 shadow-sm'
+                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border-slate-800'
                   }`}
                 >
                   {cat === 'ALL' ? 'Todos' : cat}
@@ -248,39 +257,41 @@ export default function NormalizationMonitor() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
-                  <th className="p-2.5">Termino Coloquial Detectado</th>
-                  <th className="p-2.5"></th>
-                  <th className="p-2.5">Termino Medico Estandarizado</th>
-                  <th className="p-2.5">Codigo SNOMED-CT</th>
-                  <th className="p-2.5">Categoria</th>
+                  <th className="p-3">Termino Coloquial Detectado</th>
+                  <th className="p-3"></th>
+                  <th className="p-3">Termino Medico Estandarizado</th>
+                  <th className="p-3">Codigo SNOMED-CT</th>
+                  <th className="p-3">Categoria</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {filteredMappings.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-slate-500">
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
                       No se encontraron entidades para esta categoria.
                     </td>
                   </tr>
                 ) : (
                   filteredMappings.map((m, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="p-2.5 font-medium text-rose-300 font-mono">{m.raw_term}</td>
-                      <td className="p-2.5 text-slate-600"><ArrowRight className="w-3.5 h-3.5" /></td>
-                      <td className="p-2.5 font-bold text-emerald-300">{m.medical_term}</td>
-                      <td className="p-2.5 font-mono text-slate-300 bg-slate-900/60 px-2 rounded">
-                        {m.code_snomed || 'N/A'}
+                      <td className="p-3 font-medium text-rose-300 font-mono">{m.raw_term}</td>
+                      <td className="p-3 text-slate-600"><ArrowRight className="w-3.5 h-3.5" /></td>
+                      <td className="p-3 font-semibold text-emerald-300">{m.medical_term}</td>
+                      <td className="p-3 font-mono text-slate-300">
+                        <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-[11px]">
+                          {m.code_snomed || 'N/A'}
+                        </span>
                       </td>
-                      <td className="p-2.5">
+                      <td className="p-3">
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                          className={`text-[10px] px-2.5 py-0.5 rounded-full font-medium border ${
                             m.category === 'Sintoma'
                               ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                               : m.category === 'Signo'
-                              ? 'bg-red-500/10 text-red-300 border-red-500/20'
+                              ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
                               : m.category === 'Medicamento'
-                              ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                              : 'bg-purple-500/10 text-purple-300 border-purple-500/20'
+                              ? 'bg-sky-500/10 text-sky-300 border-sky-500/20'
+                              : 'bg-teal-500/10 text-teal-300 border-teal-500/20'
                           }`}
                         >
                           {m.category}
