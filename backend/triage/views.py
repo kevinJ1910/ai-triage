@@ -543,6 +543,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         from django.core.cache import cache
         custom_boxes = cache.get('emr_custom_boxes') or []
+        deleted_boxes = set(cache.get('emr_deleted_boxes') or [])
         box_states = cache.get('emr_box_operational_states') or {}
 
         default_boxes = [
@@ -558,9 +559,10 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             {"code": "AISL-01", "area": "Aislamiento", "type": "Box Presion Negativa", "equipment": "Filtro HEPA, Monitor de signos"},
         ]
 
-        all_boxes_dict = {b["code"]: b for b in default_boxes}
+        all_boxes_dict = {b["code"]: b for b in default_boxes if b["code"] not in deleted_boxes}
         for cb in custom_boxes:
-            all_boxes_dict[cb["code"]] = cb
+            if cb["code"] not in deleted_boxes:
+                all_boxes_dict[cb["code"]] = cb
 
         active_sessions = (TriageSession.objects
                            .exclude(assigned_box='')
@@ -641,6 +643,11 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             if any(b["code"] == code for b in custom_boxes):
                 return Response({"error": f"El box {code} ya existe."}, status=status.HTTP_400_BAD_REQUEST)
 
+            deleted_boxes = cache.get('emr_deleted_boxes') or []
+            if code in deleted_boxes:
+                deleted_boxes = [c for c in deleted_boxes if c != code]
+                cache.set('emr_deleted_boxes', deleted_boxes, timeout=None)
+
             new_box = {
                 "code": code,
                 "area": area,
@@ -692,9 +699,16 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
 
         elif action_type == 'delete':
             code = (request.data.get('code') or '').strip().upper()
+            if not code:
+                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
             custom_boxes = cache.get('emr_custom_boxes') or []
             custom_boxes = [b for b in custom_boxes if b["code"] != code]
             cache.set('emr_custom_boxes', custom_boxes, timeout=None)
+
+            deleted_boxes = cache.get('emr_deleted_boxes') or []
+            if code not in deleted_boxes:
+                deleted_boxes.append(code)
+                cache.set('emr_deleted_boxes', deleted_boxes, timeout=None)
             return Response({"message": f"Box {code} eliminado exitosamente."})
 
         return Response({"error": "Accion no reconocida."}, status=status.HTTP_400_BAD_REQUEST)

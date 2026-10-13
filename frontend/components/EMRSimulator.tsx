@@ -1455,20 +1455,37 @@ export default function EMRSimulator() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => { setIsEditModalOpen(false); setEditingBox(null); }}
-                      className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-sky-600/20"
-                    >
-                      Guardar Cambios
-                    </button>
+                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-800">
+                    {editingBox && (!editingBox.occupant || editingBox.status === 'Libre') ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleDeleteBox(editingBox.code);
+                          setIsEditModalOpen(false);
+                          setEditingBox(null);
+                        }}
+                        className="px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:bg-rose-500/10 rounded-xl font-medium transition-colors flex items-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Eliminar Box</span>
+                      </button>
+                    ) : <div />}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setIsEditModalOpen(false); setEditingBox(null); }}
+                        className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-sky-600/20"
+                      >
+                        Guardar Cambios
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -1534,11 +1551,11 @@ export default function EMRSimulator() {
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
 
-              {box.is_custom && isFree && (
+              {isFree && (
                 <button
                   onClick={() => handleDeleteBox(box.code)}
-                  className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
-                  title="Eliminar box personalizado"
+                  className="text-slate-400 hover:text-rose-400 p-1 rounded-md transition-colors"
+                  title={`Eliminar box ${box.code}`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
