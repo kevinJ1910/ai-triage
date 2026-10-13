@@ -214,6 +214,19 @@ export default function BlindReview() {
         </div>
       </div>
 
+      {/* Informative Blind Protocol Callout */}
+      <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-800/30 text-xs text-slate-300 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-semibold text-sky-200">
+            ¿Por qué esta sección aísla los campos del triaje original?
+          </p>
+          <p className="text-slate-400 leading-relaxed text-[11px]">
+            <strong>Metodología Doble Ciego (Resolución 5596 / Gold Standard):</strong> Para garantizar una evaluación científica sin sesgo de anclaje (anclaje cognitivo hacia la sugerencia del algoritmo), el clínico adjudicador únicamente tiene acceso a la transcripción pura del paciente, sin conocer la clasificación de la IA ni el veredicto del médico tratante.
+          </p>
+        </div>
+      </div>
+
       {/* Protocol Banner & Clinical Criteria Accordion */}
       {showGuidelines && (
         <div className="p-4 rounded-xl bg-slate-950/80 border border-sky-500/30 text-xs space-y-3 animate-in fade-in">

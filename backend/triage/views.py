@@ -496,6 +496,46 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "status": status_str
         })
 
+    @action(detail=True, methods=['POST', 'PATCH'], permission_classes=[IsAuthenticated, CanViewEMR])
+    def update_care_status(self, request, pk=None):
+        """
+        Actualiza el estado asistencial del paciente y notas de evolucion clinica en el simulador HCE.
+        """
+        session = self.get_object()
+        status_str = request.data.get('status')
+        evolution_notes = request.data.get('evolution_notes')
+
+        update_fields = []
+        if status_str:
+            session.care_status = status_str
+            update_fields.append('care_status')
+
+        if evolution_notes is not None:
+            entities = session.clinical_entities or {}
+            entities['evolution_notes'] = evolution_notes
+            session.clinical_entities = entities
+            update_fields.append('clinical_entities')
+
+        if update_fields:
+            session.save(update_fields=update_fields)
+
+        AuditLog.objects.create(
+            user=request.user,
+            action="EMR_CARE_STATUS_UPDATED",
+            resource=f"TriageSession:{session.id}",
+            status="SUCCESS",
+            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+            details=f"Estado asistencial actualizado a '{session.care_status}' (Paciente {session.patient.document_id})"
+        )
+
+        return Response({
+            "message": "Ficha clinica actualizada exitosamente.",
+            "session_id": session.id,
+            "patient_id": session.patient.id,
+            "status": session.care_status,
+            "evolution_notes": (session.clinical_entities or {}).get('evolution_notes', '')
+        })
+
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def boxes_census(self, request):
         """
@@ -584,7 +624,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
     def manage_boxes(self, request):
         """
-        Permite registrar nuevos boxes o actualizar el estado operativo de un box existente.
+        Permite registrar, actualizar o eliminar boxes hospitalarios y sus estados operativos.
         """
         from django.core.cache import cache
         action_type = request.data.get('action')
@@ -611,6 +651,36 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             custom_boxes.append(new_box)
             cache.set('emr_custom_boxes', custom_boxes, timeout=None)
             return Response({"message": f"Box {code} creado exitosamente.", "box": new_box}, status=status.HTTP_201_CREATED)
+
+        elif action_type in ('update', 'edit'):
+            code = (request.data.get('code') or '').strip().upper()
+            if not code:
+                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+            area = request.data.get('area')
+            box_type = request.data.get('type')
+            equipment = request.data.get('equipment')
+
+            custom_boxes = cache.get('emr_custom_boxes') or []
+            found = False
+            for b in custom_boxes:
+                if b["code"] == code:
+                    if area: b["area"] = area
+                    if box_type: b["type"] = box_type
+                    if equipment is not None: b["equipment"] = equipment
+                    found = True
+                    break
+
+            if not found:
+                custom_boxes.append({
+                    "code": code,
+                    "area": area or "Boxes Generales",
+                    "type": box_type or "Camilla Urgencias",
+                    "equipment": equipment or "",
+                    "is_custom": True
+                })
+
+            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
+            return Response({"message": f"Box {code} actualizado exitosamente."})
 
         elif action_type == 'update_state':
             code = (request.data.get('code') or '').strip().upper()

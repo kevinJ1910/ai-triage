@@ -616,16 +616,58 @@ class TestTriageSessions:
         )
         assert state_res.status_code == status.HTTP_200_OK
 
-        # 4. Verificar en el censo que aparece en desinfeccion
+        # 4. Actualizar/Editar datos del box (area, tipo, equipamiento)
+        edit_res = self.client.post(
+            "/api/triage/sessions/manage_boxes/",
+            {
+                "action": "update",
+                "code": "BOX-TEST-99",
+                "area": "Reanimacion",
+                "type": "Box Vital",
+                "equipment": "Monitor neonatal, Carro de paro"
+            },
+            format="json"
+        )
+        assert edit_res.status_code == status.HTTP_200_OK
+
+        # 5. Verificar en el censo que aparece con los nuevos valores y en desinfeccion
         updated_census = self.client.get("/api/triage/sessions/boxes_census/")
         box_item = next(b for b in updated_census.data["boxes"] if b["code"] == "BOX-TEST-99")
         assert box_item["status"] == "En Desinfeccion"
+        assert box_item["area"] == "Reanimacion"
+        assert box_item["type"] == "Box Vital"
+        assert "Carro de paro" in box_item["equipment"]
 
-        # 5. Eliminar box personalizado
+        # 6. Eliminar box personalizado
         del_res = self.client.post(
             "/api/triage/sessions/manage_boxes/",
             {"action": "delete", "code": "BOX-TEST-99"},
             format="json"
         )
         assert del_res.status_code == status.HTTP_200_OK
+
+    def test_update_care_status_and_evolution_notes(self):
+        from accounts.models import AuditLog
+        session = TriageSession.objects.create(
+            patient=self.patient,
+            level=3,
+            ai_level=3,
+            final_level=3,
+            care_status="En Espera",
+            justification="Paciente prueba estado"
+        )
+        url = f"/api/triage/sessions/{session.id}/update_care_status/"
+        response = self.client.post(
+            url,
+            {
+                "status": "En Atencion",
+                "evolution_notes": "Paciente canalizado, recibiendo analgesia IV."
+            },
+            format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        session.refresh_from_db()
+        assert session.care_status == "En Atencion"
+        assert session.clinical_entities.get("evolution_notes") == "Paciente canalizado, recibiendo analgesia IV."
+        assert AuditLog.objects.filter(action="EMR_CARE_STATUS_UPDATED").count() == 1
 
