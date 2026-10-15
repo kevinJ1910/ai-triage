@@ -107,6 +107,7 @@ test/
 tmp/
 temp/
 *.tgz
-# Documentation PDFs
+# Documentation PDFs & Office
 Memorias/
 *.pdf
+*.docx
