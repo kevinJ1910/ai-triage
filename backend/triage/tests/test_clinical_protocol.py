@@ -242,20 +242,19 @@ class TestRuleRegressions:
         # Antes era una limitacion conocida (xfail); se resolvio con triage/negation.py.
         assert evaluate_christus_sinergia_triage("niega dolor toracico, consulta por resfriado comun")["level"] == 4
 
+    # Antes eran limitaciones conocidas (xfail); se resolvieron con el escalado por signos vitales.
+    def test_low_oxygen_saturation_escalates(self):
+        assert evaluate_christus_sinergia_triage("saturacion de 84 por ciento al aire ambiente")["level"] <= 2
+
+    def test_hypotension_escalates(self):
+        assert evaluate_christus_sinergia_triage("presion 70 sobre 40 y frecuencia cardiaca de 140")["level"] == 1
+
 
 class TestRuleKnownLimitations:
     """
     Limitaciones conocidas del motor lexico (documentadas en docs/INFORME_IMPLEMENTACION_Y_BRECHAS.md).
     strict=True: si un cambio las resuelve, el test pasa a fallar y obliga a actualizar la documentacion.
     """
-
-    @pytest.mark.xfail(strict=True, reason="No evalua valores de signos vitales extraidos de la transcripcion")
-    def test_low_oxygen_saturation_escalates(self):
-        assert evaluate_christus_sinergia_triage("saturacion de 84 por ciento al aire ambiente")["level"] <= 2
-
-    @pytest.mark.xfail(strict=True, reason="No evalua valores de signos vitales extraidos de la transcripcion")
-    def test_hypotension_escalates(self):
-        assert evaluate_christus_sinergia_triage("presion 70 sobre 40 y frecuencia cardiaca de 140")["level"] == 1
 
     @pytest.mark.xfail(strict=True, reason="Solo reconoce las expresiones literales del catalogo, no parafrasis")
     def test_paraphrased_stroke_is_level_2(self):

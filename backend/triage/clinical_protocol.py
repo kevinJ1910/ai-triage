@@ -133,11 +133,9 @@ def _normalize_text(text: str) -> str:
     return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
 
 
-def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[str]] = None) -> Dict[str, Any]:
+def _evaluate_patterns(transcript: str, symptoms: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Motor determinista de clasificacion de triaje basado estrictamente en el protocolo
-    institucional Christus Sinergia Salud.
-    Sirve como mecanismo de garantia asistencial si el LLM falla, no responde (503) o se excede el timeout.
+    Clasificacion por patrones lexicos del protocolo Christus Sinergia Salud (niveles 1-5 en cascada).
     Un patron solo dispara su nivel si alguna coincidencia no esta negada ("niega dolor toracico").
     """
     combined = transcript + " " + " ".join(symptoms or [])
@@ -269,3 +267,89 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         "confidence": 0.78,
         "protocol": "Christus Sinergia Salud"
     }
+
+
+# Escalado por signos vitales (adultos). Umbrales fijados desde referencias publicadas, NO ajustados al
+# corpus de evaluacion, y pendientes de validacion por el equipo clinico:
+#   Nivel 2: un solo parametro con 3 puntos en NEWS2 (Royal College of Physicians, 2017) exige respuesta
+#            urgente: FR <= 8 o >= 25, SpO2 <= 91 %, PAS <= 90 o >= 220, FC <= 40 o >= 131, T <= 35 C,
+#            alteracion de la conciencia (GCS < 15). Ademas: crisis hipertensiva >= 180/120 (ACC/AHA 2017),
+#            hipoglicemia < 54 mg/dL (ADA, nivel 2), glucosa >= 400 mg/dL (criterio ya presente en el
+#            protocolo) y dolor intenso EVA >= 8 (Manchester: dolor intenso -> muy urgente).
+#   Nivel 1: compromiso vital que requiere intervencion inmediata: GCS <= 8, SpO2 < 85 %, PAS < 70 o
+#            PAS < 90 con FC > 120 (choque), FC < 40 o > 150, FR < 8 o > 35, T < 32 C.
+#   Nivel 3: dolor moderado EVA 5-7 (Manchester: dolor moderado -> urgente).
+# Ningun signo vital normal baja el nivel que asignan los patrones: el escalado solo sube la urgencia.
+VITAL_SIGN_RULES = (
+    (1, lambda v: v.get('gcs') is not None and v['gcs'] <= 8, "Glasgow ≤ 8"),
+    (1, lambda v: v.get('spo2') is not None and v['spo2'] < 85, "SpO2 < 85 %"),
+    (1, lambda v: v.get('bp_sys') is not None and v['bp_sys'] < 70, "PAS < 70 mmHg"),
+    (1, lambda v: v.get('bp_sys') is not None and v.get('heart_rate') is not None
+        and v['bp_sys'] < 90 and v['heart_rate'] > 120, "PAS < 90 mmHg con FC > 120 lpm (choque)"),
+    (1, lambda v: v.get('heart_rate') is not None and (v['heart_rate'] < 40 or v['heart_rate'] > 150),
+     "FC < 40 o > 150 lpm"),
+    (1, lambda v: v.get('respiratory_rate') is not None and (v['respiratory_rate'] < 8 or v['respiratory_rate'] > 35),
+     "FR < 8 o > 35 rpm"),
+    (1, lambda v: v.get('temperature') is not None and v['temperature'] < 32, "Temperatura < 32 °C"),
+    (2, lambda v: v.get('gcs') is not None and v['gcs'] < 15, "Alteración de la conciencia (Glasgow < 15)"),
+    (2, lambda v: v.get('spo2') is not None and v['spo2'] <= 91, "SpO2 ≤ 91 %"),
+    (2, lambda v: v.get('bp_sys') is not None and (v['bp_sys'] <= 90 or v['bp_sys'] >= 220), "PAS ≤ 90 o ≥ 220 mmHg"),
+    (2, lambda v: (v.get('bp_sys') or 0) >= 180 or (v.get('bp_dia') or 0) >= 120, "Crisis hipertensiva (≥ 180/120 mmHg)"),
+    (2, lambda v: v.get('heart_rate') is not None and (v['heart_rate'] <= 40 or v['heart_rate'] >= 131),
+     "FC ≤ 40 o ≥ 131 lpm"),
+    (2, lambda v: v.get('respiratory_rate') is not None and (v['respiratory_rate'] <= 8 or v['respiratory_rate'] >= 25),
+     "FR ≤ 8 o ≥ 25 rpm"),
+    (2, lambda v: v.get('temperature') is not None and v['temperature'] <= 35, "Temperatura ≤ 35 °C"),
+    (2, lambda v: v.get('glucose') is not None and (v['glucose'] < 54 or v['glucose'] >= 400),
+     "Glucemia < 54 o ≥ 400 mg/dL"),
+    (2, lambda v: v.get('eva') is not None and v['eva'] >= 8, "Dolor intenso (EVA ≥ 8/10)"),
+    (3, lambda v: v.get('eva') is not None and 5 <= v['eva'] <= 7, "Dolor moderado (EVA 5-7/10)"),
+)
+
+_VITAL_LEVEL_INFO = {
+    1: ("Reanimación", "Inmediata", 0.95, "Requiere reanimación inmediata."),
+    2: ("Emergencia", "Dentro de los siguientes 30 minutos", 0.92,
+        "Condición con riesgo de rápido deterioro vital o funcional."),
+    3: ("Urgencia", "Hasta 120 minutos", 0.88, "Paciente que requiere valoración y manejo de urgencia."),
+}
+
+
+def evaluate_vital_signs(vitals: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Nivel mas urgente que justifican los signos vitales estructurados, o None si ninguno lo eleva."""
+    if not vitals:
+        return None
+    for level in (1, 2, 3):
+        reasons = [reason for rule_level, check, reason in VITAL_SIGN_RULES if rule_level == level and check(vitals)]
+        if reasons:
+            name, attention, confidence, closing = _VITAL_LEVEL_INFO[level]
+            return {
+                "level": level,
+                "name": name,
+                "attention_time": attention,
+                "justification": f"Protocolo Christus Sinergia Salud - Triage {level} por signos vitales: "
+                                 f"{'; '.join(reasons)}. {closing}",
+                "confidence": confidence,
+                "protocol": "Christus Sinergia Salud",
+            }
+    return None
+
+
+def evaluate_christus_sinergia_triage(
+    transcript: str, symptoms: Optional[List[str]] = None, vitals: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Motor determinista de clasificacion de triaje basado en el protocolo institucional Christus Sinergia Salud.
+    Sirve como mecanismo de garantia asistencial si el LLM falla, no responde (503) o se excede el timeout.
+
+    Combina los patrones lexicos con el escalado por signos vitales y devuelve el nivel mas urgente.
+    vitals son los structured_vitals de input_pipeline; si no se pasan, se extraen del transcript.
+    """
+    by_patterns = _evaluate_patterns(transcript, symptoms)
+    if vitals is None:
+        # Import diferido: input_pipeline importa este modulo.
+        from .input_pipeline import ClinicalTranscriptCompressor
+        _, vitals = ClinicalTranscriptCompressor.extract_vitals(transcript or "")
+    by_vitals = evaluate_vital_signs(vitals)
+    if by_vitals and by_vitals["level"] < by_patterns["level"]:
+        return by_vitals
+    return by_patterns
