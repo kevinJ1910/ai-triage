@@ -86,8 +86,6 @@ class SystemConfigView(APIView):
                 ],
                 "llm_engines": [
                     {"id": "gemini-2.5-flash", "name": "Google Gemini 2.5 Flash", "recommended": True, "provider": "Google Gemini", "description": "Baja latencia y alta precision clinica"},
-                    {"id": "gemini-2.5-flash-lite", "name": "Google Gemini 2.5 Flash-Lite", "recommended": False, "provider": "Google Gemini", "description": "Menor costo y latencia"},
-                    {"id": "gemini-2.5-pro", "name": "Google Gemini 2.5 Pro", "recommended": False, "provider": "Google Gemini", "description": "Razonamiento clinico profundo"},
                     {"id": "gemini-3.5-flash-lite", "name": "Google Gemini 3.5 Flash-Lite", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, bajo costo"},
                     {"id": "gemini-3.8-flash", "name": "Google Gemini 3.8 Flash", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, balance precision/latencia"},
                     {"id": "gpt-4o-mini", "name": "OpenAI GPT-4o-mini", "recommended": False, "provider": "OpenAI", "description": "Modelo multimodal ligero"},

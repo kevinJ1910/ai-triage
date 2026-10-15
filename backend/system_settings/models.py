@@ -15,8 +15,6 @@ class SystemConfiguration(models.Model):
     )
     LLM_CHOICES = (
         ('gemini-2.5-flash', 'Gemini 2.5 Flash'),
-        ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite'),
-        ('gemini-2.5-pro', 'Gemini 2.5 Pro'),
         ('gemini-3.5-flash-lite', 'Gemini 3.5 Flash-Lite'),
         ('gemini-3.8-flash', 'Gemini 3.8 Flash'),
         ('gpt-4o-mini', 'GPT-4o-mini'),

@@ -19,7 +19,7 @@ GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_TIMEOUT_SECONDS', '30'))
 
 # Modelos de respaldo si falla el modelo activo (configurable, separados por coma).
 GEMINI_FALLBACK_MODELS = [
-    m.strip() for m in os.getenv('GEMINI_FALLBACK_MODELS', 'gemini-2.5-flash,gemini-2.5-flash-lite').split(',') if m.strip()
+    m.strip() for m in os.getenv('GEMINI_FALLBACK_MODELS', 'gemini-2.5-flash,gemini-3.5-flash-lite').split(',') if m.strip()
 ]
 
 # Seudonimizacion de identificadores antes de enviar texto a un LLM externo (Ley 1581 de 2012).
@@ -154,7 +154,9 @@ def _resolve_gemini_api_key() -> str:
     return api_key
 
 
-def analyze_triage_transcript(transcript: str, use_cache: bool = True, allow_llm: bool = True) -> Dict[str, Any]:
+def analyze_triage_transcript(
+    transcript: str, use_cache: bool = True, allow_llm: bool = True, model: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Analiza una conversacion clinica utilizando un pipeline optimizado:
     1. Evaluacion determinista previa de Christus Sinergia Salud como pauta prioritaria.
@@ -166,6 +168,9 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True, allow_llm
 
     allow_llm=False omite Gemini y aplica directamente el motor de reglas (lo usa la vista
     cuando el worker de inferencia no responde, para no dejar al clinico sin clasificacion).
+
+    model fija un unico modelo, sin modelos de respaldo: lo usan los comandos de evaluacion para
+    que las metricas de un modelo no mezclen respuestas de otro. Si falla, aplica el motor de reglas.
     """
     raw_transcript = (transcript or "").strip()
     if not raw_transcript:
@@ -257,9 +262,12 @@ CONSULTA COMPRIMIDA:
     except Exception as cfg_err:
         logger.debug(f"Could not read active_llm_engine from DB: {cfg_err}")
 
-    candidate_models = [active_model]
-    if 'gemini' in active_model:
-        candidate_models += [m for m in GEMINI_FALLBACK_MODELS if m not in candidate_models]
+    if model:
+        candidate_models = [model]
+    else:
+        candidate_models = [active_model]
+        if 'gemini' in active_model:
+            candidate_models += [m for m in GEMINI_FALLBACK_MODELS if m not in candidate_models]
 
     client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
     gemini_schema = _sanitize_schema_for_gemini(TriageOutputSchema)
