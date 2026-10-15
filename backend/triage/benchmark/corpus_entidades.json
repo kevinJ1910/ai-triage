@@ -1,0 +1,4507 @@
+[
+  {
+    "id": "B001",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Ausencia de signos vitales",
+    "transcript": "Traen a un señor de unos 60 años que se desplomó en la calle, no responde, no respira y no le encuentro pulso",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "se desplomó",
+          "normalized": "colapso súbito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no responde",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no respira",
+          "normalized": "apnea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no le encuentro pulso",
+          "normalized": "ausencia de pulso",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B002",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "tipico",
+    "criterio": "Inconciencia",
+    "transcript": "Paciente inconsciente tras accidente de moto, no abre los ojos ni responde al dolor",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "inconsciente",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no abre los ojos ni responde al dolor",
+          "normalized": "ausencia de respuesta al estímulo doloroso",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B003",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Dificultad respiratoria severa",
+    "transcript": "La bebé está morada, casi no respira, se atoró con un pedazo de comida",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "morada",
+          "normalized": "cianosis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "casi no respira",
+          "normalized": "dificultad respiratoria severa",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "se atoró con un pedazo de comida",
+          "normalized": "obstrucción de vía aérea por cuerpo extraño",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B004",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Hemorragia masiva",
+    "transcript": "Herida por arma blanca en el abdomen, está sangrando muchísimo y se está poniendo pálido y frío",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sangrando muchísimo",
+          "normalized": "hemorragia profusa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pálido",
+          "normalized": "palidez",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frío",
+          "normalized": "piel fría",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Herida por arma blanca en el abdomen",
+          "normalized": "herida abdominal por arma cortopunzante",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B005",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Pérdida de miembro u órgano",
+    "transcript": "Se le amputó el brazo derecho en una máquina de la fábrica",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "amputó el brazo derecho",
+          "normalized": "amputación traumática de miembro superior",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B006",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Trabajo de parto expulsivo",
+    "transcript": "Embarazada de 39 semanas, ya se le ve la cabeza del bebé y está pujando",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "se le ve la cabeza del bebé",
+          "normalized": "coronamiento fetal",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pujando",
+          "normalized": "pujo materno",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Embarazada de 39 semanas",
+          "normalized": "gestación de 39 semanas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B007",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Quemaduras en todo el cuerpo",
+    "transcript": "Paciente con quemaduras en casi todo el cuerpo por un incendio en la casa",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "quemaduras en casi todo el cuerpo",
+          "normalized": "quemadura de gran superficie corporal",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B008",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "tipico",
+    "criterio": "Abuso sexual menor a 72 horas",
+    "transcript": "Niña de 8 años que fue víctima de abuso sexual hace unas horas",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "abuso sexual",
+          "normalized": "abuso sexual",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B009",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Hipotermia severa",
+    "transcript": "Habitante de calle encontrado en la madrugada con temperatura de 27 grados, no responde",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "no responde",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "temperatura de 27 grados",
+          "normalized": "T: 27°C",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "B010",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Traumatismos severos múltiples",
+    "transcript": "Atropellado por un bus, tiene fracturas en ambas piernas, trauma en la cabeza y en el tórax",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "fracturas en ambas piernas",
+          "normalized": "fractura de ambos miembros inferiores",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "trauma en la cabeza",
+          "normalized": "traumatismo craneoencefálico",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "en el tórax",
+          "normalized": "traumatismo torácico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B011",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "tipico",
+    "criterio": "Ausencia de signos vitales",
+    "transcript": "Está haciendo un paro cardiaco, le estamos haciendo masaje",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "paro cardiaco",
+          "normalized": "paro cardiorrespiratorio",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B012",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Dificultad respiratoria severa",
+    "transcript": "Paciente asmático que llega sin poder hablar, con los labios azules y saturando 78 por ciento",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sin poder hablar",
+          "normalized": "disnea que impide hablar",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "labios azules",
+          "normalized": "cianosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "saturando 78 por ciento",
+          "normalized": "SpO2: 78%",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "asmático",
+          "normalized": "asma",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "B013",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Compromiso hemodinámico",
+    "transcript": "Presión 70 sobre 40, frecuencia cardiaca de 140, está pálido y sudoroso",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "pálido",
+          "normalized": "palidez",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sudoroso",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "Presión 70 sobre 40",
+          "normalized": "PA: 70/40 mmHg",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia cardiaca de 140",
+          "normalized": "FC: 140 lpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "B014",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "tipico",
+    "criterio": "Dolor torácico con signos de alarma",
+    "transcript": "Hombre de 58 años con dolor en el pecho tipo opresión desde hace una hora, sudoroso, se le irradia al brazo izquierdo",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor en el pecho tipo opresión",
+          "normalized": "dolor torácico opresivo",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sudoroso",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "se le irradia al brazo izquierdo",
+          "normalized": "irradiación a miembro superior izquierdo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B015",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Estado convulsivo",
+    "transcript": "Mi hijo tuvo una convulsión en la casa y sigue muy dormido",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "convulsión",
+          "normalized": "crisis convulsiva",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sigue muy dormido",
+          "normalized": "somnolencia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B016",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Crisis hipertensiva",
+    "transcript": "Presión de 210 sobre 120 con dolor de cabeza muy fuerte y visión borrosa",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza muy fuerte",
+          "normalized": "cefalea intensa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "visión borrosa",
+          "normalized": "visión borrosa",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "Presión de 210 sobre 120",
+          "normalized": "PA: 210/120 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "B017",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Diabetes descompensada",
+    "transcript": "Paciente diabético con glucometría de 520, respira rápido y está vomitando",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "respira rápido",
+          "normalized": "taquipnea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "vomitando",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "glucometría de 520",
+          "normalized": "GLU: 520 mg/dL",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "diabético",
+          "normalized": "diabetes mellitus",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "B018",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Fractura expuesta",
+    "transcript": "Se cayó de la bicicleta y tiene el hueso del antebrazo por fuera de la piel",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "el hueso del antebrazo por fuera de la piel",
+          "normalized": "fractura abierta de antebrazo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B019",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "tipico",
+    "criterio": "Sangrado vaginal en embarazadas",
+    "transcript": "Embarazada de 20 semanas con sangrado vaginal abundante",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sangrado vaginal abundante",
+          "normalized": "hemorragia vaginal abundante",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Embarazada de 20 semanas",
+          "normalized": "gestación de 20 semanas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B020",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Ingestión de sustancias tóxicas",
+    "transcript": "Se tomó un frasco entero de pastillas de la mamá para hacerse daño",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "Se tomó un frasco entero de pastillas",
+          "normalized": "intoxicación medicamentosa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "para hacerse daño",
+          "normalized": "intento de autolesión",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B021",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Agitación psicomotora",
+    "transcript": "Paciente muy agitado y agresivo, grita y no deja que lo examinen, dicen que consumió drogas",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "agitado",
+          "normalized": "agitación psicomotora",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "agresivo",
+          "normalized": "agresividad",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "consumió drogas",
+          "normalized": "consumo de sustancias psicoactivas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B022",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Dificultad respiratoria moderada",
+    "transcript": "Niño de 3 años con dificultad para respirar, se le hunden las costillas al respirar",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dificultad para respirar",
+          "normalized": "disnea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "se le hunden las costillas al respirar",
+          "normalized": "tirajes intercostales",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B023",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Alteración aguda neurológica",
+    "transcript": "Señora de 70 años que de repente no puede mover el brazo derecho y habla enredado desde hace 40 minutos",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "no puede mover el brazo derecho",
+          "normalized": "paresia de miembro superior derecho",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "habla enredado",
+          "normalized": "disartria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B024",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Quemadura de III grado",
+    "transcript": "Quemadura con aceite hirviendo en toda la pierna, la piel se ve blanca y no le duele",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "la piel se ve blanca",
+          "normalized": "piel blanquecina en zona quemada",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "le duele",
+          "normalized": "dolor",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Quemadura con aceite hirviendo en toda la pierna",
+          "normalized": "quemadura de miembro inferior",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B025",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Trabajo de parto",
+    "transcript": "Gestante en trabajo de parto, contracciones cada 3 minutos y ya rompió fuente",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "contracciones cada 3 minutos",
+          "normalized": "contracciones uterinas",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "rompió fuente",
+          "normalized": "ruptura de membranas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "trabajo de parto",
+          "normalized": "trabajo de parto",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B026",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "tipico",
+    "criterio": "Abuso sexual mayor a 72 horas",
+    "transcript": "Viene a consultar porque sufrió abuso sexual hace una semana",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "abuso sexual",
+          "normalized": "abuso sexual",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B027",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Estado convulsivo",
+    "transcript": "Lleva media hora convulsionando y no para",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "convulsionando",
+          "normalized": "crisis convulsiva prolongada",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B028",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Alteración aguda de signos vitales",
+    "transcript": "Saturación de 84 por ciento al aire ambiente y frecuencia respiratoria de 32",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "Saturación de 84 por ciento",
+          "normalized": "SpO2: 84%",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia respiratoria de 32",
+          "normalized": "FR: 32 rpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "B029",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Vómito y diarrea con deshidratación",
+    "transcript": "Desde ayer tengo vómito y diarrea, ya no tolero ni el agua, tengo la boca muy seca y casi no orino",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "diarrea",
+          "normalized": "diarrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no tolero ni el agua",
+          "normalized": "intolerancia a la vía oral",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "la boca muy seca",
+          "normalized": "sequedad de mucosas",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "casi no orino",
+          "normalized": "oliguria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B030",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Vértigo severo",
+    "transcript": "Mareo muy fuerte, todo me da vueltas y no me puedo levantar de la camilla",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Mareo muy fuerte",
+          "normalized": "mareo",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "todo me da vueltas",
+          "normalized": "vértigo",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no me puedo levantar de la camilla",
+          "normalized": "incapacidad para la bipedestación",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B031",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Reacción alérgica con brote generalizado",
+    "transcript": "Me salieron ronchas en todo el cuerpo después de tomar amoxicilina, me pica mucho pero respiro bien",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "ronchas en todo el cuerpo",
+          "normalized": "urticaria generalizada",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me pica mucho",
+          "normalized": "prurito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "respiro bien",
+          "normalized": "disnea",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "amoxicilina",
+          "normalized": "amoxicilina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "amoxicilina",
+          "normalized": "amoxicilina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B032",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "tipico",
+    "criterio": "Síntomas asociados a diálisis",
+    "transcript": "Paciente en diálisis que no se ha podido dializar esta semana y tiene las piernas hinchadas",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "las piernas hinchadas",
+          "normalized": "edema de miembros inferiores",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "diálisis",
+          "normalized": "enfermedad renal crónica en diálisis",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "B033",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Quemadura de II grado",
+    "transcript": "Me quemé la mano con agua hirviendo y me salieron ampollas",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "ampollas",
+          "normalized": "flictenas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me quemé la mano",
+          "normalized": "quemadura de mano",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B034",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Trauma moderado",
+    "transcript": "Me torcí el tobillo jugando fútbol, está muy hinchado y no puedo apoyar el pie",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "muy hinchado",
+          "normalized": "edema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no puedo apoyar el pie",
+          "normalized": "impotencia funcional",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me torcí el tobillo",
+          "normalized": "esguince de tobillo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B035",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Dificultad respiratoria leve",
+    "transcript": "Tengo silbidos en el pecho y me cuesta un poco respirar, uso el inhalador y no mejora del todo",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "silbidos en el pecho",
+          "normalized": "sibilancias",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me cuesta un poco respirar",
+          "normalized": "disnea leve",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "inhalador",
+          "normalized": "broncodilatador inhalado",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B036",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "tipico",
+    "criterio": "Valoración médico legal",
+    "transcript": "Viene remitido por la policía para valoración médico legal después de una riña",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B037",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Requiere estudios diagnósticos urgentes",
+    "transcript": "Dolor de barriga fuerte en el lado derecho abajo desde hoy, con fiebre y vómito",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Dolor de barriga fuerte en el lado derecho abajo",
+          "normalized": "dolor en fosa ilíaca derecha",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B038",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "tipico",
+    "criterio": "Trauma moderado",
+    "transcript": "Se dio un golpe fuerte en la cabeza, no perdió el conocimiento pero tiene una herida que sangra y necesita puntos",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "perdió el conocimiento",
+          "normalized": "pérdida de conciencia",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "golpe fuerte en la cabeza",
+          "normalized": "traumatismo craneal",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "una herida que sangra",
+          "normalized": "herida sangrante",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B039",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "signos_vitales",
+    "criterio": "Requiere estudios diagnósticos urgentes",
+    "transcript": "Niño de 2 años con fiebre de 39 grados y muy decaído desde hace dos días",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "decaído",
+          "normalized": "decaimiento",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "fiebre de 39 grados",
+          "normalized": "T: 39°C",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "B040",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Requiere tratamiento rápido",
+    "transcript": "Tengo un dolor muy fuerte en la espalda que baja a la ingle, como un cólico, y oriné con sangre",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor muy fuerte en la espalda que baja a la ingle",
+          "normalized": "dolor lumbar irradiado a ingle",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "oriné con sangre",
+          "normalized": "hematuria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B041",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Tos y congestión",
+    "transcript": "Tengo gripa con tos y moqueo desde hace tres días, sin fiebre",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "tos",
+          "normalized": "tos",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "moqueo",
+          "normalized": "rinorrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "gripa",
+          "normalized": "infección respiratoria aguda",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B042",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Faringitis o amigdalitis",
+    "transcript": "Me duele la garganta y tengo placas blancas desde ayer",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Me duele la garganta",
+          "normalized": "odinofagia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "placas blancas",
+          "normalized": "exudado amigdalino",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B043",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "tipico",
+    "criterio": "Ardor al orinar",
+    "transcript": "Ardor al orinar y ganas de orinar a cada rato desde hace dos días",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Ardor al orinar",
+          "normalized": "disuria",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "ganas de orinar a cada rato",
+          "normalized": "polaquiuria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B044",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Vómito y diarrea sin deshidratación",
+    "transcript": "Diarrea desde ayer, unas cuatro veces, pero tomo líquidos bien y no tengo sed",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Diarrea",
+          "normalized": "diarrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "tomo líquidos bien",
+          "normalized": "intolerancia a la vía oral",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "sed",
+          "normalized": "sed",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B045",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "tipico",
+    "criterio": "Trauma leve",
+    "transcript": "Me raspé la rodilla al caerme, es una herida superficial",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [
+        {
+          "text": "Me raspé la rodilla",
+          "normalized": "abrasión de rodilla",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B046",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Dolor leve a moderado de más de 24 horas",
+    "transcript": "Tengo un dolor de muela desde hace tres días que no se quita",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de muela",
+          "normalized": "odontalgia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B047",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Ansiedad y depresión",
+    "transcript": "Me siento muy ansioso, no puedo dormir hace una semana, pero no he pensado en hacerme daño",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "muy ansioso",
+          "normalized": "ansiedad",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no puedo dormir",
+          "normalized": "insomnio",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pensado en hacerme daño",
+          "normalized": "ideación suicida",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B048",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Signos de infección local",
+    "transcript": "Tengo el dedo del pie rojo, caliente y con pus alrededor de la uña",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "rojo",
+          "normalized": "eritema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "caliente",
+          "normalized": "calor local",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pus alrededor de la uña",
+          "normalized": "secreción purulenta periungueal",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B049",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "tipico",
+    "criterio": "Vómito y diarrea sin deshidratación",
+    "transcript": "Vómito dos veces hoy, sin deshidratación, tolera líquidos",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "deshidratación",
+          "normalized": "deshidratación",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "tolera líquidos",
+          "normalized": "intolerancia a la vía oral",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B050",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Enfermedad venérea aguda",
+    "transcript": "Secreción por el pene y ardor desde hace 4 días después de una relación",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Secreción por el pene",
+          "normalized": "secreción uretral",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "ardor",
+          "normalized": "disuria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B051",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Dolor leve a moderado de más de 24 horas",
+    "transcript": "Dolor de oído desde hace dos días con un poco de fiebre",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Dolor de oído",
+          "normalized": "otalgia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B052",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Trauma leve",
+    "transcript": "Golpe leve en el brazo, lo mueve bien, solo tiene un morado",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "lo mueve bien",
+          "normalized": "impotencia funcional",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "morado",
+          "normalized": "equimosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Golpe leve en el brazo",
+          "normalized": "contusión de brazo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B053",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "negacion",
+    "criterio": "Tos y congestión",
+    "transcript": "No tiene dolor en el pecho, viene por un resfriado con moqueo",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor en el pecho",
+          "normalized": "dolor torácico",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "moqueo",
+          "normalized": "rinorrea",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "resfriado",
+          "normalized": "rinofaringitis aguda",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B054",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "negacion",
+    "criterio": "Faringitis o amigdalitis",
+    "transcript": "Niega convulsiones, consulta por dolor de garganta desde ayer",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "convulsiones",
+          "normalized": "crisis convulsiva",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "dolor de garganta",
+          "normalized": "odinofagia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B055",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Formulación de medicamentos",
+    "transcript": "Vengo a que me renueven la fórmula del losartán",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "losartán",
+          "normalized": "losartán",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B056",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "tipico",
+    "criterio": "Dolor de cabeza crónico",
+    "transcript": "Tengo dolor de cabeza crónico, lo tengo desde hace años",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza crónico",
+          "normalized": "cefalea crónica",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B057",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Lectura de exámenes",
+    "transcript": "Quiero que me lean unos exámenes de sangre que me mandaron",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B058",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "tipico",
+    "criterio": "Estreñimiento",
+    "transcript": "Estreñimiento desde hace un mes",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Estreñimiento",
+          "normalized": "estreñimiento",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B059",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Dermatitis",
+    "transcript": "Tengo una mancha en la piel que me pica desde hace meses, como una dermatitis",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "una mancha en la piel",
+          "normalized": "lesión cutánea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me pica",
+          "normalized": "prurito",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "dermatitis",
+          "normalized": "dermatitis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B060",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Tos crónica",
+    "transcript": "Tos desde hace dos meses sin fiebre ni dificultad para respirar",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Tos",
+          "normalized": "tos crónica",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "dificultad para respirar",
+          "normalized": "disnea",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B061",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Inapetencia",
+    "transcript": "No me dan ganas de comer desde hace unas semanas",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "No me dan ganas de comer",
+          "normalized": "hiporexia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B062",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Formulación de medicamentos",
+    "transcript": "Soy hipertenso y vengo a control porque se me acabaron las pastillas",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "hipertenso",
+          "normalized": "hipertensión arterial",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "B063",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "tipico",
+    "criterio": "Dolor abdominal crónico",
+    "transcript": "Me duele el estómago de vez en cuando desde hace un año, tengo gastritis crónica",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "Me duele el estómago",
+          "normalized": "dolor abdominal",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "gastritis crónica",
+          "normalized": "gastritis crónica",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "B064",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Estrés emocional",
+    "transcript": "Estoy estresado por el trabajo y quería hablar con un médico",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "estresado",
+          "normalized": "estrés",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "B065",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Síntomas que no comprometen el estado general",
+    "transcript": "Cuando me paro rápido me mareo un poquito, me pasa desde hace meses",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "me mareo",
+          "normalized": "mareo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N001",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Alteración grave de la conciencia (Glasgow ≤ 8) con signos de choque",
+    "transcript": "Paciente de 45 años traído por la ambulancia después de un choque, tiene un glasgow de 7 sobre 15, la tensión está en 80 sobre 50 y el pulso en 130. Es alérgico a la penicilina según la esposa.",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [
+        {
+          "text": "penicilina",
+          "normalized": "penicilina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [
+        {
+          "text": "glasgow de 7 sobre 15",
+          "normalized": "GCS: 7/15",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "tensión está en 80 sobre 50",
+          "normalized": "PA: 80/50 mmHg",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pulso en 130",
+          "normalized": "FC: 130 lpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N002",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Inconsciencia con hipoglicemia severa",
+    "transcript": "Mi esposo se puso a hablar raro y se cayó, ahora no despierta aunque lo movamos. Es diabético y se inyecta insulina, le medimos el azúcar y salió en 35.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "hablar raro",
+          "normalized": "disartria",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no despierta aunque lo movamos",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "insulina",
+          "normalized": "insulina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "azúcar y salió en 35",
+          "normalized": "GLU: 35 mg/dL",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "diabético",
+          "normalized": "diabetes mellitus",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N003",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Anafilaxia con compromiso de la vía aérea",
+    "transcript": "Llega una muchacha que la picó una abeja hace diez minutos, se le hinchó toda la cara y la lengua, casi no le pasa el aire y está ronca. Dice que es alérgica a las abejas y no trajo la inyección de adrenalina.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "se le hinchó toda la cara y la lengua",
+          "normalized": "angioedema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "casi no le pasa el aire",
+          "normalized": "dificultad respiratoria severa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "ronca",
+          "normalized": "disfonía",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "la picó una abeja",
+          "normalized": "picadura de abeja",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [
+        {
+          "text": "adrenalina",
+          "normalized": "adrenalina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "abejas",
+          "normalized": "veneno de himenópteros",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N004",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Hemorragia digestiva con signos de choque",
+    "transcript": "Paciente con vómito con sangre abundante desde hace una hora, está muy pálido, sudoroso y confuso, presión de 75 sobre 45 y frecuencia cardiaca de 135. Toma warfarina por una válvula en el corazón.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "vómito con sangre abundante",
+          "normalized": "hematemesis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pálido",
+          "normalized": "palidez",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sudoroso",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "confuso",
+          "normalized": "confusión",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "warfarina",
+          "normalized": "warfarina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "presión de 75 sobre 45",
+          "normalized": "PA: 75/45 mmHg",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia cardiaca de 135",
+          "normalized": "FC: 135 lpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "una válvula en el corazón",
+          "normalized": "prótesis valvular cardíaca",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N005",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "tipico",
+    "criterio": "Paro respiratorio recuperado con inconsciencia persistente",
+    "transcript": "Niño de 4 años que se cayó a la piscina, lo sacaron sin respirar, le hicieron reanimación y ahora respira pero no responde.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sin respirar",
+          "normalized": "apnea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no responde",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "se cayó a la piscina",
+          "normalized": "ahogamiento por inmersión",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N006",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Insuficiencia respiratoria grave",
+    "transcript": "Señor de 67 años con dificultad respiratoria severa, no puede terminar las frases, está saturando al 82 por ciento con frecuencia respiratoria de 38. Tiene EPOC y usa oxígeno en la casa.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dificultad respiratoria severa",
+          "normalized": "dificultad respiratoria severa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no puede terminar las frases",
+          "normalized": "disnea que impide hablar",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "oxígeno",
+          "normalized": "oxigenoterapia domiciliaria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "saturando al 82 por ciento",
+          "normalized": "SpO2: 82%",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia respiratoria de 38",
+          "normalized": "FR: 38 rpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "EPOC",
+          "normalized": "enfermedad pulmonar obstructiva crónica",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N007",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Trauma penetrante de tórax con hemorragia",
+    "transcript": "Le dispararon en el pecho, está botando mucha sangre por la herida y respira muy rápido, ya casi no habla.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "botando mucha sangre",
+          "normalized": "hemorragia profusa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "respira muy rápido",
+          "normalized": "taquipnea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "casi no habla",
+          "normalized": "deterioro del estado de conciencia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Le dispararon en el pecho",
+          "normalized": "herida torácica por arma de fuego",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N008",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Estado convulsivo",
+    "transcript": "La señora lleva convulsionando como veinte minutos, le da una convulsión tras otra sin despertar entre ellas. Es epiléptica y dejó de tomar el ácido valproico.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "convulsionando",
+          "normalized": "crisis convulsiva prolongada",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sin despertar entre ellas",
+          "normalized": "ausencia de recuperación de la conciencia entre crisis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "ácido valproico",
+          "normalized": "ácido valproico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "epiléptica",
+          "normalized": "epilepsia",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N009",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "signos_vitales",
+    "criterio": "Sospecha de choque séptico",
+    "transcript": "Paciente con temperatura de 41 grados, rígido, muy confundido, la tensión arterial de 85 sobre 50 y la piel con manchas moradas que no desaparecen.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "rígido",
+          "normalized": "rigidez",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "muy confundido",
+          "normalized": "confusión",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "manchas moradas que no desaparecen",
+          "normalized": "púrpura",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "temperatura de 41 grados",
+          "normalized": "T: 41°C",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "tensión arterial de 85 sobre 50",
+          "normalized": "PA: 85/50 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N010",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "coloquial",
+    "criterio": "Intoxicación grave con compromiso respiratorio",
+    "transcript": "Llegó un muchacho que se tomó un veneno para ratas hace media hora, está babeando mucho, con las pupilas chiquitas y le cuesta respirar.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "babeando mucho",
+          "normalized": "sialorrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "las pupilas chiquitas",
+          "normalized": "miosis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "le cuesta respirar",
+          "normalized": "disnea",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "se tomó un veneno para ratas",
+          "normalized": "intoxicación por plaguicida",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N011",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 1,
+    "tipo": "negacion",
+    "criterio": "Inconsciencia con depresión respiratoria",
+    "transcript": "Según la familia no toma medicamentos, pero lo encontraron tirado en el baño sin respuesta y con la respiración muy lenta, al lado había jeringas.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sin respuesta",
+          "normalized": "inconsciencia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "la respiración muy lenta",
+          "normalized": "bradipnea",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "medicamentos",
+          "normalized": "medicación habitual",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N012",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Dolor torácico sugestivo de síndrome coronario agudo",
+    "transcript": "Tengo un dolor en el pecho como si me apretaran, me empezó hace 40 minutos, me corre sudor frío y me duele la mandíbula. Soy hipertenso, tomo posartan y aspirina.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor en el pecho como si me apretaran",
+          "normalized": "dolor torácico opresivo",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sudor frío",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me duele la mandíbula",
+          "normalized": "dolor mandibular",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "posartan",
+          "normalized": "losartán",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "aspirina",
+          "normalized": "ácido acetilsalicílico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "hipertenso",
+          "normalized": "hipertensión arterial",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N013",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Déficit neurológico agudo dentro de la ventana terapéutica",
+    "transcript": "Desde hace una hora se le torció la boca hacia un lado y no siente la pierna izquierda, la familia dice que estaba bien en el desayuno. Toma metformina para el azúcar.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "se le torció la boca hacia un lado",
+          "normalized": "desviación de la comisura labial",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no siente la pierna izquierda",
+          "normalized": "hipoestesia de miembro inferior izquierdo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "metformina",
+          "normalized": "metformina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "el azúcar",
+          "normalized": "diabetes mellitus",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N014",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Cefalea súbita intensa con sospecha de hemorragia subaracnoidea",
+    "transcript": "Paciente de 30 años con dolor de cabeza muy fuerte, el peor de su vida, empezó de golpe hace dos horas, vomitó dos veces y la presión está en 180 sobre 110.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza muy fuerte",
+          "normalized": "cefalea intensa de inicio súbito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "vomitó",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "presión está en 180 sobre 110",
+          "normalized": "PA: 180/110 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N015",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Reacción alérgica con riesgo de compromiso de la vía aérea",
+    "transcript": "Me dio una alergia después de comer camarones, tengo ronchas, se me están hinchando los labios y siento la garganta un poco cerrada. Soy alérgico al maní también.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "ronchas",
+          "normalized": "urticaria",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "se me están hinchando los labios",
+          "normalized": "angioedema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "la garganta un poco cerrada",
+          "normalized": "sensación de opresión faríngea",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [
+        {
+          "text": "camarones",
+          "normalized": "mariscos",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "maní",
+          "normalized": "maní",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N016",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Hiperglicemia con sospecha de cetoacidosis",
+    "transcript": "Diabético de 50 años con glucometría de 480, mucha sed, orina mucho, respira profundo y le huele la boca como a fruta. Se le acabó la insulina hace tres días.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "mucha sed",
+          "normalized": "polidipsia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "orina mucho",
+          "normalized": "poliuria",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "respira profundo",
+          "normalized": "respiración de Kussmaul",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "le huele la boca como a fruta",
+          "normalized": "aliento cetónico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "insulina",
+          "normalized": "insulina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "glucometría de 480",
+          "normalized": "GLU: 480 mg/dL",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "Diabético",
+          "normalized": "diabetes mellitus",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N017",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Alteración aguda del estado mental en adulto mayor con fiebre",
+    "transcript": "Mi papá tiene 80 años y desde esta mañana está muy confundido, no reconoce a nadie, tiene fiebre y dice que le arde al orinar. Toma enalapril y es alérgico a las sulfas.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "muy confundido",
+          "normalized": "confusión",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no reconoce a nadie",
+          "normalized": "desorientación",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "le arde al orinar",
+          "normalized": "disuria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "enalapril",
+          "normalized": "enalapril",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "sulfas",
+          "normalized": "sulfonamidas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N018",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "tipico",
+    "criterio": "Sospecha de preeclampsia severa",
+    "transcript": "Gestante de 34 semanas con dolor de cabeza intenso, ve lucecitas y tiene la tensión en 170 sobre 110, los pies muy hinchados.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza intenso",
+          "normalized": "cefalea intensa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "ve lucecitas",
+          "normalized": "fotopsias",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "los pies muy hinchados",
+          "normalized": "edema de miembros inferiores",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Gestante de 34 semanas",
+          "normalized": "gestación de 34 semanas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "tensión en 170 sobre 110",
+          "normalized": "PA: 170/110 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N019",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "coloquial",
+    "criterio": "Hemorragia activa que no cede a la compresión",
+    "transcript": "Me corté la muñeca con un vidrio, la sangre sale a chorros y no para aunque aprieto con una toalla.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "la sangre sale a chorros",
+          "normalized": "sangrado arterial",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me corté la muñeca con un vidrio",
+          "normalized": "herida cortante de muñeca",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N020",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 2,
+    "tipo": "signos_vitales",
+    "criterio": "Taquicardia sostenida sintomática",
+    "transcript": "Paciente con palpitaciones muy fuertes desde hace una hora, se siente mareado, el pulso está en 180 y tiene un dolor leve en el pecho. No tiene antecedentes del corazón.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "palpitaciones muy fuertes",
+          "normalized": "palpitaciones",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "mareado",
+          "normalized": "mareo",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "dolor leve en el pecho",
+          "normalized": "dolor torácico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "pulso está en 180",
+          "normalized": "FC: 180 lpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "antecedentes del corazón",
+          "normalized": "cardiopatía",
+          "negated": true,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N021",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Dolor abdominal con sospecha de apendicitis, paciente estable",
+    "transcript": "Tengo dolor de barriga en la boca del estómago desde anoche, que se pasó al lado derecho, no he podido comer y tengo náuseas, sin fiebre.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de barriga en la boca del estómago",
+          "normalized": "epigastralgia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "se pasó al lado derecho",
+          "normalized": "migración del dolor a fosa ilíaca derecha",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no he podido comer",
+          "normalized": "hiporexia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "náuseas",
+          "normalized": "náuseas",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N022",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "signos_vitales",
+    "criterio": "Sospecha de neumonía sin hipoxemia grave",
+    "transcript": "Paciente con fiebre de 38.9 desde hace tres días, tos con flema verde y dolor en el costado al respirar, saturando 93 por ciento. Es fumador.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "tos con flema verde",
+          "normalized": "tos productiva purulenta",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "dolor en el costado al respirar",
+          "normalized": "dolor pleurítico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "fiebre de 38.9",
+          "normalized": "T: 38.9°C",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "saturando 93 por ciento",
+          "normalized": "SpO2: 93%",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "fumador",
+          "normalized": "tabaquismo",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N023",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Trauma de extremidad con deformidad sin compromiso neurovascular",
+    "transcript": "Me caí de la escalera y me duele mucho la muñeca, está torcida y muy hinchada, puedo mover los dedos. Tomo losartán y soy alérgica al ibuprofeno.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "me duele mucho la muñeca",
+          "normalized": "dolor de muñeca",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "está torcida",
+          "normalized": "deformidad de muñeca",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "muy hinchada",
+          "normalized": "edema",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "losartán",
+          "normalized": "losartán",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "ibuprofeno",
+          "normalized": "ibuprofeno",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N024",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Vómito persistente con deshidratación moderada",
+    "transcript": "Hace dos días tengo vómito, ya van como diez veces hoy, me siento débil y tengo la boca seca, no he orinado desde la mañana.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me siento débil",
+          "normalized": "astenia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "la boca seca",
+          "normalized": "sequedad de mucosas",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no he orinado desde la mañana",
+          "normalized": "oliguria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N025",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "tipico",
+    "criterio": "Crisis asmática moderada",
+    "transcript": "Paciente asmática con crisis desde esta mañana, tiene sibilancias y usa el salbutamol cada dos horas, saturando 94 por ciento y habla frases completas.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sibilancias",
+          "normalized": "sibilancias",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "habla frases completas",
+          "normalized": "disnea que impide hablar",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "crisis",
+          "normalized": "crisis asmática",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [
+        {
+          "text": "salbutamol",
+          "normalized": "salbutamol",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "saturando 94 por ciento",
+          "normalized": "SpO2: 94%",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "asmática",
+          "normalized": "asma",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N026",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Cefalea persistente refractaria a analgesia común",
+    "transcript": "Tengo un dolor de cabeza que no se me quita con acetaminofén desde hace dos días, me molesta la luz pero no tengo fiebre ni vómito.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza",
+          "normalized": "cefalea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me molesta la luz",
+          "normalized": "fotofobia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "acetaminofén",
+          "normalized": "acetaminofén",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N027",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "signos_vitales",
+    "criterio": "Hipertensión severa sin síntomas de lesión de órgano blanco",
+    "transcript": "Paciente con presión de 190 sobre 105, sin dolor de cabeza ni dolor en el pecho, se le olvidó tomar el amlodipino toda la semana.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de cabeza",
+          "normalized": "cefalea",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "dolor en el pecho",
+          "normalized": "dolor torácico",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "amlodipino",
+          "normalized": "amlodipino",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "presión de 190 sobre 105",
+          "normalized": "PA: 190/105 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N028",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Herida por mordedura que requiere manejo",
+    "transcript": "Me mordió un perro en la pierna hace una hora, tiene varios huecos y sangra poquito. No me acuerdo si tengo la vacuna del tétano.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "sangra poquito",
+          "normalized": "sangrado leve",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me mordió un perro en la pierna",
+          "normalized": "mordedura de perro",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N029",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Sospecha de pielonefritis en gestante",
+    "transcript": "Llevo tres días con dolor al orinar y ahora tengo fiebre, escalofríos y me duele la espalda del lado derecho. Estoy embarazada de 12 semanas.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor al orinar",
+          "normalized": "disuria",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "escalofríos",
+          "normalized": "escalofríos",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me duele la espalda del lado derecho",
+          "normalized": "dolor lumbar derecho",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "embarazada de 12 semanas",
+          "normalized": "gestación de 12 semanas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N030",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "negacion",
+    "criterio": "Dolor torácico de características osteomusculares",
+    "transcript": "Viene por dolor en el pecho que aumenta al apretarle, sin sudoración, sin falta de aire y no se le corre al brazo, empezó después de cargar unas cajas.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor en el pecho que aumenta al apretarle",
+          "normalized": "dolor torácico mecánico",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "sudoración",
+          "normalized": "diaforesis",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "falta de aire",
+          "normalized": "disnea",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "se le corre al brazo",
+          "normalized": "irradiación a miembro superior",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N031",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "coloquial",
+    "criterio": "Trauma ocular con disminución de la agudeza visual",
+    "transcript": "Tengo el ojo derecho muy rojo, me arde, veo borroso desde ayer y me entró algo cuando estaba soldando sin careta.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "el ojo derecho muy rojo",
+          "normalized": "hiperemia conjuntival",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me arde",
+          "normalized": "ardor ocular",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "veo borroso",
+          "normalized": "visión borrosa",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "me entró algo",
+          "normalized": "cuerpo extraño ocular",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N032",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 3,
+    "tipo": "signos_vitales",
+    "criterio": "Diarrea con signos de deshidratación en adulto mayor",
+    "transcript": "Adulto mayor con diarrea desde hace cuatro días, está decaído, la frecuencia cardiaca en 112 y la presión 100 sobre 60, toma furosemida.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "diarrea",
+          "normalized": "diarrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "decaído",
+          "normalized": "decaimiento",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "furosemida",
+          "normalized": "furosemida",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "frecuencia cardiaca en 112",
+          "normalized": "FC: 112 lpm",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "presión 100 sobre 60",
+          "normalized": "PA: 100/60 mmHg",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N033",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Síntomas respiratorios altos leves",
+    "transcript": "Tengo moqueo, estornudos y un dolorcito de garganta desde hace dos días, no tengo fiebre ni me falta el aire, soy alérgico al polvo.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "moqueo",
+          "normalized": "rinorrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "estornudos",
+          "normalized": "estornudos",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "dolorcito de garganta",
+          "normalized": "odinofagia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "me falta el aire",
+          "normalized": "disnea",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [
+        {
+          "text": "polvo",
+          "normalized": "ácaros del polvo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N034",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "tipico",
+    "criterio": "Lumbalgia mecánica sin signos de alarma",
+    "transcript": "Paciente con lumbalgia desde hace tres días después de hacer fuerza, sin pérdida de fuerza en las piernas, sin problemas para orinar.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "lumbalgia",
+          "normalized": "lumbalgia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "pérdida de fuerza en las piernas",
+          "normalized": "debilidad de miembros inferiores",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "problemas para orinar",
+          "normalized": "alteración miccional",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N035",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Infección de piel localizada",
+    "transcript": "Me salió un nacido en la axila, está rojo y me duele, no he tenido fiebre.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "rojo",
+          "normalized": "eritema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me duele",
+          "normalized": "dolor local",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "un nacido en la axila",
+          "normalized": "absceso cutáneo axilar",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N036",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Trauma menor de extremidad",
+    "transcript": "Me torcí el dedo de la mano jugando baloncesto, está hinchado pero lo puedo mover, me tomé un ibuprofeno.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "hinchado",
+          "normalized": "edema",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "lo puedo mover",
+          "normalized": "impotencia funcional",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me torcí el dedo de la mano",
+          "normalized": "esguince de dedo de la mano",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [
+        {
+          "text": "ibuprofeno",
+          "normalized": "ibuprofeno",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N037",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "signos_vitales",
+    "criterio": "Fiebre con foco claro en niño con buen estado general",
+    "transcript": "Niño de 6 años con fiebre de 38 grados desde ayer y dolor de oído, está jugando y comiendo bien, saturación de 98.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "dolor de oído",
+          "normalized": "otalgia",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "comiendo bien",
+          "normalized": "hiporexia",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [
+        {
+          "text": "fiebre de 38 grados",
+          "normalized": "T: 38°C",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "saturación de 98",
+          "normalized": "SpO2: 98%",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": []
+    }
+  },
+  {
+    "id": "N038",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Lesión cutánea menor",
+    "transcript": "Tengo una picadura de zancudo que se me infectó un poquito en la pierna, me pica y está un poco roja.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "me pica",
+          "normalized": "prurito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "un poco roja",
+          "normalized": "eritema",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "picadura de zancudo",
+          "normalized": "picadura de insecto",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N039",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "negacion",
+    "criterio": "Dispepsia sin signos de alarma",
+    "transcript": "Desde hace tres días tengo ardor en la boca del estómago después de comer, tomo omeprazol pero no me ha servido, no he vomitado sangre ni hecho popó negra.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "ardor en la boca del estómago",
+          "normalized": "pirosis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "vomitado sangre",
+          "normalized": "hematemesis",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "popó negra",
+          "normalized": "melenas",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "omeprazol",
+          "normalized": "omeprazol",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N040",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "negacion",
+    "criterio": "Trauma craneal leve sin signos de alarma",
+    "transcript": "Me golpeé la cabeza con la puerta del carro, no perdí el conocimiento, no he vomitado y solo tengo un chichón.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "perdí el conocimiento",
+          "normalized": "pérdida de conciencia",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "vomitado",
+          "normalized": "vómito",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "chichón",
+          "normalized": "hematoma de cuero cabelludo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me golpeé la cabeza",
+          "normalized": "traumatismo craneal leve",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N041",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Conjuntivitis sin compromiso visual",
+    "transcript": "Tengo los ojos rojos y con lagaña desde ayer, me pica y me arde, veo bien.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "los ojos rojos",
+          "normalized": "hiperemia conjuntival",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "lagaña",
+          "normalized": "secreción ocular",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me pica",
+          "normalized": "prurito",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me arde",
+          "normalized": "ardor ocular",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "veo bien",
+          "normalized": "disminución de la agudeza visual",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N042",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 4,
+    "tipo": "coloquial",
+    "criterio": "Diarrea aguda sin deshidratación",
+    "transcript": "Tengo diarrea y cólicos desde esta mañana, como cinco veces, me tomé un suero y lo estoy tolerando, sin sangre en la popó.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "diarrea",
+          "normalized": "diarrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "cólicos",
+          "normalized": "dolor abdominal tipo cólico",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "lo estoy tolerando",
+          "normalized": "intolerancia a la vía oral",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "sangre en la popó",
+          "normalized": "hematoquecia",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "suero",
+          "normalized": "sales de rehidratación oral",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N043",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Renovación de fórmula de medicamento crónico",
+    "transcript": "Vengo porque me acabé las pastillas de la tiroides, la levotiroxina, y necesito la fórmula, me siento bien.",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "levotiroxina",
+          "normalized": "levotiroxina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "tiroides",
+          "normalized": "hipotiroidismo",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N044",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Condición crónica sin urgencia",
+    "transcript": "Tengo los pies resecos y con hongos en las uñas desde hace años, quiero que me manden algo.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "los pies resecos",
+          "normalized": "xerosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "hongos en las uñas",
+          "normalized": "onicomicosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N045",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "tipico",
+    "criterio": "Control de enfermedad crónica",
+    "transcript": "Paciente diabético e hipertenso que viene por control, toma metformina y enalapril, no refiere síntomas nuevos.",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "metformina",
+          "normalized": "metformina",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "enalapril",
+          "normalized": "enalapril",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "diabético",
+          "normalized": "diabetes mellitus",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "hipertenso",
+          "normalized": "hipertensión arterial",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N046",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Trámite administrativo",
+    "transcript": "Quiero una incapacidad porque ayer tuve dolor de espalda, hoy ya estoy bien.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de espalda",
+          "normalized": "lumbalgia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N047",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Consulta dermatológica no urgente",
+    "transcript": "Tengo caspa y se me está cayendo un poco el pelo desde hace meses.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "caspa",
+          "normalized": "caspa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "se me está cayendo un poco el pelo",
+          "normalized": "alopecia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N048",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "negacion",
+    "criterio": "Lesión crónica estable",
+    "transcript": "Vengo a que me revisen un lunar que tengo en la espalda desde niño, no ha cambiado de tamaño ni me duele.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "cambiado de tamaño",
+          "normalized": "crecimiento de la lesión",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "me duele",
+          "normalized": "dolor",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "un lunar",
+          "normalized": "nevo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N049",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Síntoma crónico sin signos de alarma",
+    "transcript": "Me siento cansado desde hace como dos meses, duermo mal, no tengo fiebre ni he bajado de peso.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "cansado",
+          "normalized": "fatiga",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "duermo mal",
+          "normalized": "insomnio",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "bajado de peso",
+          "normalized": "pérdida de peso",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N050",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "tipico",
+    "criterio": "Lectura de exámenes",
+    "transcript": "Paciente que viene por resultados de colesterol alto, toma atorvastatina, asintomático.",
+    "entities": {
+      "symptoms": [],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "atorvastatina",
+          "normalized": "atorvastatina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": [
+        {
+          "text": "colesterol alto",
+          "normalized": "hipercolesterolemia",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  },
+  {
+    "id": "N051",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Tos crónica en paciente estable",
+    "transcript": "Tengo una tos seca desde hace tres semanas que me da más en la noche, no me falta el aire, tomo enalapril.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "tos seca",
+          "normalized": "tos seca",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me falta el aire",
+          "normalized": "disnea",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [
+        {
+          "text": "enalapril",
+          "normalized": "enalapril",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N052",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Consulta no urgente",
+    "transcript": "Necesito que me formulen las gafas, veo borroso de lejos desde hace años.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "veo borroso de lejos",
+          "normalized": "disminución de la agudeza visual lejana",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N053",
+    "split": "test",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "negacion",
+    "criterio": "Condición crónica estable",
+    "transcript": "Tengo várices en las piernas que me duelen al final del día, no están rojas ni calientes.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "me duelen",
+          "normalized": "dolor en miembros inferiores",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "rojas",
+          "normalized": "eritema",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "calientes",
+          "normalized": "calor local",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "várices en las piernas",
+          "normalized": "várices de miembros inferiores",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N054",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Síntoma resuelto",
+    "transcript": "Me dio un dolor de estómago después de comer mucho en la fiesta, ya se me pasó, quería que me revisaran.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de estómago",
+          "normalized": "dolor abdominal",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [],
+      "vitals": [],
+      "history": []
+    }
+  },
+  {
+    "id": "N055",
+    "split": "dev",
+    "estado": "borrador",
+    "reference_level": 5,
+    "tipo": "coloquial",
+    "criterio": "Dolor crónico, orientación terapéutica",
+    "transcript": "Soy alérgico a la dipirona y quería saber qué puedo tomar para el dolor de rodilla que tengo desde hace meses por la artrosis.",
+    "entities": {
+      "symptoms": [
+        {
+          "text": "dolor de rodilla",
+          "normalized": "gonalgia",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [],
+      "medications": [],
+      "allergies": [
+        {
+          "text": "dipirona",
+          "normalized": "metamizol",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "vitals": [],
+      "history": [
+        {
+          "text": "artrosis",
+          "normalized": "artrosis",
+          "negated": false,
+          "cie10": null
+        }
+      ]
+    }
+  }
+]
