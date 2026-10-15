@@ -7,7 +7,9 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict
+from typing import Any, Dict, List, Literal
+
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,19 @@ _FALLBACK_TERMS = [
 ]
 
 
+class NormalizationMappingSchema(BaseModel):
+    raw_term: str = Field(description="Termino coloquial detectado en el relato")
+    medical_term: str = Field(description="Termino medico formal equivalente")
+    code_snomed: str = Field(description="Codigo SNOMED-CT o CIE-10 del concepto")
+    category: Literal["Sintoma", "Signo", "Medicamento", "Antecedente"]
+
+
+class NormalizationOutputSchema(BaseModel):
+    normalized_text: str = Field(description="Relato completo redactado en lenguaje clinico formal")
+    summary: str = Field(description="Resumen diagnostico en 1 o 2 lineas")
+    mappings: List[NormalizationMappingSchema] = Field(default_factory=list)
+
+
 def _resolve_gemini_key() -> str:
     try:
         from system_settings.models import APIKeyCredential
@@ -40,7 +55,7 @@ def _resolve_gemini_key() -> str:
 
 def _normalize_with_gemini(raw_text: str, custom_instruction: str, api_key: str) -> Dict[str, Any]:
     from google import genai
-    from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT
+    from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT, _sanitize_schema_for_gemini
     # Sin timeout, una llamada colgada bloquearia indefinidamente un hilo del worker LLM.
     client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
     prompt = f"""
@@ -76,9 +91,15 @@ Debes responder UNICAMENTE en formato JSON con la siguiente estructura:
     response = client.models.generate_content(
         model=active_engine,
         contents=prompt,
-        config={'response_mime_type': 'application/json'}
+        config={
+            'response_mime_type': 'application/json',
+            'response_schema': _sanitize_schema_for_gemini(NormalizationOutputSchema),
+        }
     )
-    return json.loads(response.text) if response.text else None
+    if not response.text:
+        return None
+    # Una respuesta que no cumple el contrato lanza ValidationError y se usa el catalogo.
+    return NormalizationOutputSchema.model_validate(json.loads(response.text)).model_dump()
 
 
 def normalize_with_rules(raw_text: str) -> Dict[str, Any]:

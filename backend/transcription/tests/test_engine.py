@@ -268,3 +268,28 @@ class TestNormalizerGemini:
         result = normalizer.normalize_clinical_text("me falta el aire")
 
         assert [m["raw_term"] for m in result["mappings"]] == ["falta el aire"]
+
+    def test_gemini_response_outside_contract_falls_back_to_catalog(self, mocker):
+        from transcription import normalizer
+        mocker.patch.object(normalizer, "_resolve_gemini_key", return_value="test-key")
+        client_cls = mocker.patch("google.genai.Client")
+        client_cls.return_value.models.generate_content.return_value = SimpleNamespace(
+            text=json.dumps({"normalized_text": "disnea", "mappings": [{"raw_term": "falta el aire"}]})
+        )
+
+        result = normalizer.normalize_clinical_text("me falta el aire")
+
+        assert result["mappings"][0]["code_snomed"] == "267036007"
+
+    def test_gemini_call_sends_response_schema(self, mocker):
+        from transcription import normalizer
+        mocker.patch.object(normalizer, "_resolve_gemini_key", return_value="test-key")
+        client_cls = mocker.patch("google.genai.Client")
+        client_cls.return_value.models.generate_content.return_value = SimpleNamespace(
+            text=json.dumps({"normalized_text": "disnea", "summary": "s", "mappings": []})
+        )
+
+        normalizer.normalize_clinical_text("me falta el aire")
+
+        config = client_cls.return_value.models.generate_content.call_args.kwargs["config"]
+        assert "mappings" in config["response_schema"]["properties"]
