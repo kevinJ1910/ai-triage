@@ -67,6 +67,9 @@ def _incr(name: str, amount: int = 1) -> None:
         cache.set(key, amount, timeout=None)
 
 
+# Subir al cambiar las claves del resultado (v2: diagnoses, allergies y negated_findings).
+RESULT_SCHEMA_VERSION = 2
+
 class ClinicalQueryCache:
     """
     Cache semantico y canonico de consultas de triaje clinico.
@@ -116,7 +119,8 @@ class ClinicalQueryCache:
             "eva:" + cls._bucket(v.get("eva"), [(4, "mild"), (7, "mod"), (11, "sev")]),
         ])
 
-        canonical_str = " ".join(words) + "||" + vitals_repr
+        # La version del esquema de salida invalida las entradas guardadas con una forma anterior.
+        canonical_str = f"v{RESULT_SCHEMA_VERSION}||" + " ".join(words) + "||" + vitals_repr
         return hashlib.sha256(canonical_str.encode('utf-8')).hexdigest()
 
     @classmethod

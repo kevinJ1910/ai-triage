@@ -215,7 +215,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         except (TypeError, ValueError):
             limit = 50
 
-        entity_keys = ('symptoms', 'medications', 'vitals', 'history')
+        entity_keys = ('symptoms', 'diagnoses', 'medications', 'allergies', 'vitals', 'history', 'negated_findings')
         results = []
         for s in qs[:limit]:
             pat = s.patient

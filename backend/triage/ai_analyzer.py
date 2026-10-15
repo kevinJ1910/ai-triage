@@ -80,10 +80,19 @@ class PatientInfoSchema(BaseModel):
 
 
 class EntitiesSchema(BaseModel):
-    symptoms: List[str] = Field(default_factory=list, description="Lista de sintomas clinicos expresados")
+    symptoms: List[str] = Field(default_factory=list, description="Sintomas y signos presentes (nunca los negados)")
+    diagnoses: List[str] = Field(
+        default_factory=list,
+        description="Enfermedades, lesiones o estados del episodio actual nombrados como tales (fractura, quemadura, gripa, gestacion)",
+    )
     medications: List[str] = Field(default_factory=list, description="Medicamentos de uso habitual o prescritos")
+    allergies: List[str] = Field(default_factory=list, description="Sustancias a las que el paciente refiere alergia")
     vitals: List[str] = Field(default_factory=list, description="Constantes vitales detectadas en consulta")
     history: List[str] = Field(default_factory=list, description="Antecedentes patologicos o quirurgicos")
+    negated_findings: List[str] = Field(
+        default_factory=list,
+        description="Hallazgos negados explicitamente ('niega dolor toracico', 'sin fiebre'); no van en symptoms",
+    )
 
 
 class TriageDetailsSchema(BaseModel):
@@ -236,7 +245,8 @@ def analyze_triage_transcript(
     # 6. Construccion de Prompt Optimizado con Prioridad Christus Sinergia Salud
     system_instruction = (
         "Especialista de Triaje de Urgencias CHRISTUS SINERGIA (Res. 5596 Minsalud Colombia). "
-        "Clasifica rigurosamente el nivel de gravedad y extrae entidades clínicas con máxima fidelidad a los criterios institucionales."
+        "Clasifica rigurosamente el nivel de gravedad y extrae entidades clínicas con máxima fidelidad a los criterios institucionales. "
+        "Los hallazgos negados van en negated_findings y nunca en symptoms; 'no respira' o 'no responde' son hallazgos presentes."
     )
 
     pseudonymized = _pseudonymize(cleaned_transcript)
@@ -404,7 +414,9 @@ def _fallback_rule_triage(
         "patientInfo": _extract_patient_info_rules(raw_transcript),
         "entities": {
             "symptoms": symptoms or ["Síntomas referidos en consulta"],
+            "diagnoses": [],
             "medications": [],
+            "allergies": [],
             "vitals": compact_vitals,
             "history": [],
             "negated_findings": negated_findings,

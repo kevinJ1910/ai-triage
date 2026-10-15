@@ -47,6 +47,9 @@ interface PatientEMR {
   justification: string;
   entities: {
     symptoms?: string[];
+    diagnoses?: string[];
+    allergies?: string[];
+    negated_findings?: string[];
     // El backend guarda los signos vitales como texto compacto: "PA: 145/95 mmHg".
     vitals?: string[];
     evolution_notes?: string;
@@ -1037,6 +1040,42 @@ export default function EMRSimulator() {
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* Alergias, diagnosticos y hallazgos negados */}
+                <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-orange-300">Alergias:</span>
+                    {selectedPatient.entities?.allergies?.length ? (
+                      selectedPatient.entities.allergies.map((allergy, idx) => (
+                        <span key={`al-${idx}`} className="px-2.5 py-0.5 rounded-lg bg-orange-500/15 text-orange-200 border border-orange-500/30 text-xs font-semibold">
+                          {allergy}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400">No referidas</span>
+                    )}
+                  </div>
+                  {selectedPatient.entities?.diagnoses?.length ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-300">Diagnosticos / lesiones:</span>
+                      {selectedPatient.entities.diagnoses.map((dx, idx) => (
+                        <span key={`dx-${idx}`} className="px-2.5 py-0.5 rounded-lg bg-rose-500/10 text-rose-200 border border-rose-500/20 text-xs">
+                          {dx}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {selectedPatient.entities?.negated_findings?.length ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Niega:</span>
+                      {selectedPatient.entities.negated_findings.map((finding, idx) => (
+                        <span key={`neg-${idx}`} className="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 text-xs line-through decoration-slate-500">
+                          {finding}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Clinical Justification */}

@@ -22,6 +22,8 @@ describe('EMRSimulator Component', () => {
       entities: {
         symptoms: ['Dolor toracico', 'Diaforesis', 'Disnea'],
         vitals: ['PA: 145/95 mmHg', 'FC: 102 lpm', 'SpO2: 94%', 'T: 36.8°C'],
+        allergies: ['Penicilina'],
+        negated_findings: ['Fiebre'],
       },
     },
     {
@@ -102,6 +104,8 @@ describe('EMRSimulator Component', () => {
     expect(screen.getByText('Dolor toracico opresivo con irradiacion al brazo izquierdo.')).toBeInTheDocument();
     expect(screen.getByText('145/95 mmHg')).toBeInTheDocument();
     expect(screen.getByText('102 lpm')).toBeInTheDocument();
+    expect(screen.getByText('Penicilina')).toBeInTheDocument();
+    expect(screen.getByText('Fiebre')).toBeInTheDocument();
 
     // Click on second patient in queue
     const jorgeCards = screen.getAllByText('Jorge Ramirez');
@@ -111,6 +115,7 @@ describe('EMRSimulator Component', () => {
       expect(screen.getByText('Cuadro de rinitis y odinofagia leve de 3 dias de evolucion.')).toBeInTheDocument();
       expect(screen.getByText('120/80 mmHg')).toBeInTheDocument();
       expect(screen.getByText('75 lpm')).toBeInTheDocument();
+      expect(screen.getByText('No referidas')).toBeInTheDocument();
     });
   });
 

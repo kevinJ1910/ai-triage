@@ -17,10 +17,22 @@ OBSERVATION_STATUS = {
     "registered", "preliminary", "final", "amended", "corrected",
     "cancelled", "entered-in-error", "unknown",
 }
+CONDITION_VERIFICATION_STATUS = {
+    "unconfirmed", "provisional", "differential", "confirmed", "refuted", "entered-in-error",
+}
+ALLERGY_CLINICAL_STATUS = {"active", "inactive", "resolved"}
+ALLERGY_VERIFICATION_STATUS = {"unconfirmed", "confirmed", "refuted", "entered-in-error"}
 MEDICATION_STATEMENT_STATUS = {
     "active", "completed", "entered-in-error", "intended", "stopped",
     "on-hold", "unknown", "not-taken",
 }
+
+
+def _codes(concept: Any) -> List[str]:
+    """Codigos de un CodeableConcept (lista vacia si no hay)."""
+    if not isinstance(concept, dict):
+        return []
+    return [c.get("code") for c in concept.get("coding") or [] if isinstance(c, dict)]
 
 
 def _check_resource(resource: Dict[str, Any], where: str) -> List[str]:
@@ -40,6 +52,18 @@ def _check_resource(resource: Dict[str, Any], where: str) -> List[str]:
     elif rtype == "Condition":
         if not resource.get("subject"):
             errors.append(f"{where} Condition.subject es obligatorio")
+        verification = _codes(resource.get("verificationStatus"))
+        if verification and not set(verification) <= CONDITION_VERIFICATION_STATUS:
+            errors.append(f"{where} Condition.verificationStatus fuera del value set R4")
+    elif rtype == "AllergyIntolerance":
+        if not resource.get("patient"):
+            errors.append(f"{where} AllergyIntolerance.patient es obligatorio")
+        clinical = _codes(resource.get("clinicalStatus"))
+        if clinical and not set(clinical) <= ALLERGY_CLINICAL_STATUS:
+            errors.append(f"{where} AllergyIntolerance.clinicalStatus fuera del value set R4")
+        verification = _codes(resource.get("verificationStatus"))
+        if verification and not set(verification) <= ALLERGY_VERIFICATION_STATUS:
+            errors.append(f"{where} AllergyIntolerance.verificationStatus fuera del value set R4")
     elif rtype == "MedicationStatement":
         if resource.get("status") not in MEDICATION_STATEMENT_STATUS:
             errors.append(f"{where} MedicationStatement.status ausente o fuera del value set R4")
