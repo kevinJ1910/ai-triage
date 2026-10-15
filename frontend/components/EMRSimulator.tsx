@@ -47,9 +47,17 @@ interface PatientEMR {
   justification: string;
   entities: {
     symptoms?: string[];
-    vitals?: Record<string, string>;
+    // El backend guarda los signos vitales como texto compacto: "PA: 145/95 mmHg".
+    vitals?: string[];
     evolution_notes?: string;
   };
+}
+
+// "PA: 145/95 mmHg" -> ["PA", "145/95 mmHg"]; el texto libre del LLM sin etiqueta queda como valor.
+function splitVital(vital: string): [string, string] {
+  const sep = vital.indexOf(':');
+  if (sep <= 0) return ['Signo vital', vital.trim()];
+  return [vital.slice(0, sep).trim(), vital.slice(sep + 1).trim()];
 }
 
 interface HospitalBox {
@@ -990,13 +998,16 @@ export default function EMRSimulator() {
                       <span>Signos Vitales Registrados</span>
                     </h3>
                     <div className="grid grid-cols-2 gap-2.5 pt-1 text-xs">
-                      {selectedPatient.entities?.vitals ? (
-                        Object.entries(selectedPatient.entities.vitals).map(([k, v]) => (
-                          <div key={k} className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl">
-                            <span className="text-[10px] text-slate-400 uppercase font-mono block font-semibold">{k}</span>
-                            <span className="text-sm font-semibold text-sky-200 font-mono mt-0.5 block">{v}</span>
-                          </div>
-                        ))
+                      {selectedPatient.entities?.vitals?.length ? (
+                        selectedPatient.entities.vitals.map((vital, idx) => {
+                          const [label, value] = splitVital(vital);
+                          return (
+                            <div key={`${vital}-${idx}`} className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl">
+                              <span className="text-[10px] text-slate-400 uppercase font-mono block font-semibold">{label}</span>
+                              <span className="text-sm font-semibold text-sky-200 font-mono mt-0.5 block">{value}</span>
+                            </div>
+                          );
+                        })
                       ) : (
                         <div className="col-span-2 text-slate-400 text-xs py-3 text-center">
                           Signos vitales normales o no especificados en triaje inicial.
