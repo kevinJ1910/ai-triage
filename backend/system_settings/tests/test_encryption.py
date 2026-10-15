@@ -111,12 +111,12 @@ class TestSystemSettingsAndEncryption:
         self.client.force_authenticate(user=self.admin)
         response = self.client.post("/api/config/", {
             "active_asr_model": "large-v3",
-            "active_llm_engine": "gemini-1.5-pro"
+            "active_llm_engine": "gemini-2.5-pro"
         }, format="json")
         assert response.status_code == status.HTTP_200_OK
         config = SystemConfiguration.get_solo()
         assert config.active_asr_model == "large-v3"
-        assert config.active_llm_engine == "gemini-1.5-pro"
+        assert config.active_llm_engine == "gemini-2.5-pro"
 
     def test_system_config_update_non_admin_forbidden(self):
         self.client.force_authenticate(user=self.nurse)

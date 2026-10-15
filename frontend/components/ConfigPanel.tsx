@@ -391,7 +391,7 @@ export default function ConfigPanel() {
               >
                 {(availableOptions?.llm_engines || [
                   { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash - Baja Latencia Clinica (Recomendado)' },
-                  { id: 'gemini-1.5-pro', name: 'Google Gemini 1.5 Pro - Razonamiento Extendido' },
+                  { id: 'gemini-2.5-pro', name: 'Google Gemini 2.5 Pro - Razonamiento Extendido' },
                   { id: 'gpt-4o-mini', name: 'OpenAI GPT-4o-mini - Soporte Multimodal' },
                   { id: 'gpt-4o', name: 'OpenAI GPT-4o - Modelo de Referencia' },
                   { id: 'claude-3-5-sonnet', name: 'Anthropic Claude 3.5 Sonnet - Precision Diagnostica' },
