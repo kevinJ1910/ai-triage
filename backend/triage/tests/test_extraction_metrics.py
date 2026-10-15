@@ -11,6 +11,8 @@ from triage.extraction_metrics import (
     annotator_agreement,
     bootstrap_ci,
     canonical_vital,
+    code_accuracy,
+    code_hits,
     score_case,
     terms_match,
 )
@@ -90,6 +92,19 @@ class TestScoring:
         second = _gold(symptoms=[_ent('fiebre', 'fiebre', negated=False)])
         counts = annotator_agreement(first, second)['symptoms']
         assert (counts['tp'], counts['fn'], counts['negation_agree']) == (1, 1, 0)
+
+
+class TestCodeMetrics:
+    def test_code_hits_accepts_colombian_format(self):
+        gold = _gold(symptoms=[{**_ent('me falta el aire', 'disnea'), 'cie10': 'R06.0'},
+                               {**_ent('tos', 'tos'), 'cie10': 'R05'},
+                               _ent('rojo', 'eritema')])
+        hits = code_hits(gold, ['R060', 'I10'])
+        assert hits == {'coded_gold': 2, 'code_hits': 1}
+        assert code_accuracy([hits, {'coded_gold': 0, 'code_hits': 0}])['cie10_accuracy'] == 0.5
+
+    def test_accuracy_is_none_without_coded_entities(self):
+        assert code_accuracy([])['cie10_accuracy'] is None
 
 
 class TestEvaluateExtractionCommand:

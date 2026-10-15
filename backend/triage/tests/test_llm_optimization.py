@@ -278,9 +278,10 @@ class TestAIAnalyzerEndToEnd:
         from system_settings.models import APIKeyCredential
         APIKeyCredential.objects.filter(provider='gemini').delete()
 
-        res = analyze_triage_transcript("Tengo dolor torácico y vómito desde anoche", use_cache=False)
-        assert "dolor toracico" in res["entities"]["symptoms"]
-        assert "vomito" in res["entities"]["symptoms"]
+        # Con o sin tildes, el respaldo devuelve el termino clinico del catalogo.
+        for transcript in ("Tengo dolor torácico y vómito desde anoche", "Tengo dolor toracico y vomito desde anoche"):
+            res = analyze_triage_transcript(transcript, use_cache=False)
+            assert res["entities"]["symptoms"] == ["dolor torácico", "vómito"]
 
     def test_cache_integration_in_analyzer(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "")

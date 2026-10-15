@@ -4,62 +4,7 @@ import unicodedata
 from typing import Dict, Any, List, Optional
 from .clinical_protocol import CHRISTUS_SINERGIA_LEVELS, _normalize_text
 from .negation import strip_negated
-
-# Mapeo ontologico de sinonimos coloquiales y expresiones clinicas comunes
-CLINICAL_SYNONYM_MAP = {
-    # Respiratorio
-    "falta de aire": "disnea",
-    "ahogo": "disnea",
-    "fatiga al respirar": "disnea",
-    "pecho apretado": "dificultad respiratoria",
-    "silbido en el pecho": "sibilancias",
-    "pecho le hierve": "estertores",
-    "morado": "cianosis",
-    "labios azules": "cianosis",
-    # Cardiovascular
-    "dolor en el pecho": "dolor toracico",
-    "opresion en el pecho": "dolor toracico opresivo",
-    "pata de elefante": "dolor toracico opresivo",
-    "corazon acelerado": "taquicardia",
-    "palpitaciones": "taquicardia",
-    "siente que se le sale el corazon": "taquicardia",
-    "desmayo": "sincope",
-    "perdio el conocimiento": "sincope",
-    "se fue de para atras": "sincope",
-    # Neurologico
-    "boca torcida": "asimetria facial",
-    "cara chueca": "asimetria facial",
-    "medio cuerpo dormido": "hemiparesia",
-    "se le durmio el brazo": "parestesias",
-    "no puede hablar": "afasia",
-    "habla enredado": "disartria",
-    "lengua trabada": "disartria",
-    "ataque": "convulsion",
-    "patatuz": "sincope",
-    "la peor cefalea de mi vida": "cefalea en trueno",
-    "estallido en la cabeza": "cefalea en trueno",
-    # Digestivo / Abdomen
-    "dolor en la boca del estomago": "dolor epigastrico",
-    "retorcijones": "colico abdominal",
-    "barriga dura como tabla": "abdomen en tabla",
-    "estomago hinchado": "distension abdominal",
-    "vomitando sangre": "hematemesis",
-    "caca negra": "melenas",
-    "deposicion con sangre": "rectorragia",
-    "soltura": "diarrea",
-    # Urologico
-    "chistata": "disuria",
-    "quema al orinar": "disuria",
-    "orina sangre": "hematuria",
-    "no puede mear": "retencion urinaria",
-    "vejiga tapada": "retencion urinaria",
-    # Metabolico / General
-    "azucar por las nubes": "hiperglucemia",
-    "baja de azucar": "hipoglucemia",
-    "sudor frio": "diaforesis",
-    "sudoracion helada": "diaforesis",
-    "calentura": "fiebre",
-}
+from transcription.terminology import find_concepts, fold
 
 # Base de Conocimiento Ontologico y Criterios Institucionales Enriquecidos (80+ Criterios)
 CLINICAL_KNOWLEDGE_BASE = [
@@ -550,12 +495,9 @@ class ClinicalKnowledgeRAG:
 
     @classmethod
     def _expand_query_synonyms(cls, query_norm: str) -> str:
-        """Expande sinonimos coloquiales para aumentar recall ontologico."""
-        expanded = query_norm
-        for colloquial, clinical in CLINICAL_SYNONYM_MAP.items():
-            if colloquial in query_norm:
-                expanded += f" {clinical}"
-        return expanded
+        """Anade el termino clinico de cada coloquialismo o sigla del catalogo terminologico."""
+        terms = [fold(match.concept.term) for match in find_concepts(query_norm)]
+        return " ".join([query_norm, *terms])
 
     @classmethod
     def _compute_relevance(cls, query_norm: str, criterion: Dict[str, Any]) -> float:

@@ -38,7 +38,11 @@ La carga y la validación están en `triage/entity_corpus.py` (`load_entity_corp
 
 Todos los casos tienen `estado: "borrador"`. Las entidades de los 120 casos, y el nivel y el criterio de los 55 nuevos, se redactaron con asistencia de IA. **Antes de usar el corpus para reportar resultados**, el equipo debe revisar cada caso y cambiar `estado` a `"revisado"`. Si el corpus que evalúa a un LLM lo anotó otro LLM sin revisión humana, la evaluación no es defendible. Los cambios de la revisión se registran en el historial de git.
 
-`cie10` vale `null` en todas las entidades. Los códigos se asignan en el paso de normalización contra el catálogo CIE-10 oficial, no de memoria.
+**Códigos CIE-10 (`cie10`).** El 15-10-2026 se rellenaron de forma automática 176 entidades: 119 de 208 en `dev` y 57 de 136 en `test`. El código se tomó del catálogo `transcription/terminology/` cuando la forma `normalized` de la entidad coincide con un término o una variante del catálogo. Las demás entidades, los signos vitales y los medicamentos (que se codifican con ATC, no con CIE-10) quedan en `null`. Hay tres cosas que tener en cuenta:
+
+- **Son propuestas, no anotaciones.** El revisor debe confirmar o corregir cada código al pasar el caso a `revisado`, consultando la tabla CIE-10 oficial y no el catálogo.
+- **La métrica es circular mientras no se revisen.** El código esperado sale del mismo catálogo que usa la normalización, así que `cie10_accuracy` en `evaluate_extraction` mide la **cobertura** del catálogo (si encuentra la mención), no si el código es clínicamente correcto. Solo después de la revisión humana mide exactitud.
+- **El catálogo se amplió mirando `dev`, no `test`.** Por eso las cifras de `dev` de la normalización y del NER por reglas están infladas, y la cifra que se reporta es la de `test`.
 
 ## Campos adicionales
 

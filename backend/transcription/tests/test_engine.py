@@ -267,7 +267,8 @@ class TestNormalizerGemini:
 
         result = normalizer.normalize_clinical_text("me falta el aire")
 
-        assert [m["raw_term"] for m in result["mappings"]] == ["falta el aire"]
+        assert [m["raw_term"] for m in result["mappings"]] == ["me falta el aire"]
+        assert result["layers"]["llm"] == 0
 
     def test_gemini_response_outside_contract_falls_back_to_catalog(self, mocker):
         from transcription import normalizer
@@ -279,7 +280,8 @@ class TestNormalizerGemini:
 
         result = normalizer.normalize_clinical_text("me falta el aire")
 
-        assert result["mappings"][0]["code_snomed"] == "267036007"
+        assert result["mappings"][0]["code"] == "R06.0"
+        assert result["mappings"][0]["source"] == "diccionario"
 
     def test_gemini_call_sends_response_schema(self, mocker):
         from transcription import normalizer

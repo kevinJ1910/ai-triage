@@ -2,11 +2,12 @@ import re
 import time
 import copy
 import hashlib
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 from django.core.cache import cache
 
 from .clinical_protocol import _normalize_text
+from transcription.terminology import find_concepts, fold
 
 # Palabras cortas que invierten o modifican el sentido clinico y nunca se descartan.
 _SEMANTIC_SHORT_WORDS = {"no", "sin", "ni", "nunca", "nada", "niega", "poco", "muy", "mas", "ya", "bajo", "alto"}
@@ -24,35 +25,6 @@ _COUNTER_KEYS = {
 }
 _MAX_ENTRIES = 10000
 
-# Lemas semanticos canonicos para maximizar la tasa de acierto del cache sin perdida de precision
-CANONICAL_CLINICAL_LEMMAS: List[Tuple[str, str]] = [
-    # Cefalea / cabeza
-    (r"\b(dolor de cabeza|dolor en la cabeza|jaqueca|migrana|puntadas en la cabeza)\b", "cefalea"),
-    # Dolor toracico
-    (r"\b(dolor en el pecho|dolor de pecho|opresion en el pecho|opresion toracica|punzada en el pecho|dolor precordial)\b", "dolortoracico"),
-    # Disnea / respiracion
-    (r"\b(falta de aire|dificultad para respirar|no puedo respirar|dificultad respiratoria|ahogo|fatiga al respirar)\b", "disnea"),
-    # Disuria / urinario
-    (r"\b(ardor al orinar|dolor al orinar|chistata|infeccion urinaria|quema al orinar|molestia para orinar)\b", "disuria"),
-    # Abdominal / digestivo
-    (r"\b(dolor de estomago|dolor de barriga|dolor de panza|dolor en el abdomen|retorcijones|dolor abdominal)\b", "dolorabdominal"),
-    # Respiratorio alto / gripa
-    (r"\b(gripe|resfriado|congestion nasal|nariz tapada|catarro|cuadro gripal)\b", "gripa"),
-    # Garganta / odinofagia
-    (r"\b(dolor de garganta|ardor de garganta|carraspeo|infeccion en la garganta|dolor al tragar)\b", "odinofagia"),
-    # Nauseas y vomito
-    (r"\b(ganas de vomitar|nauseas|vomitando|arcadas)\b", "vomito"),
-    # Diarrea
-    (r"\b(soltura|estomago suelto|cagadera|evacuaciones liquidas|deposiciones liquidas)\b", "diarrea"),
-    # Lumbar
-    (r"\b(dolor de espalda baja|dolor de cintura|dolor lumbar|lumbago|tiron en la espalda)\b", "lumbalgia"),
-    # Mareo / vertigo
-    (r"\b(todo le da vueltas|mareo fuerte|inestabilidad al caminar|vertigo severo)\b", "vertigo"),
-    # Tramites administrativos
-    (r"\b(renovar formula|renovacion de medicamentos|receta medica|orden de medicamentos|pedir formula)\b", "formulacion"),
-    (r"\b(lectura de examenes|mostrar examenes|resultados de laboratorio|ver laboratorios|revisar examenes)\b", "lecturaexamenes"),
-]
-
 # Cache L1 en memoria de proceso (ultrarrapido < 0.1ms)
 _L1_CACHE: Dict[str, Tuple[Dict[str, Any], float]] = {}
 _L1_MAX_SIZE = 1000
@@ -67,8 +39,8 @@ def _incr(name: str, amount: int = 1) -> None:
         cache.set(key, amount, timeout=None)
 
 
-# Subir al cambiar las claves del resultado (v2: diagnoses, allergies y negated_findings).
-RESULT_SCHEMA_VERSION = 2
+# Subir al cambiar las claves del resultado (v2: diagnoses, allergies y negated_findings; v3: normalized_terms).
+RESULT_SCHEMA_VERSION = 3
 
 class ClinicalQueryCache:
     """
@@ -101,11 +73,13 @@ class ClinicalQueryCache:
         """
         norm_text = _normalize_text(cleaned_transcript)
 
-        # Canonicalizacion semantica de lemas clinicos
-        for pat, canonical in CANONICAL_CLINICAL_LEMMAS:
-            norm_text = re.sub(pat, canonical, norm_text)
+        # Canonicalizacion con el catalogo terminologico: cada sinonimo se sustituye por un token
+        # unico de su concepto ('dolor de cabeza' y 'cefalea' -> t_cefalea).
+        for match in reversed(find_concepts(norm_text)):
+            token = "t_" + re.sub(r"[^a-z0-9]+", "_", fold(match.concept.term)).strip("_")
+            norm_text = f"{norm_text[:match.start]} {token} {norm_text[match.end:]}"
 
-        tokens = re.findall(r"[a-z0-9]+", norm_text)
+        tokens = re.findall(r"[a-z0-9_]+", norm_text)
         words = [w for w in tokens if len(w) > 3 or w in _SEMANTIC_SHORT_WORDS]
 
         v = structured_vitals or {}

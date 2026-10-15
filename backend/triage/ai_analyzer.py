@@ -7,9 +7,10 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-from .clinical_protocol import evaluate_christus_sinergia_triage, _normalize_text
+from transcription.normalizer import concept_mappings
+
+from .clinical_protocol import evaluate_christus_sinergia_triage
 from .input_pipeline import ClinicalTranscriptCompressor
-from .negation import split_affirmed_negated
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
 
@@ -170,7 +171,8 @@ def analyze_triage_transcript(
     """
     Analiza una conversacion clinica utilizando un pipeline optimizado:
     1. Evaluacion determinista previa de Christus Sinergia Salud como pauta prioritaria.
-    2. Compresion y desruidado fonetico de la entrada (ClinicalTranscriptCompressor).
+    2. Compresion y desruidado fonetico de la entrada (ClinicalTranscriptCompressor) y normalizacion
+       terminologica determinista (catalogo de transcription/terminology), previa a la extraccion.
     3. Cache semantico canonico para cuadros clinicos recurrentes (ClinicalQueryCache).
     4. Recuperacion semantica de criterios relevantes mediante RAG (ClinicalKnowledgeRAG).
     5. Invocacion a Gemini con System Instruction y decodificacion estructurada sanitizada.
@@ -196,6 +198,8 @@ def analyze_triage_transcript(
     structured_vitals = compressed_input["structured_vitals"]
     red_flags = compressed_input["red_flags"]
     compression_ratio = compressed_input["reduction_percentage"]
+    # Capas deterministas de la normalizacion (sin LLM): pistas para Gemini y entidades del respaldo.
+    normalized_terms = concept_mappings(cleaned_transcript)
 
     # 3. Consulta al Cache Semantico Canonico (0 tokens, < 3ms)
     fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals)
@@ -206,6 +210,7 @@ def analyze_triage_transcript(
             # La cache no guarda datos del paciente: se extraen de ESTA transcripcion.
             cached_result["patientInfo"] = _extract_patient_info_rules(raw_transcript)
             cached_result["compression_ratio"] = compression_ratio
+            cached_result["normalized_terms"] = normalized_terms
             return cached_result
 
     # 4. RAG Clinico: Recuperacion de Criterios Institucionales Top-K Relevantes
@@ -235,6 +240,7 @@ def analyze_triage_transcript(
             red_flags,
             compression_ratio,
             rag_criterion_ids,
+            normalized_terms,
             warning=warning
         )
         # Solo se cachea la falta de clave; un worker caido es transitorio y debe reintentarse.
@@ -252,6 +258,7 @@ def analyze_triage_transcript(
     pseudonymized = _pseudonymize(cleaned_transcript)
     vitals_str = ", ".join(compact_vitals) if compact_vitals else "Sin reporte"
     alerts_str = ", ".join(red_flags) if red_flags else "Sin banderas rojas"
+    terms_str = _format_terms_for_prompt(normalized_terms)
 
     user_prompt = f"""{rag_context_text}
 
@@ -260,6 +267,7 @@ Nivel {rule_baseline['level']} ({rule_baseline['name']}) | Ventana: {rule_baseli
 Criterio: {rule_baseline['justification']}
 
 SIGNOS VITALES: {vitals_str} | ALERTAS: {alerts_str}
+TÉRMINOS NORMALIZADOS (catálogo local): {terms_str}
 CONSULTA COMPRIMIDA:
 "{pseudonymized['text']}"
 """
@@ -328,6 +336,7 @@ CONSULTA COMPRIMIDA:
             result["total_tokens"] = t_tokens
             result["compression_ratio"] = compression_ratio
             result["rag_context"] = rag_criterion_ids
+            result["normalized_terms"] = normalized_terms
 
             # Guardar en Cache Semantico para proximas consultas
             if use_cache:
@@ -348,6 +357,7 @@ CONSULTA COMPRIMIDA:
         red_flags,
         compression_ratio,
         rag_criterion_ids,
+        normalized_terms,
         warning=(
             f"{_describe_llm_failure(last_error)} "
             "Se aplicó el Motor Clínico de Reglas Christus Sinergia Salud para garantizar "
@@ -392,6 +402,40 @@ def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
     }
 
 
+_CATEGORY_TO_ENTITY = {
+    "Sintoma": "symptoms", "Signo": "symptoms", "Diagnostico": "diagnoses",
+    "Antecedente": "history", "Medicamento": "medications",
+}
+
+
+def _entities_from_terms(normalized_terms: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """Entidades del respaldo a partir del catalogo: los negados van aparte y un farmaco o alergeno
+    precedido de 'alergico a' es una alergia, no un medicamento."""
+    entities: Dict[str, List[str]] = {
+        key: [] for key in ("symptoms", "diagnoses", "medications", "allergies", "history", "negated_findings")
+    }
+    for item in normalized_terms:
+        if item["negated"]:
+            # Un farmaco negado ("no toma losartan") no es un hallazgo descartado.
+            key = None if item["category"] in ("Medicamento", "Alergeno", "Administrativo") else "negated_findings"
+        elif item["allergy"]:
+            key = "allergies"
+        else:
+            key = _CATEGORY_TO_ENTITY.get(item["category"])
+        if key and item["medical_term"] not in entities[key]:
+            entities[key].append(item["medical_term"])
+    return entities
+
+
+def _format_terms_for_prompt(normalized_terms: List[Dict[str, Any]]) -> str:
+    parts = []
+    for item in normalized_terms:
+        code = f" [{item['code']}]" if item["code"] else ""
+        prefix = "NEGADO " if item["negated"] else ("ALERGIA " if item["allergy"] else "")
+        parts.append(f"{prefix}\"{item['raw_term']}\" -> {item['medical_term']}{code}")
+    return "; ".join(parts) if parts else "Ninguno"
+
+
 def _fallback_rule_triage(
     raw_transcript: str,
     cleaned_transcript: str,
@@ -399,27 +443,23 @@ def _fallback_rule_triage(
     red_flags: List[str],
     compression_ratio: float,
     rag_criterion_ids: List[str],
+    normalized_terms: List[Dict[str, Any]],
     warning: str
 ) -> Dict[str, Any]:
     """Genera la respuesta estandarizada mediante el motor determinista Christus Sinergia."""
     rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
-
-    norm_tr = _normalize_text(cleaned_transcript)
-    symptoms, negated_findings = split_affirmed_negated(norm_tr, [
-        "dolor de cabeza", "dolor toracico", "dolor en el pecho", "dificultad respiratoria",
-        "fiebre", "tos", "vomito", "diarrea", "mareo", "vertigo", "fatiga", "ardor al orinar"
-    ])
+    entities = _entities_from_terms(normalized_terms)
 
     return {
         "patientInfo": _extract_patient_info_rules(raw_transcript),
         "entities": {
-            "symptoms": symptoms or ["Síntomas referidos en consulta"],
-            "diagnoses": [],
-            "medications": [],
-            "allergies": [],
+            "symptoms": entities["symptoms"] or ["Síntomas referidos en consulta"],
+            "diagnoses": entities["diagnoses"],
+            "medications": entities["medications"],
+            "allergies": entities["allergies"],
             "vitals": compact_vitals,
-            "history": [],
-            "negated_findings": negated_findings,
+            "history": entities["history"],
+            "negated_findings": entities["negated_findings"],
         },
         "triage": {
             "level": rule_triage["level"],
@@ -436,5 +476,6 @@ def _fallback_rule_triage(
         "total_tokens": 0,
         "compression_ratio": compression_ratio,
         "rag_context": rag_criterion_ids,
+        "normalized_terms": normalized_terms,
         "warning": warning
     }

@@ -12,6 +12,8 @@ import random
 import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
+from transcription.terminology import canonical_cie10
+
 from .clinical_protocol import _normalize_text
 from .entity_corpus import ENTITY_TYPES
 
@@ -130,6 +132,23 @@ def score_case(gold_entities: Dict[str, List[Dict[str, Any]]], predicted: Dict[s
             'negated_detected': len(detected_neg),
         }
     return counts
+
+
+def code_hits(gold_entities: Dict[str, List[Dict[str, Any]]], predicted_codes: Iterable[str]) -> Dict[str, int]:
+    """
+    Cuantas entidades anotadas con codigo CIE-10 tienen ese codigo entre los que asigno la normalizacion
+    del caso (normalized_terms). Mide la capa terminologica, no el motor de NER.
+    """
+    predicted = {canonical_cie10(code) for code in predicted_codes if code}
+    coded = [item['cie10'] for items in gold_entities.values() for item in items if item.get('cie10')]
+    return {'coded_gold': len(coded), 'code_hits': sum(1 for code in coded if canonical_cie10(code) in predicted)}
+
+
+def code_accuracy(case_hits: Iterable[Dict[str, int]]) -> Dict[str, Any]:
+    case_hits = list(case_hits)
+    coded = sum(h['coded_gold'] for h in case_hits)
+    hits = sum(h['code_hits'] for h in case_hits)
+    return {'coded_gold': coded, 'code_hits': hits, 'cie10_accuracy': round(hits / coded, 3) if coded else None}
 
 
 def _prf(tp: int, fp: int, fn: int) -> Dict[str, Optional[float]]:

@@ -19,7 +19,7 @@
           "text": "no responde",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         },
         {
           "text": "no respira",
@@ -55,7 +55,7 @@
           "text": "inconsciente",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         },
         {
           "text": "no abre los ojos ni responde al dolor",
@@ -85,7 +85,7 @@
           "text": "morada",
           "normalized": "cianosis",
           "negated": false,
-          "cie10": null
+          "cie10": "R23.0"
         },
         {
           "text": "casi no respira",
@@ -122,13 +122,13 @@
           "text": "sangrando muchísimo",
           "normalized": "hemorragia profusa",
           "negated": false,
-          "cie10": null
+          "cie10": "R58"
         },
         {
           "text": "pálido",
           "normalized": "palidez",
           "negated": false,
-          "cie10": null
+          "cie10": "R23.1"
         },
         {
           "text": "frío",
@@ -251,7 +251,7 @@
           "text": "abuso sexual",
           "normalized": "abuso sexual",
           "negated": false,
-          "cie10": null
+          "cie10": "T74.2"
         }
       ],
       "medications": [],
@@ -274,7 +274,7 @@
           "text": "no responde",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         }
       ],
       "diagnoses": [],
@@ -371,7 +371,7 @@
           "text": "labios azules",
           "normalized": "cianosis",
           "negated": false,
-          "cie10": null
+          "cie10": "R23.0"
         }
       ],
       "diagnoses": [],
@@ -390,7 +390,7 @@
           "text": "asmático",
           "normalized": "asma",
           "negated": false,
-          "cie10": null
+          "cie10": "J45.9"
         }
       ]
     }
@@ -409,13 +409,13 @@
           "text": "pálido",
           "normalized": "palidez",
           "negated": false,
-          "cie10": null
+          "cie10": "R23.1"
         },
         {
           "text": "sudoroso",
           "normalized": "diaforesis",
           "negated": false,
-          "cie10": null
+          "cie10": "R61.9"
         }
       ],
       "diagnoses": [],
@@ -452,13 +452,13 @@
           "text": "dolor en el pecho tipo opresión",
           "normalized": "dolor torácico opresivo",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.4"
         },
         {
           "text": "sudoroso",
           "normalized": "diaforesis",
           "negated": false,
-          "cie10": null
+          "cie10": "R61.9"
         },
         {
           "text": "se le irradia al brazo izquierdo",
@@ -488,13 +488,13 @@
           "text": "convulsión",
           "normalized": "crisis convulsiva",
           "negated": false,
-          "cie10": null
+          "cie10": "R56.8"
         },
         {
           "text": "sigue muy dormido",
           "normalized": "somnolencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.0"
         }
       ],
       "diagnoses": [],
@@ -524,7 +524,7 @@
           "text": "visión borrosa",
           "normalized": "visión borrosa",
           "negated": false,
-          "cie10": null
+          "cie10": "H53.8"
         }
       ],
       "diagnoses": [],
@@ -561,7 +561,7 @@
           "text": "vomitando",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         }
       ],
       "diagnoses": [],
@@ -580,7 +580,7 @@
           "text": "diabético",
           "normalized": "diabetes mellitus",
           "negated": false,
-          "cie10": null
+          "cie10": "E14.9"
         }
       ]
     }
@@ -655,13 +655,13 @@
           "text": "Se tomó un frasco entero de pastillas",
           "normalized": "intoxicación medicamentosa",
           "negated": false,
-          "cie10": null
+          "cie10": "T50.9"
         },
         {
           "text": "para hacerse daño",
           "normalized": "intento de autolesión",
           "negated": false,
-          "cie10": null
+          "cie10": "X84"
         }
       ],
       "medications": [],
@@ -684,7 +684,7 @@
           "text": "agitado",
           "normalized": "agitación psicomotora",
           "negated": false,
-          "cie10": null
+          "cie10": "R45.1"
         },
         {
           "text": "agresivo",
@@ -721,7 +721,7 @@
           "text": "dificultad para respirar",
           "normalized": "disnea",
           "negated": false,
-          "cie10": null
+          "cie10": "R06.0"
         },
         {
           "text": "se le hunden las costillas al respirar",
@@ -757,7 +757,7 @@
           "text": "habla enredado",
           "normalized": "disartria",
           "negated": false,
-          "cie10": null
+          "cie10": "R47.1"
         }
       ],
       "diagnoses": [],
@@ -787,7 +787,7 @@
           "text": "le duele",
           "normalized": "dolor",
           "negated": true,
-          "cie10": null
+          "cie10": "R52.9"
         }
       ],
       "diagnoses": [
@@ -824,7 +824,7 @@
           "text": "rompió fuente",
           "normalized": "ruptura de membranas",
           "negated": false,
-          "cie10": null
+          "cie10": "O42.9"
         }
       ],
       "diagnoses": [
@@ -856,7 +856,7 @@
           "text": "abuso sexual",
           "normalized": "abuso sexual",
           "negated": false,
-          "cie10": null
+          "cie10": "T74.2"
         }
       ],
       "medications": [],
@@ -933,13 +933,13 @@
           "text": "vómito",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         },
         {
           "text": "diarrea",
           "normalized": "diarrea",
           "negated": false,
-          "cie10": null
+          "cie10": "A09"
         },
         {
           "text": "no tolero ni el agua",
@@ -951,13 +951,13 @@
           "text": "la boca muy seca",
           "normalized": "sequedad de mucosas",
           "negated": false,
-          "cie10": null
+          "cie10": "R68.2"
         },
         {
           "text": "casi no orino",
           "normalized": "oliguria",
           "negated": false,
-          "cie10": null
+          "cie10": "R34"
         }
       ],
       "diagnoses": [],
@@ -981,13 +981,13 @@
           "text": "Mareo muy fuerte",
           "normalized": "mareo",
           "negated": false,
-          "cie10": null
+          "cie10": "R42"
         },
         {
           "text": "todo me da vueltas",
           "normalized": "vértigo",
           "negated": false,
-          "cie10": null
+          "cie10": "R42"
         },
         {
           "text": "no me puedo levantar de la camilla",
@@ -1023,13 +1023,13 @@
           "text": "me pica mucho",
           "normalized": "prurito",
           "negated": false,
-          "cie10": null
+          "cie10": "L29.9"
         },
         {
           "text": "respiro bien",
           "normalized": "disnea",
           "negated": true,
-          "cie10": null
+          "cie10": "R06.0"
         }
       ],
       "diagnoses": [],
@@ -1067,7 +1067,7 @@
           "text": "las piernas hinchadas",
           "normalized": "edema de miembros inferiores",
           "negated": false,
-          "cie10": null
+          "cie10": "R60.0"
         }
       ],
       "diagnoses": [],
@@ -1129,7 +1129,7 @@
           "text": "muy hinchado",
           "normalized": "edema",
           "negated": false,
-          "cie10": null
+          "cie10": "R60.9"
         },
         {
           "text": "no puedo apoyar el pie",
@@ -1143,7 +1143,7 @@
           "text": "Me torcí el tobillo",
           "normalized": "esguince de tobillo",
           "negated": false,
-          "cie10": null
+          "cie10": "S93.4"
         }
       ],
       "medications": [],
@@ -1166,7 +1166,7 @@
           "text": "silbidos en el pecho",
           "normalized": "sibilancias",
           "negated": false,
-          "cie10": null
+          "cie10": "R06.2"
         },
         {
           "text": "me cuesta un poco respirar",
@@ -1220,19 +1220,19 @@
           "text": "Dolor de barriga fuerte en el lado derecho abajo",
           "normalized": "dolor en fosa ilíaca derecha",
           "negated": false,
-          "cie10": null
+          "cie10": "R10.3"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "vómito",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         }
       ],
       "diagnoses": [],
@@ -1256,7 +1256,7 @@
           "text": "perdió el conocimiento",
           "normalized": "pérdida de conciencia",
           "negated": true,
-          "cie10": null
+          "cie10": "R55"
         }
       ],
       "diagnoses": [
@@ -1264,13 +1264,13 @@
           "text": "golpe fuerte en la cabeza",
           "normalized": "traumatismo craneal",
           "negated": false,
-          "cie10": null
+          "cie10": "S09.9"
         },
         {
           "text": "una herida que sangra",
           "normalized": "herida sangrante",
           "negated": false,
-          "cie10": null
+          "cie10": "T14.1"
         }
       ],
       "medications": [],
@@ -1293,7 +1293,7 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "decaído",
@@ -1336,7 +1336,7 @@
           "text": "oriné con sangre",
           "normalized": "hematuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R31"
         }
       ],
       "diagnoses": [],
@@ -1360,7 +1360,7 @@
           "text": "tos",
           "normalized": "tos",
           "negated": false,
-          "cie10": null
+          "cie10": "R05"
         },
         {
           "text": "moqueo",
@@ -1372,7 +1372,7 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         }
       ],
       "diagnoses": [
@@ -1380,7 +1380,7 @@
           "text": "gripa",
           "normalized": "infección respiratoria aguda",
           "negated": false,
-          "cie10": null
+          "cie10": "J06.9"
         }
       ],
       "medications": [],
@@ -1403,7 +1403,7 @@
           "text": "Me duele la garganta",
           "normalized": "odinofagia",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.0"
         },
         {
           "text": "placas blancas",
@@ -1433,13 +1433,13 @@
           "text": "Ardor al orinar",
           "normalized": "disuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R30.0"
         },
         {
           "text": "ganas de orinar a cada rato",
           "normalized": "polaquiuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R35"
         }
       ],
       "diagnoses": [],
@@ -1463,7 +1463,7 @@
           "text": "Diarrea",
           "normalized": "diarrea",
           "negated": false,
-          "cie10": null
+          "cie10": "A09"
         },
         {
           "text": "tomo líquidos bien",
@@ -1475,7 +1475,7 @@
           "text": "sed",
           "normalized": "sed",
           "negated": true,
-          "cie10": null
+          "cie10": "R63.1"
         }
       ],
       "diagnoses": [],
@@ -1523,7 +1523,7 @@
           "text": "dolor de muela",
           "normalized": "odontalgia",
           "negated": false,
-          "cie10": null
+          "cie10": "K08.8"
         }
       ],
       "diagnoses": [],
@@ -1547,7 +1547,7 @@
           "text": "muy ansioso",
           "normalized": "ansiedad",
           "negated": false,
-          "cie10": null
+          "cie10": "R45.0"
         },
         {
           "text": "no puedo dormir",
@@ -1559,7 +1559,7 @@
           "text": "pensado en hacerme daño",
           "normalized": "ideación suicida",
           "negated": true,
-          "cie10": null
+          "cie10": "R45.8"
         }
       ],
       "diagnoses": [],
@@ -1583,7 +1583,7 @@
           "text": "rojo",
           "normalized": "eritema",
           "negated": false,
-          "cie10": null
+          "cie10": "L53.9"
         },
         {
           "text": "caliente",
@@ -1619,13 +1619,13 @@
           "text": "Vómito",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         },
         {
           "text": "deshidratación",
           "normalized": "deshidratación",
           "negated": true,
-          "cie10": null
+          "cie10": "E86"
         },
         {
           "text": "tolera líquidos",
@@ -1655,13 +1655,13 @@
           "text": "Secreción por el pene",
           "normalized": "secreción uretral",
           "negated": false,
-          "cie10": null
+          "cie10": "R36"
         },
         {
           "text": "ardor",
           "normalized": "disuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R30.0"
         }
       ],
       "diagnoses": [],
@@ -1685,13 +1685,13 @@
           "text": "Dolor de oído",
           "normalized": "otalgia",
           "negated": false,
-          "cie10": null
+          "cie10": "H92.0"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         }
       ],
       "diagnoses": [],
@@ -1752,7 +1752,7 @@
           "text": "dolor en el pecho",
           "normalized": "dolor torácico",
           "negated": true,
-          "cie10": null
+          "cie10": "R07.4"
         },
         {
           "text": "moqueo",
@@ -1789,13 +1789,13 @@
           "text": "convulsiones",
           "normalized": "crisis convulsiva",
           "negated": true,
-          "cie10": null
+          "cie10": "R56.8"
         },
         {
           "text": "dolor de garganta",
           "normalized": "odinofagia",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.0"
         }
       ],
       "diagnoses": [],
@@ -1884,7 +1884,7 @@
           "text": "Estreñimiento",
           "normalized": "estreñimiento",
           "negated": false,
-          "cie10": null
+          "cie10": "K59.0"
         }
       ],
       "diagnoses": [],
@@ -1914,7 +1914,7 @@
           "text": "me pica",
           "normalized": "prurito",
           "negated": false,
-          "cie10": null
+          "cie10": "L29.9"
         }
       ],
       "diagnoses": [
@@ -1951,13 +1951,13 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "dificultad para respirar",
           "normalized": "disnea",
           "negated": true,
-          "cie10": null
+          "cie10": "R06.0"
         }
       ],
       "diagnoses": [],
@@ -1981,7 +1981,7 @@
           "text": "No me dan ganas de comer",
           "normalized": "hiporexia",
           "negated": false,
-          "cie10": null
+          "cie10": "R63.0"
         }
       ],
       "diagnoses": [],
@@ -2010,7 +2010,7 @@
           "text": "hipertenso",
           "normalized": "hipertensión arterial",
           "negated": false,
-          "cie10": null
+          "cie10": "I10"
         }
       ]
     }
@@ -2029,7 +2029,7 @@
           "text": "Me duele el estómago",
           "normalized": "dolor abdominal",
           "negated": false,
-          "cie10": null
+          "cie10": "R10.4"
         }
       ],
       "diagnoses": [],
@@ -2041,7 +2041,7 @@
           "text": "gastritis crónica",
           "normalized": "gastritis crónica",
           "negated": false,
-          "cie10": null
+          "cie10": "K29.5"
         }
       ]
     }
@@ -2084,7 +2084,7 @@
           "text": "me mareo",
           "normalized": "mareo",
           "negated": false,
-          "cie10": null
+          "cie10": "R42"
         }
       ],
       "diagnoses": [],
@@ -2151,13 +2151,13 @@
           "text": "hablar raro",
           "normalized": "disartria",
           "negated": false,
-          "cie10": null
+          "cie10": "R47.1"
         },
         {
           "text": "no despierta aunque lo movamos",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         }
       ],
       "diagnoses": [],
@@ -2183,7 +2183,7 @@
           "text": "diabético",
           "normalized": "diabetes mellitus",
           "negated": false,
-          "cie10": null
+          "cie10": "E14.9"
         }
       ]
     }
@@ -2202,7 +2202,7 @@
           "text": "se le hinchó toda la cara y la lengua",
           "normalized": "angioedema",
           "negated": false,
-          "cie10": null
+          "cie10": "T78.3"
         },
         {
           "text": "casi no le pasa el aire",
@@ -2214,7 +2214,7 @@
           "text": "ronca",
           "normalized": "disfonía",
           "negated": false,
-          "cie10": null
+          "cie10": "R49.0"
         }
       ],
       "diagnoses": [
@@ -2222,7 +2222,7 @@
           "text": "la picó una abeja",
           "normalized": "picadura de abeja",
           "negated": false,
-          "cie10": null
+          "cie10": "X23"
         }
       ],
       "medications": [
@@ -2259,25 +2259,25 @@
           "text": "vómito con sangre abundante",
           "normalized": "hematemesis",
           "negated": false,
-          "cie10": null
+          "cie10": "K92.0"
         },
         {
           "text": "pálido",
           "normalized": "palidez",
           "negated": false,
-          "cie10": null
+          "cie10": "R23.1"
         },
         {
           "text": "sudoroso",
           "normalized": "diaforesis",
           "negated": false,
-          "cie10": null
+          "cie10": "R61.9"
         },
         {
           "text": "confuso",
           "normalized": "confusión",
           "negated": false,
-          "cie10": null
+          "cie10": "R41.0"
         }
       ],
       "diagnoses": [],
@@ -2309,7 +2309,7 @@
           "text": "una válvula en el corazón",
           "normalized": "prótesis valvular cardíaca",
           "negated": false,
-          "cie10": null
+          "cie10": "Z95.2"
         }
       ]
     }
@@ -2334,7 +2334,7 @@
           "text": "no responde",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         }
       ],
       "diagnoses": [
@@ -2422,7 +2422,7 @@
           "text": "botando mucha sangre",
           "normalized": "hemorragia profusa",
           "negated": false,
-          "cie10": null
+          "cie10": "R58"
         },
         {
           "text": "respira muy rápido",
@@ -2490,7 +2490,7 @@
           "text": "epiléptica",
           "normalized": "epilepsia",
           "negated": false,
-          "cie10": null
+          "cie10": "G40.9"
         }
       ]
     }
@@ -2515,7 +2515,7 @@
           "text": "muy confundido",
           "normalized": "confusión",
           "negated": false,
-          "cie10": null
+          "cie10": "R41.0"
         },
         {
           "text": "manchas moradas que no desaparecen",
@@ -2570,7 +2570,7 @@
           "text": "le cuesta respirar",
           "normalized": "disnea",
           "negated": false,
-          "cie10": null
+          "cie10": "R06.0"
         }
       ],
       "diagnoses": [
@@ -2601,7 +2601,7 @@
           "text": "sin respuesta",
           "normalized": "inconsciencia",
           "negated": false,
-          "cie10": null
+          "cie10": "R40.2"
         },
         {
           "text": "la respiración muy lenta",
@@ -2638,13 +2638,13 @@
           "text": "dolor en el pecho como si me apretaran",
           "normalized": "dolor torácico opresivo",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.4"
         },
         {
           "text": "sudor frío",
           "normalized": "diaforesis",
           "negated": false,
-          "cie10": null
+          "cie10": "R61.9"
         },
         {
           "text": "me duele la mandíbula",
@@ -2675,7 +2675,7 @@
           "text": "hipertenso",
           "normalized": "hipertensión arterial",
           "negated": false,
-          "cie10": null
+          "cie10": "I10"
         }
       ]
     }
@@ -2719,7 +2719,7 @@
           "text": "el azúcar",
           "normalized": "diabetes mellitus",
           "negated": false,
-          "cie10": null
+          "cie10": "E14.9"
         }
       ]
     }
@@ -2744,7 +2744,7 @@
           "text": "vomitó",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         }
       ],
       "diagnoses": [],
@@ -2775,13 +2775,13 @@
           "text": "ronchas",
           "normalized": "urticaria",
           "negated": false,
-          "cie10": null
+          "cie10": "L50.9"
         },
         {
           "text": "se me están hinchando los labios",
           "normalized": "angioedema",
           "negated": false,
-          "cie10": null
+          "cie10": "T78.3"
         },
         {
           "text": "la garganta un poco cerrada",
@@ -2868,7 +2868,7 @@
           "text": "Diabético",
           "normalized": "diabetes mellitus",
           "negated": false,
-          "cie10": null
+          "cie10": "E14.9"
         }
       ]
     }
@@ -2887,25 +2887,25 @@
           "text": "muy confundido",
           "normalized": "confusión",
           "negated": false,
-          "cie10": null
+          "cie10": "R41.0"
         },
         {
           "text": "no reconoce a nadie",
           "normalized": "desorientación",
           "negated": false,
-          "cie10": null
+          "cie10": "R41.0"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "le arde al orinar",
           "normalized": "disuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R30.0"
         }
       ],
       "diagnoses": [],
@@ -2955,7 +2955,7 @@
           "text": "los pies muy hinchados",
           "normalized": "edema de miembros inferiores",
           "negated": false,
-          "cie10": null
+          "cie10": "R60.0"
         }
       ],
       "diagnoses": [
@@ -3024,19 +3024,19 @@
           "text": "palpitaciones muy fuertes",
           "normalized": "palpitaciones",
           "negated": false,
-          "cie10": null
+          "cie10": "R00.2"
         },
         {
           "text": "mareado",
           "normalized": "mareo",
           "negated": false,
-          "cie10": null
+          "cie10": "R42"
         },
         {
           "text": "dolor leve en el pecho",
           "normalized": "dolor torácico",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.4"
         }
       ],
       "diagnoses": [],
@@ -3074,7 +3074,7 @@
           "text": "dolor de barriga en la boca del estómago",
           "normalized": "epigastralgia",
           "negated": false,
-          "cie10": null
+          "cie10": "R10.1"
         },
         {
           "text": "se pasó al lado derecho",
@@ -3086,19 +3086,19 @@
           "text": "no he podido comer",
           "normalized": "hiporexia",
           "negated": false,
-          "cie10": null
+          "cie10": "R63.0"
         },
         {
           "text": "náuseas",
           "normalized": "náuseas",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         }
       ],
       "diagnoses": [],
@@ -3122,7 +3122,7 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "tos con flema verde",
@@ -3159,7 +3159,7 @@
           "text": "fumador",
           "normalized": "tabaquismo",
           "negated": false,
-          "cie10": null
+          "cie10": "Z72.0"
         }
       ]
     }
@@ -3190,7 +3190,7 @@
           "text": "muy hinchada",
           "normalized": "edema",
           "negated": false,
-          "cie10": null
+          "cie10": "R60.9"
         }
       ],
       "diagnoses": [],
@@ -3228,25 +3228,25 @@
           "text": "vómito",
           "normalized": "vómito",
           "negated": false,
-          "cie10": null
+          "cie10": "R11"
         },
         {
           "text": "me siento débil",
           "normalized": "astenia",
           "negated": false,
-          "cie10": null
+          "cie10": "R53"
         },
         {
           "text": "la boca seca",
           "normalized": "sequedad de mucosas",
           "negated": false,
-          "cie10": null
+          "cie10": "R68.2"
         },
         {
           "text": "no he orinado desde la mañana",
           "normalized": "oliguria",
           "negated": false,
-          "cie10": null
+          "cie10": "R34"
         }
       ],
       "diagnoses": [],
@@ -3270,7 +3270,7 @@
           "text": "sibilancias",
           "normalized": "sibilancias",
           "negated": false,
-          "cie10": null
+          "cie10": "R06.2"
         },
         {
           "text": "habla frases completas",
@@ -3284,7 +3284,7 @@
           "text": "crisis",
           "normalized": "crisis asmática",
           "negated": false,
-          "cie10": null
+          "cie10": "J45.9"
         }
       ],
       "medications": [
@@ -3309,7 +3309,7 @@
           "text": "asmática",
           "normalized": "asma",
           "negated": false,
-          "cie10": null
+          "cie10": "J45.9"
         }
       ]
     }
@@ -3328,25 +3328,25 @@
           "text": "dolor de cabeza",
           "normalized": "cefalea",
           "negated": false,
-          "cie10": null
+          "cie10": "R51"
         },
         {
           "text": "me molesta la luz",
           "normalized": "fotofobia",
           "negated": false,
-          "cie10": null
+          "cie10": "H53.1"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "vómito",
           "normalized": "vómito",
           "negated": true,
-          "cie10": null
+          "cie10": "R11"
         }
       ],
       "diagnoses": [],
@@ -3377,13 +3377,13 @@
           "text": "dolor de cabeza",
           "normalized": "cefalea",
           "negated": true,
-          "cie10": null
+          "cie10": "R51"
         },
         {
           "text": "dolor en el pecho",
           "normalized": "dolor torácico",
           "negated": true,
-          "cie10": null
+          "cie10": "R07.4"
         }
       ],
       "diagnoses": [],
@@ -3429,7 +3429,7 @@
           "text": "Me mordió un perro en la pierna",
           "normalized": "mordedura de perro",
           "negated": false,
-          "cie10": null
+          "cie10": "W54"
         }
       ],
       "medications": [],
@@ -3452,13 +3452,13 @@
           "text": "dolor al orinar",
           "normalized": "disuria",
           "negated": false,
-          "cie10": null
+          "cie10": "R30.0"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "escalofríos",
@@ -3507,13 +3507,13 @@
           "text": "sudoración",
           "normalized": "diaforesis",
           "negated": true,
-          "cie10": null
+          "cie10": "R61.9"
         },
         {
           "text": "falta de aire",
           "normalized": "disnea",
           "negated": true,
-          "cie10": null
+          "cie10": "R06.0"
         },
         {
           "text": "se le corre al brazo",
@@ -3555,7 +3555,7 @@
           "text": "veo borroso",
           "normalized": "visión borrosa",
           "negated": false,
-          "cie10": null
+          "cie10": "H53.8"
         }
       ],
       "diagnoses": [
@@ -3563,7 +3563,7 @@
           "text": "me entró algo",
           "normalized": "cuerpo extraño ocular",
           "negated": false,
-          "cie10": null
+          "cie10": "T15.9"
         }
       ],
       "medications": [],
@@ -3586,7 +3586,7 @@
           "text": "diarrea",
           "normalized": "diarrea",
           "negated": false,
-          "cie10": null
+          "cie10": "A09"
         },
         {
           "text": "decaído",
@@ -3642,25 +3642,25 @@
           "text": "estornudos",
           "normalized": "estornudos",
           "negated": false,
-          "cie10": null
+          "cie10": "R06.7"
         },
         {
           "text": "dolorcito de garganta",
           "normalized": "odinofagia",
           "negated": false,
-          "cie10": null
+          "cie10": "R07.0"
         },
         {
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "me falta el aire",
           "normalized": "disnea",
           "negated": true,
-          "cie10": null
+          "cie10": "R06.0"
         }
       ],
       "diagnoses": [],
@@ -3727,7 +3727,7 @@
           "text": "rojo",
           "normalized": "eritema",
           "negated": false,
-          "cie10": null
+          "cie10": "L53.9"
         },
         {
           "text": "me duele",
@@ -3739,7 +3739,7 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         }
       ],
       "diagnoses": [
@@ -3770,7 +3770,7 @@
           "text": "hinchado",
           "normalized": "edema",
           "negated": false,
-          "cie10": null
+          "cie10": "R60.9"
         },
         {
           "text": "lo puedo mover",
@@ -3814,19 +3814,19 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": false,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "dolor de oído",
           "normalized": "otalgia",
           "negated": false,
-          "cie10": null
+          "cie10": "H92.0"
         },
         {
           "text": "comiendo bien",
           "normalized": "hiporexia",
           "negated": true,
-          "cie10": null
+          "cie10": "R63.0"
         }
       ],
       "diagnoses": [],
@@ -3863,13 +3863,13 @@
           "text": "me pica",
           "normalized": "prurito",
           "negated": false,
-          "cie10": null
+          "cie10": "L29.9"
         },
         {
           "text": "un poco roja",
           "normalized": "eritema",
           "negated": false,
-          "cie10": null
+          "cie10": "L53.9"
         }
       ],
       "diagnoses": [
@@ -3877,7 +3877,7 @@
           "text": "picadura de zancudo",
           "normalized": "picadura de insecto",
           "negated": false,
-          "cie10": null
+          "cie10": "W57"
         }
       ],
       "medications": [],
@@ -3900,19 +3900,19 @@
           "text": "ardor en la boca del estómago",
           "normalized": "pirosis",
           "negated": false,
-          "cie10": null
+          "cie10": "R12"
         },
         {
           "text": "vomitado sangre",
           "normalized": "hematemesis",
           "negated": true,
-          "cie10": null
+          "cie10": "K92.0"
         },
         {
           "text": "popó negra",
           "normalized": "melenas",
           "negated": true,
-          "cie10": null
+          "cie10": "K92.1"
         }
       ],
       "diagnoses": [],
@@ -3943,19 +3943,19 @@
           "text": "perdí el conocimiento",
           "normalized": "pérdida de conciencia",
           "negated": true,
-          "cie10": null
+          "cie10": "R55"
         },
         {
           "text": "vomitado",
           "normalized": "vómito",
           "negated": true,
-          "cie10": null
+          "cie10": "R11"
         },
         {
           "text": "chichón",
           "normalized": "hematoma de cuero cabelludo",
           "negated": false,
-          "cie10": null
+          "cie10": "S00.0"
         }
       ],
       "diagnoses": [
@@ -3998,7 +3998,7 @@
           "text": "me pica",
           "normalized": "prurito",
           "negated": false,
-          "cie10": null
+          "cie10": "L29.9"
         },
         {
           "text": "me arde",
@@ -4034,13 +4034,13 @@
           "text": "diarrea",
           "normalized": "diarrea",
           "negated": false,
-          "cie10": null
+          "cie10": "A09"
         },
         {
           "text": "cólicos",
           "normalized": "dolor abdominal tipo cólico",
           "negated": false,
-          "cie10": null
+          "cie10": "R10.4"
         },
         {
           "text": "lo estoy tolerando",
@@ -4052,7 +4052,7 @@
           "text": "sangre en la popó",
           "normalized": "hematoquecia",
           "negated": true,
-          "cie10": null
+          "cie10": "K92.2"
         }
       ],
       "diagnoses": [],
@@ -4095,7 +4095,7 @@
           "text": "tiroides",
           "normalized": "hipotiroidismo",
           "negated": false,
-          "cie10": null
+          "cie10": "E03.9"
         }
       ]
     }
@@ -4163,13 +4163,13 @@
           "text": "diabético",
           "normalized": "diabetes mellitus",
           "negated": false,
-          "cie10": null
+          "cie10": "E14.9"
         },
         {
           "text": "hipertenso",
           "normalized": "hipertensión arterial",
           "negated": false,
-          "cie10": null
+          "cie10": "I10"
         }
       ]
     }
@@ -4212,13 +4212,13 @@
           "text": "caspa",
           "normalized": "caspa",
           "negated": false,
-          "cie10": null
+          "cie10": "L21.0"
         },
         {
           "text": "se me está cayendo un poco el pelo",
           "normalized": "alopecia",
           "negated": false,
-          "cie10": null
+          "cie10": "L65.9"
         }
       ],
       "diagnoses": [],
@@ -4248,7 +4248,7 @@
           "text": "me duele",
           "normalized": "dolor",
           "negated": true,
-          "cie10": null
+          "cie10": "R52.9"
         }
       ],
       "diagnoses": [
@@ -4256,7 +4256,7 @@
           "text": "un lunar",
           "normalized": "nevo",
           "negated": false,
-          "cie10": null
+          "cie10": "D22.9"
         }
       ],
       "medications": [],
@@ -4279,7 +4279,7 @@
           "text": "cansado",
           "normalized": "fatiga",
           "negated": false,
-          "cie10": null
+          "cie10": "R53"
         },
         {
           "text": "duermo mal",
@@ -4291,13 +4291,13 @@
           "text": "fiebre",
           "normalized": "fiebre",
           "negated": true,
-          "cie10": null
+          "cie10": "R50.9"
         },
         {
           "text": "bajado de peso",
           "normalized": "pérdida de peso",
           "negated": true,
-          "cie10": null
+          "cie10": "R63.4"
         }
       ],
       "diagnoses": [],
@@ -4352,13 +4352,13 @@
           "text": "tos seca",
           "normalized": "tos seca",
           "negated": false,
-          "cie10": null
+          "cie10": "R05"
         },
         {
           "text": "me falta el aire",
           "normalized": "disnea",
           "negated": true,
-          "cie10": null
+          "cie10": "R06.0"
         }
       ],
       "diagnoses": [],
@@ -4419,7 +4419,7 @@
           "text": "rojas",
           "normalized": "eritema",
           "negated": true,
-          "cie10": null
+          "cie10": "L53.9"
         },
         {
           "text": "calientes",
@@ -4456,7 +4456,7 @@
           "text": "dolor de estómago",
           "normalized": "dolor abdominal",
           "negated": false,
-          "cie10": null
+          "cie10": "R10.4"
         }
       ],
       "diagnoses": [],
@@ -4480,7 +4480,7 @@
           "text": "dolor de rodilla",
           "normalized": "gonalgia",
           "negated": false,
-          "cie10": null
+          "cie10": "M25.5"
         }
       ],
       "diagnoses": [],
@@ -4499,7 +4499,7 @@
           "text": "artrosis",
           "normalized": "artrosis",
           "negated": false,
-          "cie10": null
+          "cie10": "M19.9"
         }
       ]
     }

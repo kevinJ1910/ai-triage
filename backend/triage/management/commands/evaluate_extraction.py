@@ -16,7 +16,8 @@ Motores:
 Cuota: el plan gratuito de Gemini limita las peticiones por minuto (5 en gemini-2.5-flash). Usar
 --pause para no superarla; un caso resuelto por reglas no mide al modelo.
 
-Una sola llamada por caso alimenta las metricas de entidades y las de triaje. El split 'test' se
+Una sola llamada por caso alimenta las metricas de entidades, las de triaje y la de codigos CIE-10 de la
+normalizacion (normalized_terms; es la misma capa determinista con cualquier motor). El split 'test' se
 reserva para la evaluacion final: ajustar reglas o prompts mirando sus resultados invalida la medicion.
 """
 import json
@@ -32,6 +33,8 @@ from triage.extraction_metrics import (
     aggregate,
     annotator_agreement,
     bootstrap_ci,
+    code_accuracy,
+    code_hits,
     micro_f1_ci,
     score_case,
 )
@@ -58,6 +61,7 @@ def run_case(engine: str, transcript: str, model=None) -> dict:
         'llm_failed': engine != 'reglas' and engine_used.startswith(RULES_ENGINE_PREFIX),
         'latency_ms': latency_ms,
         'total_tokens': int(analysis.get('total_tokens') or 0),
+        'predicted_codes': [t['code'] for t in analysis.get('normalized_terms') or [] if t.get('code_system') == 'CIE-10'],
     }
 
 
@@ -126,12 +130,14 @@ class Command(BaseCommand):
             results.append({
                 'id': case['id'], 'split': case['split'], 'tipo': case['tipo'],
                 'reference_level': case['reference_level'], **prediction, 'counts': counts,
+                'code_hits': code_hits(case['entities'], prediction['predicted_codes']),
             })
             self.stderr.write(f"[{index}/{len(cases)}] {case['id']} -> nivel {prediction['predicted_level']} "
                               f"({prediction['latency_ms']} ms)")
 
         entity_summary = aggregate(r['counts'] for r in results)
         entity_summary['micro_f1_ci95'] = micro_f1_ci([r['counts'] for r in results])
+        entity_summary['normalization'] = code_accuracy(r['code_hits'] for r in results)
         triage = triage_summary(results)
         latencies = [r['latency_ms'] for r in results]
         tokens = [r['total_tokens'] for r in results]
@@ -171,6 +177,9 @@ class Command(BaseCommand):
         self.stdout.write(f"Negacion: exactitud {negation['negation_accuracy']} ({negation['negation_errors']} de "
                           f"{negation['negated_gold']} negados reportados como presentes) | deteccion explicita "
                           f"{negation['negated_detection_recall']}")
+        normalization = entities['normalization']
+        self.stdout.write(f"Normalizacion: codigo CIE-10 correcto en {normalization['code_hits']} de "
+                          f"{normalization['coded_gold']} entidades codificadas ({normalization['cie10_accuracy']})")
         self.stdout.write(f"Triaje: concordancia {triage['exact_agreement']}% | Kappa {triage['cohen_kappa']} "
                           f"IC95 {triage['cohen_kappa_ci95']} | sensibilidad 1-2 {triage['critical_sensitivity']}% "
                           f"IC95 {triage['critical_sensitivity_ci95']} | infratriaje {triage['undertriage_rate']}%")

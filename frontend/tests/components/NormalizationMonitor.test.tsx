@@ -3,29 +3,28 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import NormalizationMonitor from '../../components/NormalizationMonitor';
 
 describe('NormalizationMonitor Component', () => {
+  const mapping = (overrides: Record<string, unknown>) => ({
+    code_system: 'CIE-10',
+    category: 'Sintoma',
+    source: 'diccionario',
+    valid: true,
+    negated: false,
+    allergy: false,
+    ...overrides,
+  });
+
   const mockNormalizationResponse = {
-    normalized_text: 'Paciente refiere dolor toracico y disnea.',
-    summary: 'Sindrome coronario evaluado.',
+    normalized_text: 'Paciente refiere dolor torácico y niega fiebre.',
+    summary: 'Dolor torácico sin fiebre.',
     mappings: [
-      {
-        raw_term: 'dolor de pecho',
-        medical_term: 'dolor toracico',
-        code_snomed: '29857009',
-        category: 'Sintoma',
-      },
-      {
-        raw_term: 'falta de aire',
-        medical_term: 'disnea',
-        code_snomed: '267036007',
-        category: 'Sintoma',
-      },
-      {
-        raw_term: 'aspirina',
-        medical_term: 'acido acetilsalicilico',
-        code_snomed: '387458008',
-        category: 'Medicamento',
-      },
+      mapping({ raw_term: 'dolor de pecho', medical_term: 'dolor torácico', code: 'R07.4' }),
+      mapping({ raw_term: 'fiebre', medical_term: 'fiebre', code: 'R50.9', category: 'Signo', negated: true }),
+      mapping({ raw_term: 'aspirina', medical_term: 'ácido acetilsalicílico', code: 'B01AC06', code_system: 'ATC', category: 'Medicamento' }),
+      mapping({ raw_term: 'dolor punzante en el talón', medical_term: 'talalgia', code: 'M79.67', source: 'llm', valid: false }),
+      mapping({ raw_term: 'penicilina', medical_term: 'penicilina', code: 'J01CE01', code_system: 'ATC', category: 'Medicamento', allergy: true }),
     ],
+    layers: { correccion_asr: 0, abreviatura: 0, diccionario: 4, llm: 1 },
+    engine: 'Catálogo terminológico local + LLM (gemini-3.5-flash-lite)',
   };
 
   beforeEach(() => {
@@ -44,40 +43,41 @@ describe('NormalizationMonitor Component', () => {
     });
   });
 
-  it('renders normalization monitor and initial SNOMED-CT mappings', () => {
+  it('renders the initial catalog result with CIE-10 codes', () => {
     render(<NormalizationMonitor />);
 
     expect(screen.getByText('Motor de Normalizacion Clinica')).toBeInTheDocument();
-    expect(screen.getByText('opresion toracica')).toBeInTheDocument();
-    expect(screen.getByText('29857009')).toBeInTheDocument();
+    expect(screen.getByText('dolor torácico opresivo')).toBeInTheDocument();
+    expect(screen.getByText('R07.4')).toBeInTheDocument();
+    expect(screen.getByText('Corrección ASR')).toBeInTheDocument();
   });
 
   it('filters mappings by category button', () => {
     render(<NormalizationMonitor />);
 
-    // Click on 'Medicamento' filter button
-    const medFilterBtn = screen.getByRole('button', { name: 'Medicamento' });
-    fireEvent.click(medFilterBtn);
+    fireEvent.click(screen.getByRole('button', { name: 'Medicamento' }));
 
-    expect(screen.getByText('losartan potasico')).toBeInTheDocument();
-    expect(screen.queryByText('disnea de medianos esfuerzos')).not.toBeInTheDocument();
+    expect(screen.getByText('losartán')).toBeInTheDocument();
+    expect(screen.queryByText('disnea')).not.toBeInTheDocument();
   });
 
-  it('sends normalization request on button click and updates mappings', async () => {
+  it('sends normalization request and shows layer, validity, negation and allergy', async () => {
     render(<NormalizationMonitor />);
 
-    const runBtn = screen.getByRole('button', { name: /Normalizar Terminologia/i });
-    fireEvent.click(runBtn);
+    fireEvent.click(screen.getByRole('button', { name: /Normalizar Terminologia/i }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         '/api/transcribe/normalize/',
-        expect.objectContaining({
-          method: 'POST',
-        })
+        expect.objectContaining({ method: 'POST' })
       );
-      expect(screen.getByText('acido acetilsalicilico')).toBeInTheDocument();
-      expect(screen.getByText('387458008')).toBeInTheDocument();
+      expect(screen.getByText('ácido acetilsalicílico')).toBeInTheDocument();
     });
+    expect(screen.getByText('B01AC06')).toBeInTheDocument();
+    expect(screen.getByText('inválido')).toBeInTheDocument();
+    expect(screen.getByText('negado')).toBeInTheDocument();
+    expect(screen.getByText('alergia')).toBeInTheDocument();
+    expect(screen.getByText(/LLM: 1/)).toBeInTheDocument();
+    expect(screen.getByText('Catálogo terminológico local + LLM (gemini-3.5-flash-lite)')).toBeInTheDocument();
   });
 });

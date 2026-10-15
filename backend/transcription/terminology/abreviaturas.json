@@ -1,0 +1,30 @@
+{
+  "version": "2026-10-15",
+  "estado": "borrador",
+  "descripcion": "Siglas clínicas frecuentes en urgencias. Se excluyen las ambiguas con palabras del español o entre sí (IRA, FA, LES, AR, ASA, TA): esas las resuelve el LLM o el clínico.",
+  "abreviaturas": [
+    {"abreviatura": "HTA", "termino": "hipertensión arterial", "categoria": "Antecedente", "cie10": "I10", "variantes": []},
+    {"abreviatura": "DM", "termino": "diabetes mellitus", "categoria": "Antecedente", "cie10": "E14.9", "variantes": []},
+    {"abreviatura": "DM1", "termino": "diabetes mellitus tipo 1", "categoria": "Antecedente", "cie10": "E10.9", "variantes": ["DMT1", "DM tipo 1", "DM tipo I"]},
+    {"abreviatura": "DM2", "termino": "diabetes mellitus tipo 2", "categoria": "Antecedente", "cie10": "E11.9", "variantes": ["DMT2", "DM tipo 2", "DM tipo II"]},
+    {"abreviatura": "EPOC", "termino": "enfermedad pulmonar obstructiva crónica", "categoria": "Antecedente", "cie10": "J44.9", "variantes": []},
+    {"abreviatura": "ICC", "termino": "insuficiencia cardiaca congestiva", "categoria": "Antecedente", "cie10": "I50.0", "variantes": []},
+    {"abreviatura": "ERC", "termino": "enfermedad renal crónica", "categoria": "Antecedente", "cie10": "N18.9", "variantes": ["IRC"]},
+    {"abreviatura": "ERGE", "termino": "enfermedad por reflujo gastroesofágico", "categoria": "Antecedente", "cie10": "K21.9", "variantes": []},
+    {"abreviatura": "HPB", "termino": "hiperplasia prostática benigna", "categoria": "Antecedente", "cie10": "N40", "variantes": []},
+    {"abreviatura": "VIH", "termino": "infección por VIH", "categoria": "Antecedente", "cie10": "B24", "variantes": ["SIDA"]},
+    {"abreviatura": "TB", "termino": "tuberculosis", "categoria": "Antecedente", "cie10": "A16.9", "variantes": ["TBC"]},
+    {"abreviatura": "IAM", "termino": "infarto agudo de miocardio", "categoria": "Diagnostico", "cie10": "I21.9", "variantes": ["IAMCEST", "IAMSEST"]},
+    {"abreviatura": "SCA", "termino": "síndrome coronario agudo", "categoria": "Diagnostico", "cie10": "I24.9", "variantes": []},
+    {"abreviatura": "ACV", "termino": "accidente cerebrovascular", "categoria": "Diagnostico", "cie10": "I64", "variantes": []},
+    {"abreviatura": "ECV", "termino": "enfermedad cerebrovascular", "categoria": "Diagnostico", "cie10": "I67.9", "variantes": []},
+    {"abreviatura": "TEP", "termino": "tromboembolismo pulmonar", "categoria": "Diagnostico", "cie10": "I26.9", "variantes": []},
+    {"abreviatura": "TVP", "termino": "trombosis venosa profunda", "categoria": "Diagnostico", "cie10": "I80.2", "variantes": []},
+    {"abreviatura": "TEC", "termino": "traumatismo craneoencefálico", "categoria": "Diagnostico", "cie10": "S06.9", "variantes": ["TCE"]},
+    {"abreviatura": "HDA", "termino": "hemorragia digestiva alta", "categoria": "Diagnostico", "cie10": "K92.2", "variantes": []},
+    {"abreviatura": "HDB", "termino": "hemorragia digestiva baja", "categoria": "Diagnostico", "cie10": "K92.2", "variantes": []},
+    {"abreviatura": "EDA", "termino": "enfermedad diarreica aguda", "categoria": "Diagnostico", "cie10": "A09", "variantes": []},
+    {"abreviatura": "IVU", "termino": "infección de vías urinarias", "categoria": "Diagnostico", "cie10": "N39.0", "variantes": ["ITU"]},
+    {"abreviatura": "AINE", "termino": "antiinflamatorio no esteroideo", "categoria": "Medicamento", "atc": "M01A", "variantes": ["AINES"]}
+  ]
+}
