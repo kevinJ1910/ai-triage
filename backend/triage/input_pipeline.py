@@ -1,6 +1,7 @@
 import re
-import unicodedata
 from typing import Dict, Any, List, Tuple, Optional
+
+from .clinical_protocol import _normalize_text
 
 # Expresiones regulares para muletillas, redundancias y ruido conversacional en consultas de voz
 FILLER_PATTERNS = [
@@ -60,11 +61,6 @@ RED_FLAGS = [
 ]
 
 
-def _strip_accents(text: str) -> str:
-    nfkd = unicodedata.normalize('NFKD', text)
-    return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
-
-
 class ClinicalTranscriptCompressor:
     """
     Optimizador y compresor determinista de transcripciones clinicas.
@@ -90,7 +86,8 @@ class ClinicalTranscriptCompressor:
         """
         compact_vitals = []
         parsed_vitals: Dict[str, Any] = {}
-        norm_text = text.lower()
+        # Sin tildes: los patrones estan escritos sin ellas ('tension', 'saturacion').
+        norm_text = _normalize_text(text)
 
         # Presion arterial
         for pat, fmt in VITAL_PATTERNS["blood_pressure"]:
@@ -173,7 +170,7 @@ class ClinicalTranscriptCompressor:
     @classmethod
     def detect_red_flags(cls, text: str) -> List[str]:
         """Identifica signos de alarma clinica de maxima criticidad."""
-        norm = _strip_accents(text)
+        norm = _normalize_text(text)
         detected = []
         for pat, label in RED_FLAGS:
             if re.search(pat, norm, flags=re.IGNORECASE):

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-from .clinical_protocol import evaluate_christus_sinergia_triage
+from .clinical_protocol import evaluate_christus_sinergia_triage, _normalize_text
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
@@ -386,7 +386,7 @@ def _fallback_rule_triage(
     rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
 
     symptoms = []
-    norm_tr = cleaned_transcript.lower()
+    norm_tr = _normalize_text(cleaned_transcript)
     for s_kw in [
         "dolor de cabeza", "dolor toracico", "dolor en el pecho", "dificultad respiratoria",
         "fiebre", "tos", "vomito", "diarrea", "mareo", "vertigo", "fatiga", "ardor al orinar"

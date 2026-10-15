@@ -34,6 +34,15 @@ class TestClinicalTranscriptCompressor:
         assert structured["spo2"] == 88
         assert structured["heart_rate"] == 105
 
+    def test_extract_vitals_with_accents(self):
+        # Whisper transcribe con tildes ('tensión', 'saturación'); los patrones no las llevan.
+        compact, structured = ClinicalTranscriptCompressor.extract_vitals(
+            "Tensión arterial de 90 sobre 60 y saturación de 91"
+        )
+        assert structured["bp_sys"] == 90
+        assert structured["spo2"] == 91
+        assert "PA: 90/60 mmHg" in compact
+
     def test_extract_temperature_and_respiratory_rate(self):
         transcript = "Tiene temperatura de 38.8 grados y respiraciones de 26 por minuto"
         compact, structured = ClinicalTranscriptCompressor.extract_vitals(transcript)
@@ -263,6 +272,15 @@ class TestAIAnalyzerEndToEnd:
         assert "Christus Sinergia" in res["protocol"]
         assert res["compression_ratio"] >= 0
         assert "rag_context" in res
+
+    def test_fallback_symptoms_match_accented_transcript(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "")
+        from system_settings.models import APIKeyCredential
+        APIKeyCredential.objects.filter(provider='gemini').delete()
+
+        res = analyze_triage_transcript("Tengo dolor torácico y vómito desde anoche", use_cache=False)
+        assert "dolor toracico" in res["entities"]["symptoms"]
+        assert "vomito" in res["entities"]["symptoms"]
 
     def test_cache_integration_in_analyzer(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "")
