@@ -343,6 +343,17 @@ class TestAIAnalyzerEndToEnd:
         assert "429" in res["warning"]
         assert ClinicalQueryCache.stats()["cached_items_count"] == 0
 
+    def test_explicit_model_skips_fallback_models(self, mocker):
+        mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+        client_cls = mocker.patch("triage.ai_analyzer.genai.Client")
+        generate = client_cls.return_value.models.generate_content
+        generate.side_effect = RuntimeError("500 INTERNAL")
+
+        res = analyze_triage_transcript("dolor abdominal leve desde ayer", use_cache=False, model="gemini-3.8-flash")
+
+        assert [c.kwargs["model"] for c in generate.call_args_list] == ["gemini-3.8-flash"]
+        assert res["engine_used"].startswith("Motor de Reglas")
+
     def test_cache_hit_does_not_leak_previous_patient(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "")
         from system_settings.models import APIKeyCredential

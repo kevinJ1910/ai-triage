@@ -84,6 +84,31 @@ Un detector de negación ingenuo, que marque todo lo que va detrás de «no» o 
 
 **Forma normalizada (`normalized`).** Es el término clínico en español, en minúsculas salvo nombres propios: «disnea», no «falta de aire». Para los medicamentos se usa el principio activo: `posartan` → `losartán`, `aspirina` → `ácido acetilsalicílico`.
 
+## Evaluación de la extracción
+
+```bash
+python manage.py evaluate_extraction --engine reglas --split dev
+python manage.py evaluate_extraction --engine gemini --model gemini-2.5-flash --split dev --pause 1 \
+    --output triage/benchmark/resultados/linea_base_dev_gemini-2.5-flash.json
+python manage.py evaluate_extraction --agreement doble_anotacion/segundo_anotador.json
+```
+
+- **Motores.** Con `reglas`, el analizador corre sin LLM: entidades por palabras clave y regex, nivel por el motor de reglas. Con `gemini`, corre el análisis completo sin caché y con **un único modelo** (`--model`), sin modelos de respaldo, para que las cifras de un modelo no mezclen respuestas de otro. Si una llamada falla, el caso se resuelve con reglas y se cuenta en `llm_failures`.
+- **Una llamada por caso** alimenta a la vez las métricas de entidades y las de triaje, así que no se paga la API dos veces.
+- **Emparejamiento** (`--match`):
+  - `strict`: la predicción coincide, sin tildes ni mayúsculas, con el span o con la forma normalizada.
+  - `relaxed` (el modo por defecto): además, uno contiene al otro o comparten al menos la mitad de sus palabras de contenido.
+  - Signos vitales: se comparan el tipo y los valores numéricos (`PA: 70/40 mmHg` empareja con «presión 70 sobre 40»).
+- **Negación.** Un hallazgo anotado como negado que el motor reporta como presente cuenta como falso positivo y como error de negación. `negation_accuracy` es el porcentaje de negados que **no** se reportaron como presentes. `negated_detection_recall` es el porcentaje que el motor reportó explícitamente como negados en `negated_findings`.
+- **F1 por tipo.** Si hay entidades anotadas de un tipo y el motor no acierta ninguna, el F1 vale 0. Ese 0 entra en el macro-F1.
+- **Intervalos de confianza al 95 %** por bootstrap (1.000 remuestreos de casos, semilla fija) para el micro-F1, el Kappa y la sensibilidad en niveles 1–2.
+- **Acuerdo entre anotadores** (`--agreement`): F1 por pares entre la primera y la segunda anotación (Hripcsak y Rothschild, 2005), más el acuerdo en la negación de las entidades emparejadas. Se usa F1 y no Kappa porque Kappa no está bien definido para spans: no hay «negativos» que contar.
+- **El split `test` se usa una sola vez**, en la evaluación final. Ajustar reglas o prompts mirando sus resultados invalida la medición.
+
+- **Cuota de la API.** El plan gratuito de Gemini limita las peticiones por minuto (5 en `gemini-2.5-flash`) y por día. Una llamada rechazada (429) cae al motor de reglas, así que ese caso **no mide al modelo**. El comando reintenta (`--retries`, `--retry-wait`), avisa cuántos casos quedaron resueltos por reglas y los cuenta en `llm_failures`. Un resultado con `llm_failures > 0` no se reporta como resultado del modelo. Una evaluación completa (70 casos en `dev` por modelo, más `test` al final) necesita un plan con facturación o repartir las corridas en varios días.
+
+Los resultados de la línea base se guardan en `resultados/`. Por ahora solo está la del motor de reglas (`linea_base_dev_reglas.json`). La de Gemini está pendiente de una cuota suficiente.
+
 ## Doble anotación
 
 Para medir el acuerdo entre anotadores, un segundo anotador etiqueta a ciegas 30 casos: 6 por nivel, elegidos con `double_annotation_sample()` por hash y repartidos entre `dev` y `test`. Trabaja sobre `doble_anotacion/plantilla_segundo_anotador.json`, que no incluye las entidades ni el nivel de la primera anotación, y sigue esta misma guía. **No debe abrir `corpus_entidades.json` antes de terminar.** El acuerdo se calcula con el evaluador de entidades.
