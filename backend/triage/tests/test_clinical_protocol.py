@@ -238,16 +238,16 @@ class TestRuleRegressions:
     def test_colombian_flu_term_is_level_4(self):
         assert evaluate_christus_sinergia_triage("tengo gripa desde el lunes")["level"] == 4
 
+    def test_negated_finding_is_ignored(self):
+        # Antes era una limitacion conocida (xfail); se resolvio con triage/negation.py.
+        assert evaluate_christus_sinergia_triage("niega dolor toracico, consulta por resfriado comun")["level"] == 4
+
 
 class TestRuleKnownLimitations:
     """
     Limitaciones conocidas del motor lexico (documentadas en docs/INFORME_IMPLEMENTACION_Y_BRECHAS.md).
     strict=True: si un cambio las resuelve, el test pasa a fallar y obliga a actualizar la documentacion.
     """
-
-    @pytest.mark.xfail(strict=True, reason="No interpreta negaciones: 'niega dolor toracico' sobretriaja a nivel 2")
-    def test_negated_finding_is_ignored(self):
-        assert evaluate_christus_sinergia_triage("niega dolor toracico, consulta por resfriado comun")["level"] == 4
 
     @pytest.mark.xfail(strict=True, reason="No evalua valores de signos vitales extraidos de la transcripcion")
     def test_low_oxygen_saturation_escalates(self):

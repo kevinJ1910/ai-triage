@@ -11,7 +11,7 @@ TIPOS = {'tipico', 'coloquial', 'negacion', 'signos_vitales'}
 
 # Linea base del motor de reglas sobre el conjunto sintetico. Si una mejora la supera,
 # actualizar estos valores (y la documentacion); si un cambio la empeora, el test falla.
-MIN_EXACT_AGREEMENT = 46.2
+MIN_EXACT_AGREEMENT = 52.3  # 46.2 antes de la deteccion de negacion (triage/negation.py)
 MIN_CRITICAL_SENSITIVITY = 28.6
 
 

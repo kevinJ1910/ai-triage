@@ -2,6 +2,8 @@ import re
 import unicodedata
 from typing import Dict, Any, List, Optional
 
+from .negation import find_affirmed
+
 # Protocolo Institucional de Triaje: Christus Sinergia Salud / Resolucion 5596 Minsalud Colombia
 
 CHRISTUS_SINERGIA_LEVELS = {
@@ -136,6 +138,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
     Motor determinista de clasificacion de triaje basado estrictamente en el protocolo
     institucional Christus Sinergia Salud.
     Sirve como mecanismo de garantia asistencial si el LLM falla, no responde (503) o se excede el timeout.
+    Un patron solo dispara su nivel si alguna coincidencia no esta negada ("niega dolor toracico").
     """
     combined = transcript + " " + " ".join(symptoms or [])
     norm = _normalize_text(combined)
@@ -151,7 +154,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(politraumatismo severo|atropellado alta velocidad|caida de gran altura)\b", "Traumatismos severos múltiples")
     ]
     for pattern, reason in triage1_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 1,
                 "name": "Reanimación",
@@ -175,7 +178,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(quemadura de tercer grado|quemadura profunda|quemadura de 3er grado)\b", "Quemadura de III grado")
     ]
     for pattern, reason in triage2_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 2,
                 "name": "Emergencia",
@@ -196,7 +199,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(trauma moderado|golpe fuerte|esguince severo|luxacion|deformidad sin herida expuesta)\b", "Trauma moderado con dolor agudo")
     ]
     for pattern, reason in triage3_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 3,
                 "name": "Urgencia",
@@ -217,7 +220,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(ansiedad|depresion|crisis de angustia leve)\b", "Ansiedad o depresión sin ideación autolítica")
     ]
     for pattern, reason in triage4_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 4,
                 "name": "Consulta Prioritaria",
@@ -237,7 +240,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(formulacion de medicamentos|receta|renovacion de formula)\b", "Formulación de medicamentos o control rutinario")
     ]
     for pattern, reason in triage5_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 5,
                 "name": "Consulta Externa",
@@ -248,7 +251,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
             }
 
     # Fallback por defecto si no encaja en patrones criticos: Nivel 4 o 5 segun presencia de dolor
-    if "dolor" in norm or "fiebre" in norm:
+    if find_affirmed(r"\b(dolor|duele|fiebre)\b", norm):
         return {
             "level": 4,
             "name": "Consulta Prioritaria",

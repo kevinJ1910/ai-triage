@@ -9,6 +9,7 @@ from google.genai import types
 
 from .clinical_protocol import evaluate_christus_sinergia_triage, _normalize_text
 from .input_pipeline import ClinicalTranscriptCompressor
+from .negation import split_affirmed_negated
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
 
@@ -393,14 +394,11 @@ def _fallback_rule_triage(
     """Genera la respuesta estandarizada mediante el motor determinista Christus Sinergia."""
     rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
 
-    symptoms = []
     norm_tr = _normalize_text(cleaned_transcript)
-    for s_kw in [
+    symptoms, negated_findings = split_affirmed_negated(norm_tr, [
         "dolor de cabeza", "dolor toracico", "dolor en el pecho", "dificultad respiratoria",
         "fiebre", "tos", "vomito", "diarrea", "mareo", "vertigo", "fatiga", "ardor al orinar"
-    ]:
-        if s_kw in norm_tr:
-            symptoms.append(s_kw)
+    ])
 
     return {
         "patientInfo": _extract_patient_info_rules(raw_transcript),
@@ -408,7 +406,8 @@ def _fallback_rule_triage(
             "symptoms": symptoms or ["Síntomas referidos en consulta"],
             "medications": [],
             "vitals": compact_vitals,
-            "history": []
+            "history": [],
+            "negated_findings": negated_findings,
         },
         "triage": {
             "level": rule_triage["level"],

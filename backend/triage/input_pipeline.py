@@ -2,6 +2,7 @@ import re
 from typing import Dict, Any, List, Tuple, Optional
 
 from .clinical_protocol import _normalize_text
+from .negation import find_affirmed
 
 # Expresiones regulares para muletillas, redundancias y ruido conversacional en consultas de voz
 FILLER_PATTERNS = [
@@ -173,7 +174,8 @@ class ClinicalTranscriptCompressor:
         norm = _normalize_text(text)
         detected = []
         for pat, label in RED_FLAGS:
-            if re.search(pat, norm, flags=re.IGNORECASE):
+            # "no ha perdido el conocimiento" no es bandera roja; "no respira" si lo es.
+            if find_affirmed(pat, norm, flags=re.IGNORECASE):
                 if label not in detected:
                     detected.append(label)
         return detected

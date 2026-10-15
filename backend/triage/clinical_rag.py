@@ -3,6 +3,7 @@ import math
 import unicodedata
 from typing import Dict, Any, List, Optional
 from .clinical_protocol import CHRISTUS_SINERGIA_LEVELS, _normalize_text
+from .negation import strip_negated
 
 # Mapeo ontologico de sinonimos coloquiales y expresiones clinicas comunes
 CLINICAL_SYNONYM_MAP = {
@@ -582,7 +583,8 @@ class ClinicalKnowledgeRAG:
         Recupera los top-K criterios institucionales mas pertinentes para el cuadro clinico.
         Garantiza inclusion de criterios diferenciales relevantes (ej. Triage 1 y 2 si hay red flags).
         """
-        base_norm = _normalize_text(transcript)
+        # Los hallazgos negados no deben recuperar criterios: "niega dolor toracico" no es un SCA.
+        base_norm = strip_negated(_normalize_text(transcript))
         query_norm = cls._expand_query_synonyms(base_norm)
         scored_criteria = []
 
