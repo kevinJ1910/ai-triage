@@ -26,7 +26,16 @@ docker compose exec backend python manage.py evaluate_benchmark triage/benchmark
 
 # Corpus de entidades clínicas
 
-`corpus_entidades.json` mide la extracción de entidades (NER), la negación y la normalización. Tiene 120 casos: los 65 de `casos_sinteticos.json`, con el mismo `id`, transcript y nivel, más 55 nuevos (`N001`…). Hay 24 casos por nivel. Como conserva los campos del benchmark, `evaluate_benchmark` también lo acepta:
+`corpus_entidades.json` mide la extracción de entidades (NER), la negación y la normalización. Tiene 250 casos, 50 por nivel, en dos lotes:
+
+| Lote | Casos | Contenido | dev / test |
+| :---: | :--- | :--- | :---: |
+| 1 | 120 (`B001`–`B065`, `N001`–`N055`) | Los 65 de `casos_sinteticos.json`, con el mismo `id`, transcript y nivel, más 55 nuevos | 70 / 50 |
+| 2 | 130 (`N056`–`N185`), campo `lote: 2` | 26 por nivel: 12 coloquiales, 5 típicos, 5 de negación y 4 de signos vitales | 80 / 50 |
+
+**Por qué hay lotes.** La partición se calcula dentro de cada lote. Si se recalculara sobre los 250 casos, cambiaría el orden por hash y algunos casos de `dev` pasarían a `test`. Eso contaminaría `test`, porque el catálogo terminológico y las reglas se ajustaron mirando `dev`. Por la misma razón, la muestra de doble anotación se elige solo dentro del lote 1. Un lote nuevo lleva el siguiente número.
+
+**Sesgo de autoría del lote 2.** Se redactó con asistencia de IA el 15-10-2026, después de crear el catálogo de `transcription/terminology/`. Para no favorecerlo, se usaron a propósito expresiones que no están en el catálogo («se fue de lado», «el pecho trancado», «la popó negra como brea»). En `dev`, el motor de reglas obtiene una micro-F1 de 0,876 en el lote 1 y de 0,614 en el lote 2: el lote 1 está sobreajustado al catálogo. `evaluate_extraction` informa del desglose por lote; en `test` hay que reportarlo. Como conserva los campos del benchmark, `evaluate_benchmark` también lo acepta:
 
 ```bash
 python manage.py evaluate_benchmark triage/benchmark/corpus_entidades.json --engine reglas
@@ -36,9 +45,9 @@ La carga y la validación están en `triage/entity_corpus.py` (`load_entity_corp
 
 ## Estado: borrador pendiente de revisión
 
-Todos los casos tienen `estado: "borrador"`. Las entidades de los 120 casos, y el nivel y el criterio de los 55 nuevos, se redactaron con asistencia de IA. **Antes de usar el corpus para reportar resultados**, el equipo debe revisar cada caso y cambiar `estado` a `"revisado"`. Si el corpus que evalúa a un LLM lo anotó otro LLM sin revisión humana, la evaluación no es defendible. Los cambios de la revisión se registran en el historial de git.
+Todos los casos tienen `estado: "borrador"`. Las entidades de los 250 casos, y el nivel y el criterio de los 185 que no vienen de `casos_sinteticos.json`, se redactaron con asistencia de IA. **Antes de usar el corpus para reportar resultados**, el equipo debe revisar cada caso y cambiar `estado` a `"revisado"`. Si el corpus que evalúa a un LLM lo anotó otro LLM sin revisión humana, la evaluación no es defendible. Los cambios de la revisión se registran en el historial de git.
 
-**Códigos CIE-10 (`cie10`).** El 15-10-2026 se rellenaron de forma automática 176 entidades: 119 de 208 en `dev` y 57 de 136 en `test`. El código se tomó del catálogo `transcription/terminology/` cuando la forma `normalized` de la entidad coincide con un término o una variante del catálogo. Las demás entidades, los signos vitales y los medicamentos (que se codifican con ATC, no con CIE-10) quedan en `null`. Hay tres cosas que tener en cuenta:
+**Códigos CIE-10 (`cie10`).** El 15-10-2026 se rellenaron de forma automática 176 entidades del lote 1 (119 de 208 en `dev` y 57 de 136 en `test`) y otras 176 del lote 2. El código se tomó del catálogo `transcription/terminology/` cuando la forma `normalized` de la entidad coincide con un término o una variante del catálogo. Las demás entidades, los signos vitales y los medicamentos (que se codifican con ATC, no con CIE-10) quedan en `null`. Hay tres cosas que tener en cuenta:
 
 - **Son propuestas, no anotaciones.** El revisor debe confirmar o corregir cada código al pasar el caso a `revisado`, consultando la tabla CIE-10 oficial y no el catálogo.
 - **La métrica es circular mientras no se revisen.** El código esperado sale del mismo catálogo que usa la normalización, así que `cie10_accuracy` en `evaluate_extraction` mide la **cobertura** del catálogo (si encuentra la mención), no si el código es clínicamente correcto. Solo después de la revisión humana mide exactitud.
@@ -48,7 +57,8 @@ Todos los casos tienen `estado: "borrador"`. Las entidades de los 120 casos, y e
 
 | Campo | Descripción |
 | :--- | :--- |
-| `split` | `dev` (70 casos) o `test` (50). Lo fija una regla, no se elige: por cada nivel, los ids se ordenan por su SHA-256 y el primer 40 % va a `test`. El test de validación falla si un caso se mueve a mano. |
+| `split` | `dev` (150 casos) o `test` (100). Lo fija una regla, no se elige: por cada lote y nivel, los ids se ordenan por su SHA-256 y el primer 40 % va a `test`. El test de validación falla si un caso se mueve a mano. |
+| `lote` | Lote de anotación (sin campo = 1). Ver arriba. |
 | `estado` | `borrador` o `revisado`. |
 | `entities` | Seis listas: `symptoms`, `diagnoses`, `medications`, `allergies`, `vitals`, `history`. |
 
@@ -109,7 +119,7 @@ python manage.py evaluate_extraction --agreement doble_anotacion/segundo_anotado
 - **Acuerdo entre anotadores** (`--agreement`): F1 por pares entre la primera y la segunda anotación (Hripcsak y Rothschild, 2005), más el acuerdo en la negación de las entidades emparejadas. Se usa F1 y no Kappa porque Kappa no está bien definido para spans: no hay «negativos» que contar.
 - **El split `test` se usa una sola vez**, en la evaluación final. Ajustar reglas o prompts mirando sus resultados invalida la medición.
 
-- **Cuota de la API.** El plan gratuito de Gemini limita las peticiones por minuto (5 en `gemini-2.5-flash`) y por día. Una llamada rechazada (429) cae al motor de reglas, así que ese caso **no mide al modelo**. El comando reintenta (`--retries`, `--retry-wait`), avisa cuántos casos quedaron resueltos por reglas y los cuenta en `llm_failures`. Un resultado con `llm_failures > 0` no se reporta como resultado del modelo. Una evaluación completa (70 casos en `dev` por modelo, más `test` al final) necesita un plan con facturación o repartir las corridas en varios días.
+- **Cuota de la API.** El plan gratuito de Gemini limita las peticiones por minuto (5 en `gemini-2.5-flash`) y por día. Una llamada rechazada (429) cae al motor de reglas, así que ese caso **no mide al modelo**. El comando reintenta (`--retries`, `--retry-wait`), avisa cuántos casos quedaron resueltos por reglas y los cuenta en `llm_failures`. Un resultado con `llm_failures > 0` no se reporta como resultado del modelo. Una evaluación completa (150 casos en `dev` por modelo, más `test` al final) necesita un plan con facturación o repartir las corridas en varios días.
 
 Los resultados de la línea base se guardan en `resultados/`. Por ahora solo está la del motor de reglas (`linea_base_dev_reglas.json`). La de Gemini está pendiente de una cuota suficiente.
 

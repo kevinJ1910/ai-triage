@@ -23,6 +23,14 @@ ANNOTATION_STATES = ('borrador', 'revisado')
 # asi no depende de que casos resultan faciles o dificiles para algun motor.
 TEST_FRACTION = 0.4
 
+# Los casos se anaden por lotes y la particion se calcula dentro de cada lote. Asi, ampliar el corpus no mueve
+# ningun caso existente entre dev y test (se ajustaron reglas y catalogos mirando dev). Sin campo, lote 1.
+DEFAULT_LOTE = 1
+
+
+def case_lote(case: Dict[str, Any]) -> int:
+    return case.get('lote', DEFAULT_LOTE)
+
 
 def assign_splits(case_ids_by_level: Dict[int, List[str]]) -> Dict[str, str]:
     """Particion estratificada por nivel: ordena los ids por su SHA-256 y envia a test el primer 40 %."""
@@ -35,11 +43,15 @@ def assign_splits(case_ids_by_level: Dict[int, List[str]]) -> Dict[str, str]:
     return splits
 
 
-def double_annotation_sample(cases: List[Dict[str, Any]], per_level: int = 6) -> List[str]:
-    """Ids que un segundo anotador etiqueta a ciegas para medir el acuerdo entre anotadores."""
+def double_annotation_sample(cases: List[Dict[str, Any]], per_level: int = 6, lote: int = DEFAULT_LOTE) -> List[str]:
+    """
+    Ids que un segundo anotador etiqueta a ciegas para medir el acuerdo entre anotadores. Se elige dentro de
+    un lote para que la muestra (y la plantilla que ya puede estar anotandose) no cambie al ampliar el corpus.
+    """
     by_level = defaultdict(list)
     for case in cases:
-        by_level[case['reference_level']].append(case['id'])
+        if case_lote(case) == lote:
+            by_level[case['reference_level']].append(case['id'])
     sample = []
     for level in sorted(by_level):
         ordered = sorted(by_level[level], key=lambda cid: hashlib.sha256(f'doble:{cid}'.encode('utf-8')).hexdigest())
@@ -75,7 +87,7 @@ def validate_entity_corpus(cases: List[Dict[str, Any]]) -> List[str]:
         if level not in range(1, 6):
             errors.append(f'{cid}: reference_level debe estar entre 1 y 5')
         else:
-            by_level[level].append(cid)
+            by_level[(case_lote(case), level)].append(cid)
         if case.get('tipo') not in TIPOS:
             errors.append(f'{cid}: tipo invalido {case.get("tipo")!r}')
         if not (case.get('criterio') or '').strip():
@@ -84,6 +96,9 @@ def validate_entity_corpus(cases: List[Dict[str, Any]]) -> List[str]:
             errors.append(f'{cid}: split invalido {case.get("split")!r}')
         if case.get('estado') not in ANNOTATION_STATES:
             errors.append(f'{cid}: estado invalido {case.get("estado")!r}')
+        lote = case_lote(case)
+        if not isinstance(lote, int) or isinstance(lote, bool) or lote < 1:
+            errors.append(f'{cid}: lote invalido {lote!r}')
 
         entities = case.get('entities')
         if not isinstance(entities, dict) or set(entities) != set(ENTITY_TYPES):

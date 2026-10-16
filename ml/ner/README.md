@@ -16,12 +16,15 @@ Fine-tuning de [`PlanTL-GOB-ES/roberta-base-biomedical-clinical-es`](https://hug
 | :--- | :--- | :--- | :--- |
 | SympTEMIST v4 (2024-02-08) | [10635215](https://zenodo.org/records/10635215) | CC BY 4.0 | `SINTOMA` → `SINTOMA` |
 | DisTEMIST v5.1 (2022-05-09) | [7614764](https://zenodo.org/records/7614764) | CC BY 4.0 | `ENFERMEDAD` → `ENFERMEDAD` |
-| PharmaCoNER v1.1 (2020-11-12) | [4270158](https://zenodo.org/records/4270158) | CC BY 4.0 | `NORMALIZABLES` y `NO_NORMALIZABLES` → `FARMACO`; `PROTEINAS` y `UNCLEAR` se descartan |
+| DrugTEMIST, dentro de MultiCardioNER (2024-05-28) | [11368861](https://zenodo.org/records/11368861) | CC BY 4.0 | `FARMACO` → `FARMACO`; solo los ficheros en español (prefijo `es-` o sin prefijo) |
+| PharmaCoNER v1.1 (2020-11-12), opcional | [4270158](https://zenodo.org/records/4270158) | CC BY 4.0 | `NORMALIZABLES` y `NO_NORMALIZABLES` → `FARMACO`; `PROTEINAS` y `UNCLEAR` se descartan |
 | Corpus propio, split `dev` | `backend/triage/benchmark/corpus_entidades.json` | del proyecto | `symptoms` → `SINTOMA`; `diagnoses` y `history` → `ENFERMEDAD`; `medications` y `allergies` → `FARMACO`; `vitals` → `O` (lo extrae el regex) |
 
 Las licencias se comprobaron en la API de Zenodo el 15-10-2026. CC BY 4.0 exige citar los corpus en la tesis.
 
-**Por qué se fusionan.** Los tres corpus anotan los mismos casos clínicos de SPACCC, pero cada uno solo un tipo de entidad. Si se entrenara con uno suelto, el modelo aprendería que los síntomas de DisTEMIST son `O`. `merge_corpora` une las tres capas por nombre de fichero y, por defecto, solo usa los documentos que están en los tres corpus. Si un texto difiere entre versiones, reubica los spans por su contenido. Cuando dos spans se solapan, se queda el más largo, porque BIO no admite solapes. El notebook muestra cuántos documentos y spans se descartaron.
+**`FARMACO` sale de DrugTEMIST.** Sus guías anotan medicamentos, igual que `medications` del corpus propio, y anota los mismos 1.000 documentos que DisTEMIST. PharmaCoNER también incluye sustancias químicas, proteínas y genes; se puede sumar con `USE_PHARMACONER = True`, a costa de quedarse solo con los documentos presentes en los cuatro corpus.
+
+**Por qué se fusionan.** Los corpus anotan los mismos casos clínicos de SPACCC, pero cada uno solo un tipo de entidad. Si se entrenara con uno suelto, el modelo aprendería que los síntomas de DisTEMIST son `O`. `merge_corpora` une las tres capas por nombre de fichero y, por defecto, solo usa los documentos que están en los tres corpus. Si un texto difiere entre versiones, reubica los spans por su contenido. Cuando dos spans se solapan, se queda el más largo, porque BIO no admite solapes. El notebook muestra cuántos documentos y spans se descartaron.
 
 ## Protocolo
 
@@ -99,7 +102,7 @@ Además, el notebook se simuló completo, de la celda 4 a la 9, con corpus falso
 
 ## Limitaciones que hay que declarar
 
-- El corpus propio es pequeño (70 casos en `dev`) y está anotado con asistencia de IA; la revisión humana está pendiente.
+- El corpus propio es pequeño (150 casos en `dev`, en dos lotes) y está anotado con asistencia de IA; la revisión humana está pendiente.
 - `ENFERMEDAD` agrupa diagnósticos del episodio y antecedentes, y `FARMACO` agrupa medicamentos y alérgenos farmacológicos. La distinción la hacen después las reglas de contexto.
 - Los corpus públicos son casos clínicos escritos, no diálogos de triaje.
 - Los alérgenos que no son fármacos, como «camarones», no están cubiertos por PharmaCoNER: los cubren el catálogo y Gemini.

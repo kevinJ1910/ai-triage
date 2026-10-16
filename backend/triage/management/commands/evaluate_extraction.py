@@ -140,7 +140,7 @@ class Command(BaseCommand):
             prediction['attempts'] = attempts
             counts = score_case(case['entities'], prediction['predicted_entities'], mode=options['match'])
             results.append({
-                'id': case['id'], 'split': case['split'], 'tipo': case['tipo'],
+                'id': case['id'], 'split': case['split'], 'tipo': case['tipo'], 'lote': case.get('lote', 1),
                 'reference_level': case['reference_level'], **prediction, 'counts': counts,
                 'code_hits': code_hits(case['entities'], prediction['predicted_codes']),
             })
@@ -150,6 +150,12 @@ class Command(BaseCommand):
         entity_summary = aggregate(r['counts'] for r in results)
         entity_summary['micro_f1_ci95'] = micro_f1_ci([r['counts'] for r in results])
         entity_summary['normalization'] = code_accuracy(r['code_hits'] for r in results)
+        # Por lote: el lote 2 se escribio despues del catalogo terminologico; si rinde mucho mejor que el
+        # lote 1 en test, hay sesgo de autoria que reportar.
+        entity_summary['by_lote'] = {
+            str(lote): aggregate(r['counts'] for r in results if r['lote'] == lote)['micro']
+            for lote in sorted({r['lote'] for r in results})
+        }
         triage = triage_summary(results)
         latencies = [r['latency_ms'] for r in results]
         tokens = [r['total_tokens'] for r in results]
@@ -189,6 +195,8 @@ class Command(BaseCommand):
         self.stdout.write(f"Negacion: exactitud {negation['negation_accuracy']} ({negation['negation_errors']} de "
                           f"{negation['negated_gold']} negados reportados como presentes) | deteccion explicita "
                           f"{negation['negated_detection_recall']}")
+        for lote, micro in entities['by_lote'].items():
+            self.stdout.write(f"  lote {lote:<7} {micro['precision']} / {micro['recall']} / {micro['f1']}")
         normalization = entities['normalization']
         self.stdout.write(f"Normalizacion: codigo CIE-10 correcto en {normalization['code_hits']} de "
                           f"{normalization['coded_gold']} entidades codificadas ({normalization['cie10_accuracy']})")

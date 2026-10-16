@@ -1,3 +1,4 @@
+import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -6,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ner_data import (  # noqa: E402
+    split_language,
     IGNORE_INDEX, LABEL2ID, Span, bio_labels, corpus_to_documents, kfold, load_brat_corpus, load_tsv_corpus,
     merge_corpora, pick_text_dir, read_brat_ann, resolve_overlaps, span_prf, spans_from_bio,
 )
@@ -69,6 +71,28 @@ class TestPublicCorpora:
         assert discontinuous == 1 and mentions == [(20, 25, 'NORMALIZABLES', 'nolot')]
 
 
+class TestDrugTemist:
+    def test_language_prefix_is_stripped_and_other_languages_skipped(self, public_corpora, tmp_path):
+        corpora, _ = public_corpora
+        drug = tmp_path / 'drug' / 'brat'
+        drug.mkdir(parents=True)
+        (drug / 'es-caso1.txt').write_text(TEXT, encoding='utf-8')
+        (drug / 'es-caso1.ann').write_text('T1\tFARMACO 37 47\tmetformina\n', encoding='utf-8')
+        (drug / 'en-caso1.txt').write_text('Patient with fever and diabetes, takes metformin.', encoding='utf-8')
+        (drug / 'en-caso1.ann').write_text('T1\tFARMACO 39 48\tmetformin\n', encoding='utf-8')
+        stats = Counter()
+        drugtemist = load_brat_corpus(drug, 'drugtemist', stats)
+        assert list(drugtemist) == ['caso1']
+        assert stats['drugtemist:otro_idioma'] == 1
+        docs = merge_corpora([corpora[0], corpora[1], drugtemist], required={'symptemist', 'distemist', 'drugtemist'})
+        assert Span(37, 47, 'FARMACO') in docs[0].spans
+
+    def test_optional_corpus_adds_spans_without_being_required(self, public_corpora):
+        corpora, _ = public_corpora
+        docs = merge_corpora(corpora, required={'symptemist', 'distemist'})
+        assert docs[0].sources == {'symptemist', 'distemist', 'pharmaconer'}
+
+
 class TestPickTextDir:
     def test_ignores_translations_and_background(self, tmp_path):
         for folder, names in {
@@ -114,7 +138,7 @@ class TestBioAlignment:
 class TestOwnCorpus:
     def test_dev_documents_have_literal_spans(self):
         docs = corpus_to_documents(CORPUS, split='dev')
-        assert len(docs) == 70
+        assert len(docs) == len([c for c in json.loads(CORPUS.read_text(encoding='utf-8')) if c['split'] == 'dev'])
         for doc in docs:
             for span in doc.spans:
                 assert doc.text[span.start:span.end].strip() == doc.text[span.start:span.end]

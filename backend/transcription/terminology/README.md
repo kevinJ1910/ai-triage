@@ -70,6 +70,29 @@ Un concepto sin código verificado lleva `null`. **Nunca se publica un código s
 4. Ejecuta `pytest backend/transcription/tests/test_terminology.py`. `validate_catalogs()` falla si una forma pertenece a dos conceptos, si hay una categoría inválida o si un código CIE-10 o SNOMED CT no está en su catálogo.
 5. **No amplíes el catálogo mirando los casos del split `test`** de `triage/benchmark/corpus_entidades.json`: invalidaría la evaluación final.
 
+## Validación externa con CodiEsp
+
+La métrica de códigos del corpus propio es circular: sus códigos se prerrellenaron desde este mismo catálogo. CodiEsp ([Zenodo 3837305](https://zenodo.org/records/3837305), CC BY 4.0) tiene 1.000 casos clínicos en español codificados a mano por expertos, y sirve como validación independiente:
+
+```bash
+python manage.py evaluate_normalization --download            # descarga (11 MB) y verifica el MD5
+python manage.py evaluate_normalization --split dev
+python manage.py evaluate_normalization --split test --output triage/benchmark/resultados/codiesp_test_catalogo.json
+python manage.py evaluate_normalization --engine llm --split dev --limit 20 --pause 13
+```
+
+Los datos se guardan en `backend/data/codiesp/`, que está en `.gitignore`. El comando informa de:
+
+- **P/R/F1 por documento**, por categoría (3 caracteres) y por subcategoria (4).
+- **Cobertura del catálogo**: qué fracción de las categorías anotadas existe en `cie10.json`. Es el techo del recall.
+- **Por mención**: cuántas menciones diagnósticas se detectan y, de esas, cuántas reciben la categoría correcta.
+
+Al interpretarlo hay que tener en cuenta tres cosas:
+
+- CodiEsp usa la CIE-10-ES (basada en ICD-10-CM), no la CIE-10 de la OMS. Por eso los códigos se comparan truncados a categoría o subcategoría.
+- Son casos clínicos escritos, no habla coloquial: un recall bajo es esperable y mide la transferencia a texto formal.
+- No se debe ajustar el catálogo mirando el split `test` de CodiEsp.
+
 ## Efecto medido sobre `dev` (motor de reglas)
 
 | Métrica | Antes | Después |

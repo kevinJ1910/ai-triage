@@ -56,6 +56,30 @@ class TestEntityCorpus:
         assert len(load_cases(CORPUS_PATH)) == len(load_entity_corpus())
 
 
+class TestLotes:
+    def test_a_new_lote_never_moves_existing_cases(self, corpus):
+        lote1 = [c for c in corpus if c.get('lote', 1) == 1]
+        extra = []
+        for i in range(40):
+            case = copy.deepcopy(lote1[i % len(lote1)])
+            case.update(id=f'Z{i:03d}', lote=9)
+            extra.append(case)
+        before = {c['id']: c['split'] for c in lote1}
+        assert validate_entity_corpus(lote1) == []
+        errors = validate_entity_corpus(lote1 + extra)
+        # Los nuevos pueden tener el split mal en la copia; los del lote 1 nunca se reasignan.
+        assert not any(e.split(':')[0] in before for e in errors)
+
+    def test_lote_must_be_a_positive_integer(self, corpus):
+        case = copy.deepcopy(corpus[0])
+        case['lote'] = 'dos'
+        assert any('lote invalido' in e for e in validate_entity_corpus([case]))
+
+    def test_double_annotation_sample_ignores_other_lotes(self, corpus):
+        lote1 = [c for c in corpus if c.get('lote', 1) == 1]
+        assert double_annotation_sample(corpus) == double_annotation_sample(lote1)
+
+
 class TestDoubleAnnotation:
     TEMPLATE = CORPUS_PATH.parent / 'doble_anotacion' / 'plantilla_segundo_anotador.json'
 

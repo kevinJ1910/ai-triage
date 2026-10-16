@@ -5,13 +5,15 @@ se prueba en local sin torch y el notebook lo importa en Colab/Kaggle.
 Etiquetas (esquema BIO):
   SINTOMA     sintomas, signos y hallazgos  (SympTEMIST; symptoms del corpus propio)
   ENFERMEDAD  enfermedades, lesiones y antecedentes patologicos  (DisTEMIST; diagnoses e history)
-  FARMACO     medicamentos y sustancias  (PharmaCoNER NORMALIZABLES/NO_NORMALIZABLES; medications y allergies)
+  FARMACO     medicamentos  (DrugTEMIST; opcionalmente PharmaCoNER NORMALIZABLES/NO_NORMALIZABLES;
+              medications y allergies del corpus propio)
 
 El modelo detecta menciones; si una mencion esta negada, es un antecedente o una alergia lo decide despues
 el pipeline (negation.py y las reglas de contexto), igual que en los corpus publicos, que anotan las
 menciones negadas.
 
-SympTEMIST, DisTEMIST y PharmaCoNER anotan los mismos casos clinicos de SPACCC, cada uno con un solo tipo.
+SympTEMIST, DisTEMIST y DrugTEMIST (y PharmaCoNER) anotan los mismos casos clinicos de SPACCC, cada uno con
+un solo tipo.
 Entrenar con un corpus suelto ensena al modelo que las entidades de los otros tipos son 'O'. Por eso los
 documentos se fusionan por nombre de fichero y, por defecto, solo se usan los que tienen los tres tipos.
 """
@@ -35,7 +37,17 @@ SOURCE_LABEL_MAP = {
     'symptemist': {'SINTOMA': 'SINTOMA'},
     'distemist': {'ENFERMEDAD': 'ENFERMEDAD'},
     'pharmaconer': {'NORMALIZABLES': 'FARMACO', 'NO_NORMALIZABLES': 'FARMACO', 'PROTEINAS': None, 'UNCLEAR': None},
+    # DrugTEMIST (MultiCardioNER, pista 2): guias especificas de medicamentos, como medications del corpus propio.
+    'drugtemist': {'FARMACO': 'FARMACO', 'MEDICAMENTO': 'FARMACO', 'DRUG': 'FARMACO'},
 }
+# MultiCardioNER nombra los ficheros con el idioma delante ('es-S0004-...'); solo se usa el espanol.
+_LANG_PREFIX = re.compile(r'^(es|en|it)[-_](?=.{4,})', re.IGNORECASE)
+
+
+def split_language(stem: str) -> Tuple[Optional[str], str]:
+    """('es', 'S0004-...') para 'es-S0004-...'; (None, stem) si no lleva prefijo de idioma."""
+    found = _LANG_PREFIX.match(stem)
+    return (found.group(1).lower(), stem[found.end():]) if found else (None, stem)
 # Tipos del corpus propio (triage/benchmark/corpus_entidades.json). vitals queda en 'O': lo extrae el regex.
 CORPUS_TYPE_MAP = {
     'symptoms': 'SINTOMA', 'diagnoses': 'ENFERMEDAD', 'history': 'ENFERMEDAD',
@@ -118,7 +130,14 @@ def build_documents(text_dir: Path, mentions: Dict[str, List[Tuple[int, int, str
     """Une menciones y textos ({filename}.txt en text_dir o subcarpetas) con las etiquetas del modelo."""
     stats = stats if stats is not None else Counter()
     label_map = SOURCE_LABEL_MAP[source]
-    texts = {p.stem: p for p in Path(text_dir).rglob('*.txt')}
+    texts = {}
+    for path in Path(text_dir).rglob('*.txt'):
+        lang, doc_id = split_language(path.stem)
+        if lang not in (None, 'es'):
+            stats[f'{source}:otro_idioma'] += 1
+            continue
+        texts[doc_id] = path
+    mentions = {split_language(k)[1]: v for k, v in mentions.items() if split_language(k)[0] in (None, 'es')}
     docs: Dict[str, Document] = {}
     for filename in sorted(set(mentions) | set(texts)):
         if filename not in texts:
@@ -171,11 +190,12 @@ def resolve_overlaps(spans: Iterable[Span]) -> Tuple[List[Span], int]:
 
 
 def merge_corpora(corpora: Sequence[Dict[str, Document]], require_all: bool = True,
-                  stats: Optional[Counter] = None) -> List[Document]:
+                  stats: Optional[Counter] = None, required: Optional[Iterable[str]] = None) -> List[Document]:
     """
     Fusiona por doc_id los documentos de varios corpus. Si el texto difiere entre corpus se reubican los
     spans por su texto (_reanchor) y, si no aparecen, se descartan. Con require_all solo quedan los documentos
-    presentes en todos los corpus, para no tener entidades sin anotar tratadas como 'O'.
+    presentes en todos los corpus, para no tener entidades sin anotar tratadas como 'O'. required (nombres de
+    corpus) exige solo esos; los demas suman sus spans cuando el documento existe.
     """
     stats = stats if stats is not None else Counter()
     merged: Dict[str, Document] = {}
@@ -196,9 +216,10 @@ def merge_corpora(corpora: Sequence[Dict[str, Document]], require_all: bool = Tr
                 base.spans.append(Span(anchored[0], anchored[1], span.label))
             base.sources |= doc.sources
     total_sources = set().union(*(doc.sources for corpus in corpora for doc in corpus.values()))
+    needed = set(required) if required is not None else (total_sources if require_all else set())
     result = []
     for doc in merged.values():
-        if require_all and doc.sources != total_sources:
+        if not needed <= doc.sources:
             stats['documento_parcial_descartado'] += 1
             continue
         doc.spans, dropped = resolve_overlaps(doc.spans)
