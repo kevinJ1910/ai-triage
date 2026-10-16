@@ -111,3 +111,6 @@ temp/
 Memorias/
 *.pdf
 *.docx
+
+# Modelos y paquetes del NER (se publican fuera de git)
+ml/ner/output/
