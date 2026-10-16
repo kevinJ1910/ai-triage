@@ -5,6 +5,8 @@ import NormalizationMonitor from '../../components/NormalizationMonitor';
 describe('NormalizationMonitor Component', () => {
   const mapping = (overrides: Record<string, unknown>) => ({
     code_system: 'CIE-10',
+    code_snomed: null,
+    snomed_valid: null,
     category: 'Sintoma',
     source: 'diccionario',
     valid: true,
@@ -17,10 +19,10 @@ describe('NormalizationMonitor Component', () => {
     normalized_text: 'Paciente refiere dolor torácico y niega fiebre.',
     summary: 'Dolor torácico sin fiebre.',
     mappings: [
-      mapping({ raw_term: 'dolor de pecho', medical_term: 'dolor torácico', code: 'R07.4' }),
+      mapping({ raw_term: 'dolor de pecho', medical_term: 'dolor torácico', code: 'R07.4', code_snomed: '29857009', snomed_valid: true }),
       mapping({ raw_term: 'fiebre', medical_term: 'fiebre', code: 'R50.9', category: 'Signo', negated: true }),
       mapping({ raw_term: 'aspirina', medical_term: 'ácido acetilsalicílico', code: 'B01AC06', code_system: 'ATC', category: 'Medicamento' }),
-      mapping({ raw_term: 'dolor punzante en el talón', medical_term: 'talalgia', code: 'M79.67', source: 'llm', valid: false }),
+      mapping({ raw_term: 'dolor punzante en el talón', medical_term: 'talalgia', code: 'M79.67', code_snomed: '267036008', source: 'llm', valid: false, snomed_valid: false }),
       mapping({ raw_term: 'penicilina', medical_term: 'penicilina', code: 'J01CE01', code_system: 'ATC', category: 'Medicamento', allergy: true }),
     ],
     layers: { correccion_asr: 0, abreviatura: 0, diccionario: 4, llm: 1 },
@@ -43,12 +45,14 @@ describe('NormalizationMonitor Component', () => {
     });
   });
 
-  it('renders the initial catalog result with CIE-10 codes', () => {
+  it('renders the initial catalog result with SNOMED-CT and CIE-10 codes', () => {
     render(<NormalizationMonitor />);
 
     expect(screen.getByText('Motor de Normalizacion Clinica')).toBeInTheDocument();
+    expect(screen.getByText('SNOMED-CT / CIE-10 / ATC')).toBeInTheDocument();
     expect(screen.getByText('dolor torácico opresivo')).toBeInTheDocument();
     expect(screen.getByText('R07.4')).toBeInTheDocument();
+    expect(screen.getByText('23924001')).toBeInTheDocument();
     expect(screen.getByText('Corrección ASR')).toBeInTheDocument();
   });
 
@@ -74,7 +78,9 @@ describe('NormalizationMonitor Component', () => {
       expect(screen.getByText('ácido acetilsalicílico')).toBeInTheDocument();
     });
     expect(screen.getByText('B01AC06')).toBeInTheDocument();
-    expect(screen.getByText('inválido')).toBeInTheDocument();
+    expect(screen.getByText('29857009')).toBeInTheDocument();
+    // El talón del LLM trae CIE-10 y SNOMED invalidos: ambos se marcan.
+    expect(screen.getAllByText('inválido')).toHaveLength(2);
     expect(screen.getByText('negado')).toBeInTheDocument();
     expect(screen.getByText('alergia')).toBeInTheDocument();
     expect(screen.getByText(/LLM: 1/)).toBeInTheDocument();

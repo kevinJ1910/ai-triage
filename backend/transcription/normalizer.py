@@ -1,12 +1,13 @@
 """
-Normalizacion por capas de texto clinico coloquial a terminologia estandarizada (CIE-10 / ATC).
+Normalizacion por capas de texto clinico coloquial a terminologia estandarizada (SNOMED CT, CIE-10 y ATC).
 
   1-3. Catalogos deterministas (transcription/terminology): correcciones ASR, abreviaturas y diccionario
        de coloquialismos. Siempre se ejecutan y no consumen tokens.
   4.   Gemini Flash-Lite, solo para los terminos clinicos que el catalogo no resolvio. Opcional: si no
        hay clave o la llamada falla, queda el resultado de las capas 1-3.
-  5.   Validacion: cada codigo se verifica contra el catalogo local; un codigo invalido se marca, no se
-       corrige, y un termino que no aparece en el relato se descarta.
+  5.   Validacion: cada codigo CIE-10/ATC se verifica contra el catalogo local y cada SNOMED CT contra
+       snomed.json y su digito de control (Verhoeff). Un codigo invalido se marca, no se corrige, y un
+       termino que no aparece en el relato se descarta.
 
 Se ejecuta en el worker 'llm'; la vista solo encola la tarea. El analisis de triaje usa solo las capas
 deterministas (concept_mappings) para no gastar una segunda llamada al LLM por consulta.
@@ -22,7 +23,7 @@ from pydantic import BaseModel, Field
 from triage.negation import is_negated
 
 from .terminology import (
-    ATC, CIE10, SOURCES, catalog_versions, find_concepts, fold, in_allergy_context, validate_code,
+    ATC, CIE10, SOURCES, catalog_versions, find_concepts, fold, in_allergy_context, validate_code, validate_snomed,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class NormalizationMappingSchema(BaseModel):
     raw_term: str = Field(description="Termino copiado literalmente del relato")
     medical_term: str = Field(description="Termino medico formal equivalente")
     code: str = Field(default="", description="Codigo CIE-10 (formato OMS, p. ej. R06.0) o ATC para medicamentos; vacio si no hay certeza")
+    code_snomed: str = Field(default="", description="Identificador de concepto SNOMED CT; vacio si no hay certeza")
     category: Literal["Sintoma", "Signo", "Diagnostico", "Antecedente", "Medicamento"]
 
 
@@ -45,14 +47,17 @@ class NormalizationOutputSchema(BaseModel):
     mappings: List[NormalizationMappingSchema] = Field(default_factory=list)
 
 
-def _mapping(raw_term: str, medical_term: str, code: Optional[str], code_system: Optional[str], category: str,
-             source: str, negated: bool, allergy: bool) -> Dict[str, Any]:
+def _mapping(raw_term: str, medical_term: str, code: Optional[str], code_system: Optional[str],
+             snomed: Optional[str], category: str, source: str, negated: bool, allergy: bool) -> Dict[str, Any]:
     canonical, valid = validate_code(code, code_system)
+    snomed_code, snomed_valid = validate_snomed(snomed)
     return {
         "raw_term": raw_term,
         "medical_term": medical_term,
         "code": canonical,
         "code_system": code_system if canonical else None,
+        "code_snomed": snomed_code,
+        "snomed_valid": snomed_valid,
         "category": category,
         "source": source,
         "valid": valid,
@@ -77,7 +82,7 @@ def concept_mappings(text: str) -> List[Dict[str, Any]]:
     for match, allergy in _concept_matches(text or ''):
         concept = match.concept
         mappings.append(_mapping(
-            match.raw, concept.term, concept.code, concept.code_system, concept.category,
+            match.raw, concept.term, concept.code, concept.code_system, concept.snomed, concept.category,
             match.source, is_negated(folded, match.start, match.end), allergy,
         ))
     return mappings
@@ -170,7 +175,7 @@ def _residual_mappings(text: str, llm_mappings: List[NormalizationMappingSchema]
         code_system = ATC if item.category == 'Medicamento' else CIE10
         residual.append(_mapping(
             text[found.start():found.end()], item.medical_term, item.code.strip() or None, code_system,
-            item.category, LLM_SOURCE, is_negated(folded, found.start(), found.end()),
+            item.code_snomed.strip() or None, item.category, LLM_SOURCE, is_negated(folded, found.start(), found.end()),
             item.category == 'Medicamento' and in_allergy_context(text, found.start()),
         ))
     return residual
@@ -186,6 +191,7 @@ def _normalize_with_gemini(raw_text: str, custom_instruction: str, api_key: str,
     pseudonymized = _pseudonymize(raw_text)
     resolved = "\n".join(
         f'- "{m["raw_term"]}" -> {m["medical_term"]}' + (f' ({m["code"]})' if m["code"] else '')
+        + (f' [SCT {m["code_snomed"]}]' if m["code_snomed"] else '')
         for m in base["mappings"]
     ) or "- (ninguno)"
     prompt = f"""Eres un normalizador terminológico clínico para triaje de urgencias en Colombia.
@@ -199,7 +205,7 @@ TÉRMINOS YA NORMALIZADOS POR EL CATÁLOGO (no los repitas):
 TAREA:
 1. En mappings incluye SOLO los términos clínicos del relato que no estén en la lista anterior: síntomas, signos, diagnósticos, antecedentes y medicamentos.
 2. raw_term se copia literalmente del relato.
-3. code: CIE-10 en formato OMS (p. ej. R06.0) para conceptos clínicos y ATC para medicamentos. Si no conoces el código con certeza, déjalo vacío; nunca lo inventes.
+3. code: CIE-10 en formato OMS (p. ej. R06.0) para conceptos clínicos y ATC para medicamentos. code_snomed: identificador de concepto SNOMED CT (International Edition). Si no conoces un código con certeza, déjalo vacío; nunca lo inventes.
 4. normalized_text: el relato completo en lenguaje clínico formal, conservando las negaciones y los marcadores entre corchetes.
 5. summary: resumen clínico en 1 o 2 líneas.
 

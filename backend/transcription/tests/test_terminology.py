@@ -1,14 +1,17 @@
 import json
 import shutil
+from io import StringIO
 from types import SimpleNamespace
 
 import pytest
 from django.core.management import call_command
 
 from transcription import normalizer
+from django.core.management.base import CommandError
+
 from transcription.terminology import (
-    ATC, CATALOG_DIR, CIE10, _lexicon, canonical_cie10, clear_caches, find_concepts, lookup_term, validate_catalogs,
-    validate_code,
+    ATC, CATALOG_DIR, CIE10, _lexicon, canonical_cie10, clear_caches, find_concepts, is_snomed_concept_id,
+    lookup_term, snomed_catalog, validate_catalogs, validate_code, validate_snomed,
 )
 
 
@@ -80,6 +83,25 @@ class TestCodeValidation:
         assert validate_code(None, CIE10) == (None, None)
 
 
+class TestSnomedValidation:
+    def test_verhoeff_check_digit_and_partition(self):
+        assert is_snomed_concept_id("267036007")
+        assert not is_snomed_concept_id("267036008")  # digito de control alterado
+        assert is_snomed_concept_id("450671000124109")  # concepto de una extension (particion 10)
+        assert not is_snomed_concept_id("12345")
+
+    def test_catalog_code_is_valid_and_unknown_well_formed_is_unverifiable(self):
+        assert validate_snomed("25064002") == ("25064002", True)
+        assert validate_snomed("450671000124109") == ("450671000124109", None)
+        assert validate_snomed("267036008") == ("267036008", False)
+        assert validate_snomed(None) == (None, None)
+
+    def test_catalog_records_the_verified_edition(self):
+        catalog = snomed_catalog()
+        assert catalog["edicion"].startswith("SNOMED CT International Edition")
+        assert catalog["codigos"]["267036007"] == "Dyspnea (finding)"
+
+
 class TestConceptMappings:
     def test_negation_and_allergy_context(self):
         mappings = normalizer.concept_mappings(
@@ -100,7 +122,11 @@ class TestConceptMappings:
         assert result["normalized_text"] == "tengo fiebre y hipertensión arterial, tomo losartán"
         assert result["layers"] == {"correccion_asr": 1, "abreviatura": 1, "diccionario": 1, "llm": 0}
         assert all(m["valid"] is True for m in result["mappings"])
-        assert set(result["catalog_version"]) == {"coloquialismos", "abreviaturas", "correcciones_asr", "cie10"}
+        assert set(result["catalog_version"]) == {"coloquialismos", "abreviaturas", "correcciones_asr", "cie10", "snomed"}
+
+    def test_mappings_carry_verified_snomed_codes(self):
+        mapping = normalizer.concept_mappings("me falta el aire")[0]
+        assert (mapping["code"], mapping["code_snomed"], mapping["snomed_valid"]) == ("R06.0", "267036007", True)
 
 
 @pytest.mark.django_db
@@ -118,7 +144,8 @@ class TestLLMResidualLayer:
 
     def test_llm_only_adds_validated_residual_terms(self, mocker):
         result, _ = self._run(mocker, [
-            {"raw_term": "dolor punzante en el talón", "medical_term": "talalgia", "code": "M79.67", "category": "Sintoma"},
+            {"raw_term": "dolor punzante en el talón", "medical_term": "talalgia", "code": "M79.67",
+             "code_snomed": "267036008", "category": "Sintoma"},
             {"raw_term": "calentura", "medical_term": "hipertermia", "code": "R50.9", "category": "Signo"},
             {"raw_term": "dolor de oído", "medical_term": "otalgia", "code": "H92.0", "category": "Sintoma"},
         ])
@@ -128,6 +155,7 @@ class TestLLMResidualLayer:
         assert sources == {"calentura": "diccionario", "dolor": "diccionario", "dolor punzante en el talón": "llm"}
         residual = next(m for m in result["mappings"] if m["source"] == "llm")
         assert residual["valid"] is False  # M79.67 no es un codigo CIE-10 de la OMS: se marca, no se corrige.
+        assert residual["snomed_valid"] is False  # digito de control invalido
         assert result["layers"]["llm"] == 1
 
     def test_prompt_is_pseudonymized_and_lists_resolved_terms(self, mocker):
@@ -140,6 +168,24 @@ class TestLLMResidualLayer:
     def test_uses_flash_lite_first(self, mocker):
         _, generate = self._run(mocker, [])
         assert generate.call_args_list[0].kwargs["model"] == normalizer.NORMALIZER_LLM_MODEL
+
+
+class TestVerifySnomed:
+    def test_reports_inactive_codes(self, monkeypatch):
+        def fake_lookup(server, code, timeout=30):
+            inactive = code == "267036007"
+            return {"fsn": snomed_catalog()["codigos"].get(code), "display": None, "version": None, "inactive": inactive}
+        monkeypatch.setattr("transcription.management.commands.verify_snomed.lookup", fake_lookup)
+        with pytest.raises(CommandError):
+            call_command("verify_snomed", "--pause", "0", stdout=StringIO())
+
+    def test_passes_when_every_code_is_active(self, monkeypatch):
+        monkeypatch.setattr("transcription.management.commands.verify_snomed.lookup",
+                            lambda server, code, timeout=30: {"fsn": snomed_catalog()["codigos"][code], "display": None,
+                                                              "version": None, "inactive": False})
+        out = StringIO()
+        call_command("verify_snomed", "--pause", "0", stdout=out)
+        assert f"{len(snomed_catalog()['codigos'])} de" in out.getvalue()
 
 
 class TestImportCie10:

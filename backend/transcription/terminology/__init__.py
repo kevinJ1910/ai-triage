@@ -5,7 +5,8 @@ Capas deterministas, en orden de prioridad ante empates de longitud:
   1. correccion_asr  errores foneticos de la transcripcion ('posartan' -> losartan).
   2. abreviatura     siglas clinicas ('HTA' -> hipertension arterial).
   3. diccionario     coloquialismos ('me falta el aire' -> disnea).
-Se busca siempre la coincidencia mas larga, sin solapes y con limites de palabra, sobre el texto sin
+Cada concepto lleva ademas su identificador SNOMED CT (snomed.json, verificado contra la International
+Edition). Se busca siempre la coincidencia mas larga, sin solapes y con limites de palabra, sobre el texto sin
 tildes ni mayusculas. Las posiciones de cada coincidencia se refieren al texto original.
 """
 import json
@@ -22,6 +23,7 @@ CATEGORIES = ('Sintoma', 'Signo', 'Diagnostico', 'Antecedente', 'Medicamento', '
 SOURCES = ('correccion_asr', 'abreviatura', 'diccionario')
 CIE10 = 'CIE-10'
 ATC = 'ATC'
+SNOMED = 'SNOMED-CT'
 
 _CIE10_RE = re.compile(r'^([A-Z])(\d{2})(?:\.?(\d))?$')
 # Niveles 1 a 5 del ATC: A, A10, A10B, A10BA, A10BA02.
@@ -37,6 +39,7 @@ class Concept:
     category: str
     code: Optional[str]
     code_system: Optional[str]
+    snomed: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -66,11 +69,12 @@ def _read(name: str) -> dict:
 
 
 def _concept(entry: dict) -> Concept:
+    snomed = entry.get('snomed')
     if entry.get('atc'):
-        return Concept(entry['termino'], entry['categoria'], entry['atc'], ATC)
+        return Concept(entry['termino'], entry['categoria'], entry['atc'], ATC, snomed)
     if entry.get('cie10'):
-        return Concept(entry['termino'], entry['categoria'], entry['cie10'], CIE10)
-    return Concept(entry['termino'], entry['categoria'], None, None)
+        return Concept(entry['termino'], entry['categoria'], entry['cie10'], CIE10, snomed)
+    return Concept(entry['termino'], entry['categoria'], None, None, snomed)
 
 
 def _surface_entries() -> List[Tuple[str, Concept, str]]:
@@ -141,6 +145,52 @@ def cie10_catalog() -> dict:
 
 
 @lru_cache(maxsize=1)
+def snomed_catalog() -> dict:
+    return _read('snomed.json')
+
+
+# Tablas del algoritmo de Verhoeff, que usa el digito de control de los identificadores SNOMED CT.
+_VERHOEFF_D = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 0, 6, 7, 8, 9, 5], [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+    [3, 4, 0, 1, 2, 8, 9, 5, 6, 7], [4, 0, 1, 2, 3, 9, 5, 6, 7, 8], [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+    [6, 5, 9, 8, 7, 1, 0, 4, 3, 2], [7, 6, 5, 9, 8, 2, 1, 0, 4, 3], [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+]
+_VERHOEFF_P = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 5, 7, 6, 2, 8, 3, 0, 9, 4], [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+    [8, 9, 1, 6, 0, 4, 3, 5, 2, 7], [9, 4, 5, 3, 1, 2, 6, 8, 7, 0], [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+    [2, 7, 9, 3, 8, 0, 6, 4, 1, 5], [7, 0, 4, 6, 9, 1, 3, 2, 5, 8],
+]
+
+
+def is_snomed_concept_id(code: str) -> bool:
+    """6 a 18 digitos, digito de control Verhoeff valido e identificador de particion de concepto (00 o 10)."""
+    if not re.fullmatch(r'[1-9]\d{5,17}', code or ''):
+        return False
+    check = 0
+    for i, digit in enumerate(reversed(code)):
+        check = _VERHOEFF_D[check][_VERHOEFF_P[i % 8][int(digit)]]
+    return check == 0 and code[-3:-1] in ('00', '10')
+
+
+def validate_snomed(code: Optional[str]) -> Tuple[Optional[str], Optional[bool]]:
+    """
+    (codigo, valido) con el mismo criterio que validate_code: True si el concepto esta en snomed.json
+    (verificado contra la International Edition), False si el identificador es imposible (digito de control
+    o particion) y None si es bien formado pero no se ha verificado.
+    """
+    if not code:
+        return None, None
+    code = re.sub(r'\s', '', str(code))
+    if not is_snomed_concept_id(code):
+        return code, False
+    catalog = snomed_catalog()
+    if code in catalog['codigos']:
+        return code, True
+    return code, False if catalog.get('completo') else None
+
+
+@lru_cache(maxsize=1)
 def _known_atc() -> frozenset:
     return frozenset(c.code for c, _ in _lexicon().values() if c.code_system == ATC)
 
@@ -194,6 +244,9 @@ def validate_catalogs() -> List[str]:
         _, valid = validate_code(concept.code, concept.code_system)
         if concept.code and not valid:
             errors.append(f'{concept.term!r}: codigo {concept.code} sin verificar en el catalogo local')
+        _, snomed_valid = validate_snomed(concept.snomed)
+        if concept.snomed and not snomed_valid:
+            errors.append(f'{concept.term!r}: SNOMED CT {concept.snomed} no esta verificado en snomed.json')
     for item in _read('correcciones_asr.json')['correcciones']:
         if _key(item['correccion']) not in seen:
             errors.append(f'correccion {item["error"]!r}: {item["correccion"]!r} no esta en los catalogos')
@@ -203,10 +256,11 @@ def validate_catalogs() -> List[str]:
 
 
 def catalog_versions() -> Dict[str, str]:
-    return {name: _read(f'{name}.json')['version'] for name in ('coloquialismos', 'abreviaturas', 'correcciones_asr', 'cie10')}
+    names = ('coloquialismos', 'abreviaturas', 'correcciones_asr', 'cie10', 'snomed')
+    return {name: _read(f'{name}.json')['version'] for name in names}
 
 
 def clear_caches() -> None:
     """Para pruebas o tras importar un catalogo nuevo en el mismo proceso."""
-    for cached in (_lexicon, _pattern, _find, cie10_catalog, _known_atc):
+    for cached in (_lexicon, _pattern, _find, cie10_catalog, snomed_catalog, _known_atc):
         cached.cache_clear()

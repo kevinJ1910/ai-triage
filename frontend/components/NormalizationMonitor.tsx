@@ -11,6 +11,8 @@ interface MappingItem {
   medical_term: string;
   code: string | null;
   code_system: 'CIE-10' | 'ATC' | null;
+  code_snomed: string | null;
+  snomed_valid: boolean | null;
   category: string;
   source: MappingSource;
   // true: codigo en el catalogo local; false: mal formado; null: sin codigo o sin poder verificarlo.
@@ -42,30 +44,30 @@ const INITIAL_RESULT: NormalizationResponse = {
   normalized_text: 'Siento que dolor torácico opresivo y disnea. Yo tomo losartán pa la hipertensión arterial y tengo diaforesis desde hace 2 horas.',
   summary: '5 términos normalizados con el catálogo local (1 por corrección ASR, 4 por diccionario).',
   mappings: [
-    { raw_term: 'me aprieta el pecho', medical_term: 'dolor torácico opresivo', code: 'R07.4', code_system: 'CIE-10', category: 'Sintoma', source: 'diccionario', valid: true, negated: false, allergy: false },
-    { raw_term: 'me falta el aire', medical_term: 'disnea', code: 'R06.0', code_system: 'CIE-10', category: 'Sintoma', source: 'diccionario', valid: true, negated: false, allergy: false },
-    { raw_term: 'posartan', medical_term: 'losartán', code: 'C09CA01', code_system: 'ATC', category: 'Medicamento', source: 'correccion_asr', valid: true, negated: false, allergy: false },
-    { raw_term: 'presion alta', medical_term: 'hipertensión arterial', code: 'I10', code_system: 'CIE-10', category: 'Antecedente', source: 'diccionario', valid: true, negated: false, allergy: false },
-    { raw_term: 'sudor frio', medical_term: 'diaforesis', code: 'R61.9', code_system: 'CIE-10', category: 'Signo', source: 'diccionario', valid: true, negated: false, allergy: false },
+    { raw_term: 'me aprieta el pecho', medical_term: 'dolor torácico opresivo', code: 'R07.4', code_system: 'CIE-10', code_snomed: '23924001', snomed_valid: true, category: 'Sintoma', source: 'diccionario', valid: true, negated: false, allergy: false },
+    { raw_term: 'me falta el aire', medical_term: 'disnea', code: 'R06.0', code_system: 'CIE-10', code_snomed: '267036007', snomed_valid: true, category: 'Sintoma', source: 'diccionario', valid: true, negated: false, allergy: false },
+    { raw_term: 'posartan', medical_term: 'losartán', code: 'C09CA01', code_system: 'ATC', code_snomed: '373567002', snomed_valid: true, category: 'Medicamento', source: 'correccion_asr', valid: true, negated: false, allergy: false },
+    { raw_term: 'presion alta', medical_term: 'hipertensión arterial', code: 'I10', code_system: 'CIE-10', code_snomed: '38341003', snomed_valid: true, category: 'Antecedente', source: 'diccionario', valid: true, negated: false, allergy: false },
+    { raw_term: 'sudor frio', medical_term: 'diaforesis', code: 'R61.9', code_system: 'CIE-10', code_snomed: '52613005', snomed_valid: true, category: 'Signo', source: 'diccionario', valid: true, negated: false, allergy: false },
   ],
   layers: { correccion_asr: 1, abreviatura: 0, diccionario: 4, llm: 0 },
   engine: 'Catálogo terminológico local',
 };
 
-function CodeCell({ mapping }: { mapping: MappingItem }) {
-  if (!mapping.code) {
+function CodeCell({ code, system, valid }: { code: string | null; system: string | null; valid: boolean | null }) {
+  if (!code) {
     return <span className="text-slate-500">Sin código</span>;
   }
   const status =
-    mapping.valid === true
+    valid === true
       ? { label: 'verificado', className: 'text-emerald-400' }
-      : mapping.valid === false
+      : valid === false
       ? { label: 'inválido', className: 'text-rose-400' }
       : { label: 'sin verificar', className: 'text-amber-400' };
   return (
     <span className="flex items-center gap-1.5 flex-wrap">
-      <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-[11px]">{mapping.code}</span>
-      <span className="text-[10px] text-slate-500">{mapping.code_system}</span>
+      <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-[11px]">{code}</span>
+      {system && <span className="text-[10px] text-slate-500">{system}</span>}
       <span className={`text-[10px] ${status.className}`}>{status.label}</span>
     </span>
   );
@@ -143,7 +145,7 @@ export default function NormalizationMonitor() {
             <h1 className="text-base md:text-lg font-semibold text-slate-100 flex items-center gap-2.5 flex-wrap">
               <span>Motor de Normalizacion Clinica</span>
               <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20 font-medium">
-                CIE-10 / ATC
+                SNOMED-CT / CIE-10 / ATC
               </span>
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -273,7 +275,7 @@ export default function NormalizationMonitor() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                <span>Tabla de Mapeo Terminológico CIE-10 / ATC</span>
+                <span>Tabla de Mapeo Terminológico SNOMED-CT / CIE-10 / ATC</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                   {filteredMappings.length} entidades
                 </span>
@@ -310,7 +312,8 @@ export default function NormalizationMonitor() {
                   <th className="p-3">Termino Coloquial Detectado</th>
                   <th className="p-3"></th>
                   <th className="p-3">Termino Medico Estandarizado</th>
-                  <th className="p-3">Código</th>
+                  <th className="p-3">SNOMED-CT</th>
+                  <th className="p-3">CIE-10 / ATC</th>
                   <th className="p-3">Categoria</th>
                   <th className="p-3">Capa</th>
                 </tr>
@@ -318,7 +321,7 @@ export default function NormalizationMonitor() {
               <tbody className="divide-y divide-slate-800/60">
                 {filteredMappings.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
                       No se encontraron entidades para esta categoria.
                     </td>
                   </tr>
@@ -337,7 +340,10 @@ export default function NormalizationMonitor() {
                       <td className="p-3 text-slate-600"><ArrowRight className="w-3.5 h-3.5" /></td>
                       <td className={`p-3 font-semibold text-emerald-300 ${m.negated ? 'line-through decoration-slate-500' : ''}`}>{m.medical_term}</td>
                       <td className="p-3 font-mono text-slate-300">
-                        <CodeCell mapping={m} />
+                        <CodeCell code={m.code_snomed} system={null} valid={m.snomed_valid} />
+                      </td>
+                      <td className="p-3 font-mono text-slate-300">
+                        <CodeCell code={m.code} system={m.code_system} valid={m.valid} />
                       </td>
                       <td className="p-3">
                         <span
