@@ -39,8 +39,9 @@ def _incr(name: str, amount: int = 1) -> None:
         cache.set(key, amount, timeout=None)
 
 
-# Subir al cambiar las claves del resultado (v2: diagnoses, allergies y negated_findings; v3: normalized_terms).
-RESULT_SCHEMA_VERSION = 3
+# Subir al cambiar las claves del resultado (v2: diagnoses, allergies y negated_findings; v3: normalized_terms;
+# v4: ner_engine y ner_spans).
+RESULT_SCHEMA_VERSION = 4
 
 class ClinicalQueryCache:
     """
@@ -64,7 +65,8 @@ class ClinicalQueryCache:
         return "top"
 
     @classmethod
-    def generate_fingerprint(cls, cleaned_transcript: str, structured_vitals: Optional[Dict[str, Any]] = None) -> str:
+    def generate_fingerprint(cls, cleaned_transcript: str, structured_vitals: Optional[Dict[str, Any]] = None,
+                             variant: str = "") -> str:
         """
         Genera una firma hash representativa del cuadro clinico.
         Aplica lematizacion canonica para agrupar expresiones semanticamente identicas
@@ -94,7 +96,8 @@ class ClinicalQueryCache:
         ])
 
         # La version del esquema de salida invalida las entradas guardadas con una forma anterior.
-        canonical_str = f"v{RESULT_SCHEMA_VERSION}||" + " ".join(words) + "||" + vitals_repr
+        # variant distingue configuraciones que cambian el resultado (p. ej. el modelo NER activo).
+        canonical_str = f"v{RESULT_SCHEMA_VERSION}|{variant}||" + " ".join(words) + "||" + vitals_repr
         return hashlib.sha256(canonical_str.encode('utf-8')).hexdigest()
 
     @classmethod

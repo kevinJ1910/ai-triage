@@ -137,7 +137,8 @@ services:
         limits:
           memory: 6G
 
-  # Worker LLM: llamadas a Gemini (triaje y normalizacion); I/O, por eso pool de hilos.
+  # Worker LLM: llamadas a Gemini (triaje y normalizacion) y NER clinico (RoBERTa en CPU).
+  # Pool de hilos: Gemini es I/O y el modelo NER se carga una sola vez y se comparte entre hilos.
   worker-llm:
     image: cantor11/ai-triage-backend:latest
     container_name: ai_triage_worker_llm
@@ -147,7 +148,18 @@ services:
     environment:
       <<: *backend-env
       RUN_STARTUP_TASKS: "False"
+      # Carpeta del modelo exportado por ml/ner (o id de un repo privado de Hugging Face con HF_TOKEN).
+      # Si la carpeta no existe, el triaje sigue con el catalogo y las reglas.
+      NER_MODEL_PATH: ${NER_MODEL_PATH:-/models/ner/ai_triage_ner_roberta}
+      NER_PRELOAD: "True"
+      NER_CPU_THREADS: ${NER_CPU_THREADS:-2}
+      HF_TOKEN: ${HF_TOKEN:-}
     command: ["celery", "-A", "config", "worker", "-Q", "llm", "--pool", "threads", "--concurrency", "4", "-n", "llm@%h", "--loglevel", "INFO"]
+    volumes:
+      # Descomprimir ai_triage_ner_roberta.zip del notebook en ml/ner/output/ (fuera de git).
+      - ./ml/ner/output:/models/ner:ro
+      # Modelo descargado del Hub, si NER_MODEL_PATH es un repositorio.
+      - ner_model_cache:/home/appuser/.cache/huggingface
     networks:
       - ai_triage_network
     depends_on:
@@ -158,11 +170,12 @@ services:
       interval: 60s
       timeout: 20s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     deploy:
       resources:
         limits:
-          memory: 1G
+          # RoBERTa-base en float32 (~0,5 GB) mas torch y el pool de hilos de Gemini.
+          memory: 2G
 
   frontend:
     build:
@@ -219,3 +232,4 @@ volumes:
   audio_uploads:
   nginx_certs:
   asr_model_cache:
+  ner_model_cache:

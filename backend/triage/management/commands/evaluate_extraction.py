@@ -8,10 +8,12 @@ Uso:
     python manage.py evaluate_extraction --agreement doble_anotacion/segundo_anotador.json
 
 Motores:
-    reglas  analyze_triage_transcript sin LLM: entidades por palabras clave y regex, nivel por reglas.
-    gemini  analyze_triage_transcript completo sin cache y con un unico modelo (--model). Si la llamada
-            falla (p. ej. 429 por cuota), se reintenta --retries veces esperando --retry-wait segundos;
-            si sigue fallando, el caso se resuelve con reglas y se cuenta en 'llm_failures'.
+    reglas   sin LLM ni NER: entidades del catalogo terminologico y regex, nivel por reglas.
+    roberta  sin LLM, con el NER (RoBERTa, NER_MODEL_PATH) fusionado con el catalogo; nivel por reglas.
+    gemini   analyze_triage_transcript completo sin cache, sin NER y con un unico modelo (--model). Si la
+             llamada falla (p. ej. 429 por cuota), se reintenta --retries veces esperando --retry-wait
+             segundos; si sigue fallando, el caso se resuelve con reglas y se cuenta en 'llm_failures'.
+    hibrido  gemini + NER: las menciones del NER y la negacion mandan y Gemini desempata (entity_fusion).
 
 Cuota: el plan gratuito de Gemini limita las peticiones por minuto (5 en gemini-2.5-flash). Usar
 --pause para no superarla; un caso resuelto por reglas no mide al modelo.
@@ -40,7 +42,9 @@ from triage.extraction_metrics import (
 )
 from triage.metrics import CRITICAL_LEVELS, reference_agreement
 
-ENGINES = ('reglas', 'gemini')
+ENGINES = ('reglas', 'roberta', 'gemini', 'hibrido')
+LLM_ENGINES = ('gemini', 'hibrido')
+NER_ENGINES = ('roberta', 'hibrido')
 RULES_ENGINE_PREFIX = 'Motor de Reglas'
 
 
@@ -49,7 +53,7 @@ def run_case(engine: str, transcript: str, model=None) -> dict:
 
     start = time.perf_counter()
     analysis = analyze_triage_transcript(
-        transcript, use_cache=False, allow_llm=(engine != 'reglas'), model=model
+        transcript, use_cache=False, allow_llm=engine in LLM_ENGINES, model=model, use_ner=engine in NER_ENGINES
     )
     latency_ms = round((time.perf_counter() - start) * 1000)
     entities = analysis.get('entities') or {}
@@ -58,7 +62,8 @@ def run_case(engine: str, transcript: str, model=None) -> dict:
         'predicted_level': int((analysis.get('triage') or {}).get('level', 5)),
         'predicted_entities': {key: list(entities.get(key) or []) for key in (*ENTITY_TYPES, 'negated_findings')},
         'engine_used': engine_used,
-        'llm_failed': engine != 'reglas' and engine_used.startswith(RULES_ENGINE_PREFIX),
+        'llm_failed': engine in LLM_ENGINES and engine_used.startswith(RULES_ENGINE_PREFIX),
+        'ner_engine': analysis.get('ner_engine'),
         'latency_ms': latency_ms,
         'total_tokens': int(analysis.get('total_tokens') or 0),
         'predicted_codes': [t['code'] for t in analysis.get('normalized_terms') or [] if t.get('code_system') == 'CIE-10'],
@@ -88,7 +93,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--corpus', type=Path, default=CORPUS_PATH, help="Corpus anotado (JSON)")
         parser.add_argument('--engine', choices=ENGINES, default='reglas')
-        parser.add_argument('--model', help="Modelo Gemini a evaluar (obligatorio con --engine gemini)")
+        parser.add_argument('--model', help="Modelo Gemini a evaluar (obligatorio con gemini e hibrido)")
         parser.add_argument('--split', choices=SPLITS, help="Particion a evaluar (por defecto, todo el corpus)")
         parser.add_argument('--match', choices=MATCH_MODES, default='relaxed', help="Criterio de emparejamiento")
         parser.add_argument('--limit', type=int, help="Evaluar solo los primeros N casos (pruebas rapidas)")
@@ -110,14 +115,21 @@ class Command(BaseCommand):
 
         engine = options['engine']
         model = options.get('model')
-        if engine == 'gemini' and not model:
-            raise CommandError("--engine gemini requiere --model (p. ej. gemini-2.5-flash)")
+        if engine in LLM_ENGINES and not model:
+            raise CommandError(f"--engine {engine} requiere --model (p. ej. gemini-2.5-flash)")
+        ner_engine = None
+        if engine in NER_ENGINES:
+            from triage.ner_model import engine_label
+            ner_engine = engine_label()
+            if not ner_engine:
+                raise CommandError(f"--engine {engine} requiere el modelo NER: defina NER_MODEL_PATH "
+                                   "(ver ml/ner/README.md) y compruebe que carga.")
         if options.get('limit'):
             cases = cases[:options['limit']]
 
         results = []
         for index, case in enumerate(cases, start=1):
-            if index > 1 and engine != 'reglas' and options['pause']:
+            if index > 1 and engine in LLM_ENGINES and options['pause']:
                 time.sleep(options['pause'])
             prediction = run_case(engine, case['transcript'], model=model)
             attempts = 1
@@ -153,7 +165,7 @@ class Command(BaseCommand):
 
         if options.get('output'):
             payload = {
-                'engine': engine, 'model': model, 'split': options.get('split') or 'todo',
+                'engine': engine, 'model': model, 'ner_engine': ner_engine, 'split': options.get('split') or 'todo',
                 'match': options['match'], 'corpus': str(options['corpus']),
                 'entities': entity_summary, 'triage': triage, 'performance': performance, 'cases': results,
             }

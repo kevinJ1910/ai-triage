@@ -67,10 +67,13 @@ def health_check(request: HttpRequest) -> JsonResponse:
         logger.critical(f"Health check failed: {e}", exc_info=True)
         return JsonResponse({"status": "unhealthy", "error": "Whisper Engine could not be initialized"}, status=503)
 
+    from triage.ner_model import get_ner_status
+    # El NER es opcional (sin modelo se usan el catalogo y las reglas): se informa sin degradar el estado.
     return JsonResponse({
         "status": "healthy" if asr.get("model_loaded") else "degraded",
         "inference_mode": "worker" if worker_mode() else "inline",
         "asr": asr,
+        "ner": get_ner_status(),
     })
 
 

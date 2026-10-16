@@ -48,7 +48,8 @@ class NormalizationOutputSchema(BaseModel):
 
 
 def _mapping(raw_term: str, medical_term: str, code: Optional[str], code_system: Optional[str],
-             snomed: Optional[str], category: str, source: str, negated: bool, allergy: bool) -> Dict[str, Any]:
+             snomed: Optional[str], category: str, source: str, negated: bool, allergy: bool,
+             start: int, end: int) -> Dict[str, Any]:
     canonical, valid = validate_code(code, code_system)
     snomed_code, snomed_valid = validate_snomed(snomed)
     return {
@@ -63,6 +64,9 @@ def _mapping(raw_term: str, medical_term: str, code: Optional[str], code_system:
         "valid": valid,
         "negated": negated,
         "allergy": allergy,
+        # Posicion en el texto normalizado (el relato limpio en el triaje), para alinear con el NER.
+        "start": start,
+        "end": end,
     }
 
 
@@ -83,7 +87,7 @@ def concept_mappings(text: str) -> List[Dict[str, Any]]:
         concept = match.concept
         mappings.append(_mapping(
             match.raw, concept.term, concept.code, concept.code_system, concept.snomed, concept.category,
-            match.source, is_negated(folded, match.start, match.end), allergy,
+            match.source, is_negated(folded, match.start, match.end), allergy, match.start, match.end,
         ))
     return mappings
 
@@ -177,6 +181,7 @@ def _residual_mappings(text: str, llm_mappings: List[NormalizationMappingSchema]
             text[found.start():found.end()], item.medical_term, item.code.strip() or None, code_system,
             item.code_snomed.strip() or None, item.category, LLM_SOURCE, is_negated(folded, found.start(), found.end()),
             item.category == 'Medicamento' and in_allergy_context(text, found.start()),
+            found.start(), found.end(),
         ))
     return residual
 
@@ -238,7 +243,7 @@ Instrucción adicional: {custom_instruction or 'ninguna'}
                 normalized_text = normalized_text.replace(placeholder, value)
 
         mappings = base["mappings"] + _residual_mappings(raw_text, parsed.mappings, base["mappings"])
-        mappings.sort(key=lambda m: fold(raw_text).find(fold(m["raw_term"])))
+        mappings.sort(key=lambda m: m["start"])
         return {
             **base,
             "normalized_text": normalized_text or base["normalized_text"],

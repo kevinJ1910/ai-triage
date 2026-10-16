@@ -44,7 +44,43 @@ La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparabl
 
 2. Abre `finetune_roberta_ner.ipynb` en Colab, activa la GPU T4 y ejecuta todas las celdas. Sube `ml/ner/output/ner_bundle.zip` cuando el notebook lo pida. En Kaggle, súbelo como *Dataset*.
 3. Descarga `ai_triage_ner_roberta.zip`, o súbelo a un repositorio privado de Hugging Face Hub (celda 10). **El modelo nunca se versiona en git**: `ml/ner/output/` está en `.gitignore`.
-4. En el paso 3.2, `NER_MODEL_PATH` apuntará a la carpeta descomprimida.
+4. Descomprímelo en `ml/ner/output/ai_triage_ner_roberta/`. La primera vez hay que reconstruir la imagen, que ahora incluye torch para CPU; el worker LLM usa la imagen del backend:
+
+   ```bash
+   docker compose up -d --build backend worker-llm
+   ```
+
+   Si después solo cambias el modelo, basta con `docker compose restart worker-llm`.
+
+   Comprueba que cargó con `curl -k https://localhost/api/health_check/`: debe aparecer `"ner": {"model_loaded": true, ...}`. Si usas el Hub, define en `.env` `NER_MODEL_PATH=TU_USUARIO/ai-triage-ner-roberta` y `HF_TOKEN`.
+
+## Integración en el backend (paso 3.2)
+
+| Pieza | Dónde |
+| :--- | :--- |
+| Motor (singleton, CPU, carga perezosa, estado en `ner:engine_status`) | `backend/triage/ner_model.py` |
+| Fusión híbrida (pura, sin red) | `backend/triage/entity_fusion.py` |
+| Uso en el análisis (`use_ner`, `ner_engine`, `ner_spans`) | `backend/triage/ai_analyzer.py` |
+| PyTorch solo para CPU (también en la imagen con GPU) | `backend/requirements-ner.txt` |
+| Carga en el arranque del worker LLM y memoria de 2 GB | `docker-compose.yml` (`NER_MODEL_PATH`, `NER_PRELOAD`) |
+
+La fusión sigue estas reglas:
+
+1. **El modelo aporta la mención y su posición exacta.** Si una mención tiene una confianza menor que `NER_MIN_SCORE` (0,6), se descarta, salvo que la confirmen el catálogo o Gemini.
+2. **El catálogo normaliza la mención** («calentura» → fiebre) solo si la cubre casi por completo. Así, un término genérico como «dolor» no sustituye a «dolor punzante en el talón».
+3. **`negation.py` decide qué está negado** y manda tanto sobre el modelo como sobre el LLM.
+4. **El contexto asigna el papel.** Un `FARMACO` precedido de «alérgico a» es una alergia. Una `ENFERMEDAD` con señal de antecedente («antecedente de», «sufre de», «crónico») o con categoría `Antecedente` en el catálogo va a `history`.
+5. **Se añade lo que el modelo no vio:** siglas, alérgenos no farmacológicos y otros términos del catálogo.
+6. **Gemini (modo híbrido)** desempata las menciones dudosas y aporta términos extra, pero solo si tienen apoyo literal en el relato. Eso evita incorporar entidades alucinadas.
+
+**Si no hay modelo, el comportamiento es el de antes.** Ocurre si falta torch, si `NER_MODEL_PATH` está vacío o la carpeta no existe, o si el modelo falla. En esos casos el triaje usa el catálogo, las reglas y Gemini, y una ruta ausente no se reintenta en cada consulta. El NER solo se carga en el worker LLM: el proceso web no tiene `NER_MODEL_PATH`, y su respaldo sin worker usa las reglas.
+
+Para medir cada motor por separado:
+
+```bash
+python manage.py evaluate_extraction --engine roberta --split dev
+python manage.py evaluate_extraction --engine hibrido --model gemini-2.5-flash --split dev
+```
 
 ## Verificación local, sin GPU
 

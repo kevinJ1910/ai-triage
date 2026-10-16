@@ -27,6 +27,10 @@ RUN if [ "$WITH_CUDA" = "true" ]; then cp requirements.txt /tmp/requirements.txt
 
 RUN pip install --no-cache-dir gunicorn
 
+# NER clinico en CPU (ver requirements-ner.txt). Capa aparte para no reinstalar torch al cambiar requirements.txt.
+COPY requirements-ner.txt .
+RUN pip install --no-cache-dir -r requirements-ner.txt
+
 COPY . .
 # Las migraciones deben estar versionadas en el repo; en runtime el entrypoint ejecuta migrate
 

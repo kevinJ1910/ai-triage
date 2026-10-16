@@ -266,3 +266,10 @@ WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
 WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
 WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '1'))
 
+# --- NER clinico (RoBERTa ajustado en ml/ner/; ver triage/ner_model.py) ---
+# Carpeta del modelo exportado o id de un repositorio de Hugging Face Hub. Vacio = sin NER (catalogo y reglas).
+NER_MODEL_PATH = os.getenv('NER_MODEL_PATH', '')
+NER_CPU_THREADS = int(os.getenv('NER_CPU_THREADS', '2'))
+# Una entidad del modelo con menos confianza solo se conserva si el catalogo o el LLM la confirman.
+NER_MIN_SCORE = float(os.getenv('NER_MIN_SCORE', '0.6'))
+

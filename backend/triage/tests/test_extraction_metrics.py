@@ -108,7 +108,7 @@ class TestCodeMetrics:
 
 
 class TestEvaluateExtractionCommand:
-    def _fake_analysis(self, transcript, use_cache, allow_llm, model):
+    def _fake_analysis(self, transcript, use_cache, allow_llm, model, use_ner=None):
         return {'triage': {'level': 1}, 'engine_used': f'LLM ({model})', 'total_tokens': 100,
                 'entities': {'symptoms': ['inconsciencia'], 'vitals': []}}
 
@@ -124,7 +124,8 @@ class TestEvaluateExtractionCommand:
                      '--limit', '3', '--output', str(output), stdout=out, stderr=StringIO())
 
         assert analyzer.call_count == 3
-        assert analyzer.call_args.kwargs == {'use_cache': False, 'allow_llm': True, 'model': 'gemini-2.5-flash'}
+        assert analyzer.call_args.kwargs == {'use_cache': False, 'allow_llm': True, 'model': 'gemini-2.5-flash',
+                                             'use_ner': False}
         text = out.getvalue()
         assert 'Casos: 3 | Motor: gemini (gemini-2.5-flash) | Split: dev' in text
         detail = json.loads(output.read_text(encoding='utf-8'))
@@ -132,6 +133,20 @@ class TestEvaluateExtractionCommand:
         assert detail['performance']['llm_failures'] == 0
         assert {c['split'] for c in detail['cases']} == {'dev'}
         assert set(detail['entities']['by_type']) == set(ENTITY_TYPES)
+
+    def test_ner_engines_require_the_model(self, settings):
+        settings.NER_MODEL_PATH = ''
+        with pytest.raises(CommandError, match='NER_MODEL_PATH'):
+            call_command('evaluate_extraction', '--engine', 'roberta', stdout=StringIO(), stderr=StringIO())
+
+    def test_roberta_engine_uses_ner_without_llm(self, mocker, tmp_path):
+        mocker.patch('triage.ner_model.engine_label', return_value='roberta:fake')
+        analyzer = mocker.patch('triage.ai_analyzer.analyze_triage_transcript', side_effect=self._fake_analysis)
+        output = tmp_path / 'r.json'
+        call_command('evaluate_extraction', '--engine', 'roberta', '--split', 'dev', '--limit', '2',
+                     '--output', str(output), stdout=StringIO(), stderr=StringIO())
+        assert analyzer.call_args.kwargs == {'use_cache': False, 'allow_llm': False, 'model': None, 'use_ner': True}
+        assert json.loads(output.read_text(encoding='utf-8'))['ner_engine'] == 'roberta:fake'
 
     def test_failed_llm_case_is_retried(self, mocker):
         failed = {'triage': {'level': 4}, 'engine_used': 'Motor de Reglas Clínico (Christus Sinergia)',

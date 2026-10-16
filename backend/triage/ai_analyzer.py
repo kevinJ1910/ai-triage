@@ -3,6 +3,7 @@ import re
 import json
 import logging
 from typing import List, Optional, Literal, Dict, Any
+from django.conf import settings
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
@@ -13,6 +14,8 @@ from .clinical_protocol import evaluate_christus_sinergia_triage
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
+from .entity_fusion import entities_from_terms, fuse_entities
+from . import ner_model
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +169,8 @@ def _resolve_gemini_api_key() -> str:
 
 
 def analyze_triage_transcript(
-    transcript: str, use_cache: bool = True, allow_llm: bool = True, model: Optional[str] = None
+    transcript: str, use_cache: bool = True, allow_llm: bool = True, model: Optional[str] = None,
+    use_ner: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Analiza una conversacion clinica utilizando un pipeline optimizado:
@@ -183,6 +187,9 @@ def analyze_triage_transcript(
 
     model fija un unico modelo, sin modelos de respaldo: lo usan los comandos de evaluacion para
     que las metricas de un modelo no mezclen respuestas de otro. Si falla, aplica el motor de reglas.
+
+    use_ner: None usa el NER (RoBERTa) si NER_MODEL_PATH esta configurado; False lo desactiva (lo usan los
+    evaluadores para medir cada motor por separado). Sin modelo, las entidades salen del catalogo y del LLM.
     """
     raw_transcript = (transcript or "").strip()
     if not raw_transcript:
@@ -200,9 +207,12 @@ def analyze_triage_transcript(
     compression_ratio = compressed_input["reduction_percentage"]
     # Capas deterministas de la normalizacion (sin LLM): pistas para Gemini y entidades del respaldo.
     normalized_terms = concept_mappings(cleaned_transcript)
+    ner_spans, ner_engine = _run_ner(cleaned_transcript, use_ner)
 
     # 3. Consulta al Cache Semantico Canonico (0 tokens, < 3ms)
-    fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals)
+    # El motor NER forma parte de la huella: un resultado sin NER no se sirve cuando el modelo ya esta activo.
+    fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals,
+                                                          variant=ner_engine or "")
     if use_cache:
         cached_result = ClinicalQueryCache.get(fingerprint)
         if cached_result:
@@ -241,6 +251,8 @@ def analyze_triage_transcript(
             compression_ratio,
             rag_criterion_ids,
             normalized_terms,
+            ner_spans,
+            ner_engine,
             warning=warning
         )
         # Solo se cachea la falta de clave; un worker caido es transitorio y debe reintentarse.
@@ -259,6 +271,7 @@ def analyze_triage_transcript(
     vitals_str = ", ".join(compact_vitals) if compact_vitals else "Sin reporte"
     alerts_str = ", ".join(red_flags) if red_flags else "Sin banderas rojas"
     terms_str = _format_terms_for_prompt(normalized_terms)
+    ner_str = "; ".join(f"[{span['label']}] {span['text']}" for span in ner_spans) if ner_spans else "Sin modelo NER"
 
     user_prompt = f"""{rag_context_text}
 
@@ -268,6 +281,7 @@ Criterio: {rule_baseline['justification']}
 
 SIGNOS VITALES: {vitals_str} | ALERTAS: {alerts_str}
 TÉRMINOS NORMALIZADOS (catálogo local): {terms_str}
+MENCIONES NER (RoBERTa clínico): {ner_str}
 CONSULTA COMPRIMIDA:
 "{pseudonymized['text']}"
 """
@@ -337,6 +351,15 @@ CONSULTA COMPRIMIDA:
             result["compression_ratio"] = compression_ratio
             result["rag_context"] = rag_criterion_ids
             result["normalized_terms"] = normalized_terms
+            result["ner_spans"] = []
+            if ner_engine:
+                # Hibrido: las menciones del NER y la negacion determinista mandan; Gemini desempata.
+                llm_entities = result["entities"]
+                fused, details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms, llm_entities,
+                                               min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
+                result["entities"] = {**fused, "vitals": llm_entities.get("vitals", [])}
+                result["ner_spans"] = details
+            result["ner_engine"] = ner_engine
 
             # Guardar en Cache Semantico para proximas consultas
             if use_cache:
@@ -358,6 +381,8 @@ CONSULTA COMPRIMIDA:
         compression_ratio,
         rag_criterion_ids,
         normalized_terms,
+        ner_spans,
+        ner_engine,
         warning=(
             f"{_describe_llm_failure(last_error)} "
             "Se aplicó el Motor Clínico de Reglas Christus Sinergia Salud para garantizar "
@@ -402,29 +427,18 @@ def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
     }
 
 
-_CATEGORY_TO_ENTITY = {
-    "Sintoma": "symptoms", "Signo": "symptoms", "Diagnostico": "diagnoses",
-    "Antecedente": "history", "Medicamento": "medications",
-}
-
-
-def _entities_from_terms(normalized_terms: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """Entidades del respaldo a partir del catalogo: los negados van aparte y un farmaco o alergeno
-    precedido de 'alergico a' es una alergia, no un medicamento."""
-    entities: Dict[str, List[str]] = {
-        key: [] for key in ("symptoms", "diagnoses", "medications", "allergies", "history", "negated_findings")
-    }
-    for item in normalized_terms:
-        if item["negated"]:
-            # Un farmaco negado ("no toma losartan") no es un hallazgo descartado.
-            key = None if item["category"] in ("Medicamento", "Alergeno", "Administrativo") else "negated_findings"
-        elif item["allergy"]:
-            key = "allergies"
-        else:
-            key = _CATEGORY_TO_ENTITY.get(item["category"])
-        if key and item["medical_term"] not in entities[key]:
-            entities[key].append(item["medical_term"])
-    return entities
+def _run_ner(cleaned_transcript: str, use_ner: Optional[bool]) -> tuple:
+    """(menciones, etiqueta del motor) o ([], None) sin modelo. Un fallo del NER nunca interrumpe el triaje."""
+    if use_ner is False:
+        return [], None
+    engine = ner_model.get_engine()
+    if engine is None:
+        return [], None
+    try:
+        return engine.extract(cleaned_transcript), ner_model.engine_label()
+    except Exception as err:
+        logger.warning(f"Fallo del NER: {err}. Se usan el catalogo y el LLM.")
+        return [], None
 
 
 def _format_terms_for_prompt(normalized_terms: List[Dict[str, Any]]) -> str:
@@ -444,11 +458,18 @@ def _fallback_rule_triage(
     compression_ratio: float,
     rag_criterion_ids: List[str],
     normalized_terms: List[Dict[str, Any]],
+    ner_spans: List[Dict[str, Any]],
+    ner_engine: Optional[str],
     warning: str
 ) -> Dict[str, Any]:
     """Genera la respuesta estandarizada mediante el motor determinista Christus Sinergia."""
     rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
-    entities = _entities_from_terms(normalized_terms)
+    ner_details: List[Dict[str, Any]] = []
+    if ner_engine:
+        entities, ner_details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms,
+                                              min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
+    else:
+        entities = entities_from_terms(normalized_terms)
 
     return {
         "patientInfo": _extract_patient_info_rules(raw_transcript),
@@ -477,5 +498,7 @@ def _fallback_rule_triage(
         "compression_ratio": compression_ratio,
         "rag_context": rag_criterion_ids,
         "normalized_terms": normalized_terms,
+        "ner_engine": ner_engine,
+        "ner_spans": ner_details,
         "warning": warning
     }
