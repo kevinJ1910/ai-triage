@@ -7,10 +7,10 @@ describe('ConfigPanel Component', () => {
     config: {
       active_asr_model: 'large-v3-turbo',
       active_llm_engine: 'gemini-2.5-flash',
-      active_ner_model: 'ClinicalBERT (v2.1 - Recomendado)',
-      snomed_version: 'SNOMED CT (Edicion en Espanol)',
+      active_ner_model: 'auto',
+      snomed_version: 'SNOMED CT International Edition',
       snomed_updated_at: '2026-09-10T12:00:00Z',
-      icd10_version: 'ICD-10 (CIE-10)',
+      icd10_version: 'CIE-10 (OMS)',
       icd10_updated_at: '2026-09-10T12:00:00Z',
     },
     api_keys: [
@@ -24,6 +24,22 @@ describe('ConfigPanel Component', () => {
         created_at: '2026-09-10T10:00:00Z',
       },
     ],
+    runtime_status: {
+      cuda_available: false, hardware_device: 'CPU (INT8)', gemini_configured: true, active_keys_count: 1,
+      system_timezone: 'America/Bogota', ner_status: { model_loaded: false, detail: 'NER_MODEL_PATH no definido' },
+    },
+    vocabularies: {
+      snomed: {
+        code: 'snomed_ct', title: 'SNOMED CT International Edition 20250201', provider: 'SNOMED International; verificado',
+        updated_at: '2026-10-15T12:00:00Z', total_terms: 299, indexed_emergency_terms: 302,
+        status: 'SUBCONJUNTO VERIFICADO', update_available: false, latest_release: '2026-10-15', token_notice: 'Sin tokens en el catalogo.',
+      },
+      icd10: {
+        code: 'cie10_oms', title: 'CIE-10 (OMS)', provider: 'Subconjunto de la CIE-10', updated_at: '2026-10-15T12:00:00Z',
+        total_terms: 188, indexed_emergency_terms: 242, status: 'SUBCONJUNTO', update_available: false,
+        latest_release: '2026-10-15', token_notice: 'Sin tokens en el catalogo.',
+      },
+    },
   };
 
   beforeEach(() => {
@@ -41,8 +57,21 @@ describe('ConfigPanel Component', () => {
       expect(screen.getByText('Configuracion del Sistema y Motores IA')).toBeInTheDocument();
       expect(screen.getByText('Gemini Primary Cloud')).toBeInTheDocument();
       expect(screen.getByText('...90ab')).toBeInTheDocument();
-      expect(screen.getByText('SNOMED CT (Edicion en Espanol)')).toBeInTheDocument();
+      expect(screen.getByText('SNOMED CT International Edition 20250201')).toBeInTheDocument();
     });
+  });
+
+  it('shows real catalog figures instead of fixed demo numbers', async () => {
+    render(<ConfigPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('299')).toBeInTheDocument();
+      expect(screen.getByText('188')).toBeInTheDocument();
+      expect(screen.getByText('SUBCONJUNTO VERIFICADO')).toBeInTheDocument();
+      expect(screen.getByText('Sin modelo: catalogo')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('352.267')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ClinicalBERT|GPT-4o|Claude 3.5/)).not.toBeInTheDocument();
   });
 
   it('opens register modal when clicking Agregar Llave', async () => {

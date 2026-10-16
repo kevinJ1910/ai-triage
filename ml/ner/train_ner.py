@@ -8,7 +8,9 @@ La prueba de humo usa el tokenizador real del modelo base y un RoBERTa diminuto 
 comprueba la alineacion de offsets, el entrenamiento y la decodificacion, no la calidad.
 """
 import argparse
+import inspect
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
@@ -58,21 +60,26 @@ def to_dataset(features: List[dict]):
     return Dataset.from_list([{k: f[k] for k in ('input_ids', 'attention_mask', 'labels')} for f in features])
 
 
-def seqeval_metrics(eval_prediction) -> Dict[str, float]:
-    """Metricas de seqeval por token (solo para monitorizar el entrenamiento; la evaluacion es por span)."""
-    from seqeval.metrics import f1_score, precision_score, recall_score
+def token_entity_metrics(eval_prediction) -> Dict[str, float]:
+    """
+    P/R/F1 por entidad sobre las etiquetas de cada ventana (como seqeval en modo por defecto), solo para
+    elegir el mejor checkpoint. La evaluacion que se reporta es por span de caracteres (evaluate).
+    Sin dependencia de seqeval: en Colab su instalacion puede fallar en silencio.
+    """
     logits, labels = eval_prediction
     predictions = np.argmax(logits, axis=-1)
-    true_seqs, pred_seqs = [], []
-    for pred_row, label_row in zip(predictions, labels):
-        keep = label_row != IGNORE_INDEX
-        true_seqs.append([ID2LABEL[int(x)] for x in label_row[keep]])
-        pred_seqs.append([ID2LABEL[int(x)] for x in pred_row[keep]])
-    return {
-        'precision': precision_score(true_seqs, pred_seqs),
-        'recall': recall_score(true_seqs, pred_seqs),
-        'f1': f1_score(true_seqs, pred_seqs),
-    }
+    gold, predicted = {}, {}
+    for row, (pred_row, label_row) in enumerate(zip(predictions, labels)):
+        keep = [k for k, value in enumerate(label_row) if value != IGNORE_INDEX]
+        positions = [(k, k + 1) for k in keep]
+        gold[row] = spans_from_bio(positions, [int(label_row[k]) for k in keep])
+        predicted[row] = spans_from_bio(positions, [int(pred_row[k]) for k in keep])
+    micro = span_prf(gold, predicted)['micro']
+    return {key: micro[key] or 0.0 for key in ('precision', 'recall', 'f1')}
+
+
+# Nombre anterior, por compatibilidad con notebooks ya abiertos.
+seqeval_metrics = token_entity_metrics
 
 
 def new_model(name_or_path: str = BASE_MODEL, config=None):
@@ -92,21 +99,23 @@ def new_model(name_or_path: str = BASE_MODEL, config=None):
 def train(model, tokenizer, train_docs: Sequence[Document], eval_docs: Optional[Sequence[Document]],
           output_dir: str, epochs: float = 3, learning_rate: float = 5e-5, batch_size: int = 16,
           seed: int = 42, max_length: int = MAX_LENGTH, stride: int = STRIDE, **extra):
-    """Ajusta el modelo y devuelve el Trainer. Con eval_docs se guarda el mejor checkpoint por F1 de seqeval."""
+    """Ajusta el modelo y devuelve el Trainer. Con eval_docs se guarda el mejor checkpoint por F1 por entidad."""
     import torch
     from transformers import DataCollatorForTokenClassification, Trainer, TrainingArguments, set_seed
 
     set_seed(seed)
     train_ds = to_dataset(tokenize_documents(train_docs, tokenizer, max_length, stride))
     eval_ds = to_dataset(tokenize_documents(eval_docs, tokenizer, max_length, stride)) if eval_docs else None
-    args = TrainingArguments(
+    # Calentamiento del 10 % de los pasos, en pasos enteros: transformers 5 elimino warmup_ratio.
+    total_steps = math.ceil(len(train_ds) / batch_size) * math.ceil(epochs)
+    options = dict(
         output_dir=output_dir,
         num_train_epochs=epochs,
         learning_rate=learning_rate,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         weight_decay=0.01,
-        warmup_ratio=0.1,
+        warmup_steps=max(1, int(0.1 * total_steps)),
         lr_scheduler_type='linear',
         eval_strategy='epoch' if eval_ds is not None else 'no',
         save_strategy='epoch' if eval_ds is not None else 'no',
@@ -116,13 +125,17 @@ def train(model, tokenizer, train_docs: Sequence[Document], eval_docs: Optional[
         logging_steps=25,
         fp16=torch.cuda.is_available(),
         seed=seed,
-        report_to=[],
+        report_to='none',
         **extra,
     )
+    accepted = inspect.signature(TrainingArguments.__init__).parameters
+    if 'eval_strategy' not in accepted and 'evaluation_strategy' in accepted:  # transformers < 4.41
+        options['evaluation_strategy'] = options.pop('eval_strategy')
+    args = TrainingArguments(**{k: v for k, v in options.items() if k in accepted})
     trainer = Trainer(
         model=model, args=args, train_dataset=train_ds, eval_dataset=eval_ds,
         data_collator=DataCollatorForTokenClassification(tokenizer),
-        compute_metrics=seqeval_metrics if eval_ds is not None else None,
+        compute_metrics=token_entity_metrics if eval_ds is not None else None,
     )
     trainer.train()
     return trainer
@@ -168,12 +181,32 @@ def evaluate(model, tokenizer, docs: Sequence[Document], **kwargs) -> Dict[str, 
     return span_prf({d.doc_id: d.spans for d in docs}, predicted)
 
 
+def _save_bpe_files(target: Path) -> None:
+    """
+    vocab.json y merges.txt del modelo base junto al modelo. transformers 5 solo guarda tokenizer.json, que
+    tokenizers 0.19 (el del backend) no sabe leer; con estos dos ficheros el backend reconstruye el mismo
+    tokenizador. El ajuste fino no cambia el vocabulario.
+    """
+    import shutil
+    from huggingface_hub import hf_hub_download
+    for name in ('vocab.json', 'merges.txt'):
+        if (target / name).exists():
+            continue
+        for repo in (BASE_MODEL, BASE_MODEL_MIRROR):
+            try:
+                shutil.copy(hf_hub_download(repo, name), target / name)
+                break
+            except Exception:
+                continue
+
+
 def save_artifacts(trainer, tokenizer, output_dir: str, metrics: dict, training_config: dict) -> Path:
     """Modelo, tokenizador, etiquetas y metricas listos para backend/triage/ner_model.py (paso 3.2)."""
     target = Path(output_dir)
     target.mkdir(parents=True, exist_ok=True)
     trainer.save_model(str(target))
     tokenizer.save_pretrained(str(target))
+    _save_bpe_files(target)
     (target / 'ner_labels.json').write_text(json.dumps(LABELS, ensure_ascii=False, indent=2), encoding='utf-8')
     (target / 'metrics.json').write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding='utf-8')
     (target / 'training_config.json').write_text(json.dumps(training_config, ensure_ascii=False, indent=2),

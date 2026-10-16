@@ -311,14 +311,18 @@ def spans_from_bio(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int])
 # --------------------------------------------------------------------------- metricas y particiones
 
 def span_prf(gold: Dict[str, Sequence[Span]], predicted: Dict[str, Sequence[Span]]) -> Dict[str, Dict]:
-    """P/R/F1 por etiqueta y micro con coincidencia exacta de inicio, fin y etiqueta."""
+    """
+    P/R/F1 por etiqueta y micro con coincidencia exacta de inicio, fin y etiqueta. Se compara por tuplas y no
+    por igualdad de dataclass: tras un importlib.reload(ner_data) (habitual en Colab) los spans creados antes
+    y despues son de clases distintas y nunca serian iguales.
+    """
     counts = {label: Counter() for label in ENTITY_LABELS}
     for doc_id in set(gold) | set(predicted):
-        g = set(gold.get(doc_id, []))
-        p = set(predicted.get(doc_id, []))
+        g = {(s.start, s.end, s.label) for s in gold.get(doc_id, [])}
+        p = {(s.start, s.end, s.label) for s in predicted.get(doc_id, [])}
         for label in ENTITY_LABELS:
-            gl = {s for s in g if s.label == label}
-            pl = {s for s in p if s.label == label}
+            gl = {s for s in g if s[2] == label}
+            pl = {s for s in p if s[2] == label}
             counts[label]['tp'] += len(gl & pl)
             counts[label]['fp'] += len(pl - gl)
             counts[label]['fn'] += len(gl - pl)

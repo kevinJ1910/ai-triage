@@ -6,6 +6,7 @@ exportado por el notebook o el id de un repositorio de Hugging Face Hub (privado
 asi que no depende de la GPU ni del override de docker-compose.gpu.yml. Si falta torch, la ruta o el modelo
 no carga, get_engine() devuelve None y el analisis sigue con el catalogo y el motor de reglas.
 """
+import json
 import logging
 import os
 import threading
@@ -56,6 +57,27 @@ def decode_spans(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int], s
     return spans
 
 
+def _load_tokenizer(source: str, token: Optional[str]):
+    """
+    Tokenizador del modelo. Si el tokenizer.json lo escribio una version de tokenizers mas nueva que la del
+    backend (transformers 5 en Colab), se reconstruye el mismo BPE desde vocab.json y merges.txt.
+    """
+    from transformers import AutoTokenizer, RobertaTokenizerFast
+    try:
+        return AutoTokenizer.from_pretrained(source, use_fast=True, token=token)
+    except Exception as err:
+        folder = os.path.expanduser(source)
+        vocab, merges = os.path.join(folder, "vocab.json"), os.path.join(folder, "merges.txt")
+        if not (os.path.isfile(vocab) and os.path.isfile(merges)):
+            raise
+        logger.info(f"tokenizer.json no compatible ({err}); se reconstruye desde vocab.json y merges.txt")
+        # Las opciones del entrenamiento (p. ej. add_prefix_space) cambian los ids: se leen de tokenizer_config.json.
+        config_path = os.path.join(folder, "tokenizer_config.json")
+        config = json.load(open(config_path, encoding="utf-8")) if os.path.isfile(config_path) else {}
+        options = {k: config[k] for k in ("add_prefix_space", "trim_offsets", "model_max_length") if k in config}
+        return RobertaTokenizerFast(vocab_file=vocab, merges_file=merges, **options)
+
+
 class NEREngine:
     """Singleton thread-safe: el worker LLM usa un pool de hilos y el modelo se carga una sola vez."""
     _instance: Optional["NEREngine"] = None
@@ -75,7 +97,7 @@ class NEREngine:
         torch.set_num_threads(getattr(settings, "NER_CPU_THREADS", 2))
         token = os.getenv("HF_TOKEN") or None
         self.source = source
-        self.tokenizer = AutoTokenizer.from_pretrained(source, use_fast=True, token=token)
+        self.tokenizer = _load_tokenizer(source, token)
         self.model = AutoModelForTokenClassification.from_pretrained(source, token=token)
         self.model.eval()
         self.id2label = {int(k): v for k, v in self.model.config.id2label.items()}

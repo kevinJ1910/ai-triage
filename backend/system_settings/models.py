@@ -17,22 +17,19 @@ class SystemConfiguration(models.Model):
         ('gemini-2.5-flash', 'Gemini 2.5 Flash'),
         ('gemini-3.5-flash-lite', 'Gemini 3.5 Flash-Lite'),
         ('gemini-3.8-flash', 'Gemini 3.8 Flash'),
-        ('gpt-4o-mini', 'GPT-4o-mini'),
-        ('gpt-4o', 'GPT-4o'),
-        ('claude-3-5-sonnet', 'Claude 3.5 Sonnet'),
     )
+    # 'auto' usa RoBERTa (NER_MODEL_PATH) si el worker lo cargo; 'catalogo' lo desactiva (catalogo + LLM).
     NER_CHOICES = (
-        ('ClinicalBERT (v2.1 - Recomendado)', 'ClinicalBERT (v2.1 - Recomendado)'),
-        ('BioBERT (v1.5 - Legacy)', 'BioBERT (v1.5 - Legacy)'),
-        ('PubMedBERT (Experimental)', 'PubMedBERT (Experimental)'),
+        ('auto', 'RoBERTa clinico + catalogo (si el modelo esta cargado)'),
+        ('catalogo', 'Solo catalogo terminologico y LLM'),
     )
 
     active_asr_model = models.CharField(max_length=50, choices=ASR_CHOICES, default='auto')
     active_llm_engine = models.CharField(max_length=50, choices=LLM_CHOICES, default='gemini-2.5-flash')
-    active_ner_model = models.CharField(max_length=60, choices=NER_CHOICES, default='ClinicalBERT (v2.1 - Recomendado)')
-    snomed_version = models.CharField(max_length=100, default='SNOMED CT (Edicion en Espanol)')
+    active_ner_model = models.CharField(max_length=60, choices=NER_CHOICES, default='auto')
+    snomed_version = models.CharField(max_length=100, default='SNOMED CT International Edition')
     snomed_updated_at = models.DateTimeField(default=timezone.now)
-    icd10_version = models.CharField(max_length=100, default='ICD-10 (CIE-10)')
+    icd10_version = models.CharField(max_length=100, default='CIE-10 (OMS)')
     icd10_updated_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

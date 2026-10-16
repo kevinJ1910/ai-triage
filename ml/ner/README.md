@@ -33,7 +33,7 @@ Las licencias se comprobaron en la API de Zenodo el 15-10-2026. CC BY 4.0 exige 
 3. **Etapa 2.** Validación cruzada de 5 particiones sobre `dev`: cada partición parte del modelo de la etapa 1, con 10 épocas, lr 2e-5 y lote 8. Se reporta la media ± desviación.
 4. **Modelo final.** Etapa 1 + todo `dev`. Se guarda con `metrics.json`, `training_config.json` y `ner_labels.json`.
 
-La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparable con las métricas del resto del proyecto. La de `seqeval` por token solo sirve para elegir el mejor checkpoint de la etapa 1.
+La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparable con las métricas del resto del proyecto. La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, verificada en 200 casos aleatorios, pero sin depender de él) solo sirve para elegir el mejor checkpoint de la etapa 1.
 
 **El split `test` del corpus propio no se usa en ningún momento.** Se evalúa una sola vez, con el sistema híbrido completo, en el paso 4.1.
 
@@ -92,7 +92,7 @@ backend/.venv/Scripts/python.exe -m pytest ml/ner/tests -p no:django
 python ml/ner/train_ner.py --smoke
 ```
 
-La prueba de humo necesita `torch`, `transformers`, `datasets` y `seqeval` en un entorno aparte. No se instalan en el backend; en el paso 3.2 el backend solo tendrá `torch` para CPU. La prueba usa el tokenizador real y un RoBERTa diminuto con pesos aleatorios, y comprueba tres cosas:
+La prueba de humo necesita `torch`, `transformers` (4 o 5) y `datasets` en un entorno aparte. No se instalan en el backend; en el paso 3.2 el backend solo tendrá `torch` para CPU. La prueba usa el tokenizador real y un RoBERTa diminuto con pesos aleatorios, y comprueba tres cosas:
 
 - Las etiquetas BIO reconstruyen exactamente los spans de 12 casos de `dev`.
 - El entrenamiento, la evaluación y el guardado funcionan.

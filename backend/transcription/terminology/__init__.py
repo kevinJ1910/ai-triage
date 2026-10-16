@@ -255,6 +255,27 @@ def validate_catalogs() -> List[str]:
     return errors
 
 
+def catalog_summary() -> Dict[str, object]:
+    """Cifras reales del catalogo (las muestra ConfigPanel): conceptos, formas, codigos y su verificacion."""
+    concepts = {concept for _, concept, _ in _surface_entries()}
+    cie10 = cie10_catalog()
+    snomed = snomed_catalog()
+    return {
+        'conceptos': len(concepts),
+        'formas_de_superficie': len(_lexicon()),
+        'abreviaturas': len(_read('abreviaturas.json')['abreviaturas']),
+        'correcciones_asr': len(_read('correcciones_asr.json')['correcciones']),
+        'conceptos_con_snomed': sum(1 for c in concepts if c.snomed),
+        'conceptos_con_cie10': sum(1 for c in concepts if c.code_system == CIE10),
+        'conceptos_con_atc': sum(1 for c in concepts if c.code_system == ATC),
+        'cie10': {'codigos': len(cie10['codigos']), 'completo': bool(cie10.get('completo')),
+                  'version': cie10['version'], 'fuente': cie10['fuente']},
+        'snomed': {'codigos': len(snomed['codigos']), 'completo': bool(snomed.get('completo')),
+                   'version': snomed['version'], 'edicion': snomed['edicion'], 'fuente': snomed['fuente']},
+        'errores': validate_catalogs(),
+    }
+
+
 def catalog_versions() -> Dict[str, str]:
     names = ('coloquialismos', 'abreviaturas', 'correcciones_asr', 'cie10', 'snomed')
     return {name: _read(f'{name}.json')['version'] for name in names}

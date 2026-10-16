@@ -431,6 +431,13 @@ def _run_ner(cleaned_transcript: str, use_ner: Optional[bool]) -> tuple:
     """(menciones, etiqueta del motor) o ([], None) sin modelo. Un fallo del NER nunca interrumpe el triaje."""
     if use_ner is False:
         return [], None
+    if use_ner is None:
+        try:
+            from system_settings.models import SystemConfiguration
+            if SystemConfiguration.get_solo().active_ner_model == 'catalogo':
+                return [], None
+        except Exception:
+            pass
     engine = ner_model.get_engine()
     if engine is None:
         return [], None

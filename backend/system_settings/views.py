@@ -10,6 +10,44 @@ from .serializers import (
 )
 from accounts.models import AuditLog
 
+TOKEN_NOTICE = (
+    "Las capas del catalogo (correcciones ASR, abreviaturas y coloquialismos) no consumen tokens. "
+    "Gemini Flash-Lite solo se usa en el monitor de normalizacion para los terminos que el catalogo no resolvio; "
+    "el triaje no hace una segunda llamada para normalizar."
+)
+
+
+def _vocabularies(config, catalog):
+    """Estado real de los vocabularios locales (transcription/terminology), no cifras de catalogos externos."""
+    snomed, cie10 = catalog['snomed'], catalog['cie10']
+    return {
+        "snomed": {
+            "code": "snomed_ct",
+            "title": snomed['edicion'],
+            "provider": "SNOMED International; cada codigo verificado con tx.fhir.org (HL7)",
+            "updated_at": config.snomed_updated_at,
+            "total_terms": snomed['codigos'],
+            "indexed_emergency_terms": catalog['conceptos_con_snomed'],
+            "status": "COMPLETO" if snomed['completo'] else "SUBCONJUNTO VERIFICADO",
+            "update_available": False,
+            "latest_release": snomed['version'],
+            "token_notice": TOKEN_NOTICE,
+        },
+        "icd10": {
+            "code": "cie10_oms",
+            "title": "CIE-10 (OMS)",
+            "provider": cie10['fuente'],
+            "updated_at": config.icd10_updated_at,
+            "total_terms": cie10['codigos'],
+            "indexed_emergency_terms": catalog['conceptos_con_cie10'],
+            "status": "COMPLETO" if cie10['completo'] else "SUBCONJUNTO",
+            "update_available": False,
+            "latest_release": cie10['version'],
+            "token_notice": TOKEN_NOTICE,
+        },
+    }
+
+
 class SystemConfigView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -36,6 +74,9 @@ class SystemConfigView(APIView):
         else:
             device_info = "ASR sin iniciar"
         has_gemini = bool(os.environ.get("GEMINI_API_KEY") or keys.filter(provider='gemini').exists())
+        from triage.ner_model import get_ner_status
+        from transcription.terminology import catalog_summary
+        catalog = catalog_summary()
 
         return Response({
             "config": SystemConfigurationSerializer(config).data,
@@ -47,33 +88,10 @@ class SystemConfigView(APIView):
                 "gemini_configured": has_gemini,
                 "active_keys_count": keys.count(),
                 "system_timezone": str(timezone.get_current_timezone()),
+                "ner_status": get_ner_status(),
             },
-            "vocabularies": {
-                "snomed": {
-                    "code": "snomed_ct_es",
-                    "title": config.snomed_version,
-                    "provider": "IHTSDO / SNOMED International (Edicion Espanol)",
-                    "updated_at": config.snomed_updated_at,
-                    "total_terms": 352267,
-                    "indexed_emergency_terms": 24500,
-                    "status": "OPERACIONAL",
-                    "update_available": False,
-                    "latest_release": "2026-09-01",
-                    "token_notice": "La normalizacion semantica via LLM consume ~120-180 tokens por consulta (entrada: ~100 / salida: ~40).",
-                },
-                "icd10": {
-                    "code": "icd10_cie10",
-                    "title": config.icd10_version,
-                    "provider": "OMS / Catalogo Oficial CIE-10 (Edicion Clinica)",
-                    "updated_at": config.icd10_updated_at,
-                    "total_terms": 14200,
-                    "indexed_emergency_terms": 4200,
-                    "status": "OPERACIONAL",
-                    "update_available": False,
-                    "latest_release": "2026-08-15",
-                    "token_notice": "El mapeo diagnostico de sospecha consume ~90-140 tokens por clasificacion automatizada.",
-                }
-            },
+            "vocabularies": _vocabularies(config, catalog),
+            "catalog": catalog,
             "available_options": {
                 "asr_models": [
                     {"id": "auto", "name": "Segun entorno (WHISPER_MODEL_SIZE)", "recommended": True, "type": "CPU/GPU", "description": "small en CPU, large-v3-turbo con GPU NVIDIA"},
@@ -88,14 +106,12 @@ class SystemConfigView(APIView):
                     {"id": "gemini-2.5-flash", "name": "Google Gemini 2.5 Flash", "recommended": True, "provider": "Google Gemini", "description": "Baja latencia y alta precision clinica"},
                     {"id": "gemini-3.5-flash-lite", "name": "Google Gemini 3.5 Flash-Lite", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, bajo costo"},
                     {"id": "gemini-3.8-flash", "name": "Google Gemini 3.8 Flash", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, balance precision/latencia"},
-                    {"id": "gpt-4o-mini", "name": "OpenAI GPT-4o-mini", "recommended": False, "provider": "OpenAI", "description": "Modelo multimodal ligero"},
-                    {"id": "gpt-4o", "name": "OpenAI GPT-4o", "recommended": False, "provider": "OpenAI", "description": "Modelo insignia multimodal"},
-                    {"id": "claude-3-5-sonnet", "name": "Anthropic Claude 3.5 Sonnet", "recommended": False, "provider": "Anthropic", "description": "Sintesis y explicabilidad diagnostica"},
                 ],
                 "ner_models": [
-                    {"id": "ClinicalBERT (v2.1 - Recomendado)", "name": "ClinicalBERT (v2.1 - Recomendado)", "description": "Transformer entrenado en notas clinicas MIMIC"},
-                    {"id": "BioBERT (v1.5 - Legacy)", "name": "BioBERT (v1.5 - Legacy)", "description": "Modelo preentrenado en literatura biomédica"},
-                    {"id": "PubMedBERT (Experimental)", "name": "PubMedBERT (Experimental)", "description": "Arquitectura especializada de dominio puro"},
+                    {"id": "auto", "name": "RoBERTa clinico + catalogo", "recommended": True,
+                     "description": "PlanTL-GOB-ES/roberta-base-biomedical-clinical-es ajustado (ml/ner); sin modelo cargado se usa el catalogo"},
+                    {"id": "catalogo", "name": "Solo catalogo terminologico y LLM", "recommended": False,
+                     "description": "Desactiva RoBERTa: entidades del catalogo y de Gemini"},
                 ]
             }
         })
@@ -193,60 +209,63 @@ class APIKeyDetailView(APIView):
         return Response({"message": f"Llave '{key_name}' eliminada correctamente."}, status=status.HTTP_200_OK)
 
 class VocabularySyncView(APIView):
+    """
+    'check_update' valida los catalogos locales; 'sync' los recarga en memoria (tras editarlos o importar la
+    tabla CIE-10) y los valida. La verificacion de SNOMED CT contra el servidor terminologico es un comando
+    aparte (python manage.py verify_snomed), porque consulta cientos de codigos.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         if not (request.user.role == 'admin' or request.user.is_superuser or getattr(request.user.permissions, 'can_manage_config', False)):
             return Response({"detail": "Permiso denegado. Solo administradores pueden sincronizar vocabularios."}, status=status.HTTP_403_FORBIDDEN)
 
-        vocab_type = request.data.get('type', 'snomed').lower()
+        from transcription.terminology import catalog_summary, clear_caches
+
+        vocab_type = str(request.data.get('type', 'snomed')).lower()
         action = request.data.get('action', 'sync')
+        is_snomed = 'snomed' in vocab_type
         config = SystemConfiguration.get_solo()
 
-        is_snomed = 'snomed' in vocab_type
-        total_terms = 352267 if is_snomed else 14200
-        indexed_emergency = 24500 if is_snomed else 4200
-        vocab_label = "SNOMED CT (Edicion Espanol)" if is_snomed else "CIE-10 (Edicion Clinica)"
+        if action != 'check_update':
+            clear_caches()
+        catalog = catalog_summary()
+        vocab = _vocabularies(config, catalog)['snomed' if is_snomed else 'icd10']
+        errors = catalog['errores']
+        if errors:
+            message = f"El catalogo tiene {len(errors)} errores de consistencia: {errors[0]}"
+        elif is_snomed:
+            message = (f"{vocab['total_terms']} codigos SNOMED CT verificados ({vocab['title']}) en "
+                       f"{vocab['indexed_emergency_terms']} conceptos del catalogo. Para volver a verificarlos "
+                       "contra el servidor: python manage.py verify_snomed")
+        else:
+            message = (f"{vocab['total_terms']} codigos CIE-10 en el catalogo local ({vocab['status'].lower()}), "
+                       f"usados por {vocab['indexed_emergency_terms']} conceptos.")
 
         if action == 'check_update':
-            # Verificacion de versiones remotas contra catalogo estandar
-            return Response({
-                "action": "check_update",
-                "vocab_type": vocab_type,
-                "update_available": False,
-                "current_version": config.snomed_version if is_snomed else config.icd10_version,
-                "latest_release": "2026-09-01" if is_snomed else "2026-08-15",
-                "total_terms": total_terms,
-                "indexed_emergency_terms": indexed_emergency,
-                "message": f"El vocabulario {vocab_label} se encuentra al dia con el catalogo oficial.",
-                "token_notice": "La normalizacion semantica via LLM consume ~120-180 tokens por consulta analizada."
-            }, status=status.HTTP_200_OK)
+            return Response({"action": "check_update", "vocab_type": vocab_type, **vocab, "errors": errors,
+                             "message": message}, status=status.HTTP_200_OK)
 
         now = timezone.now()
         if is_snomed:
             config.snomed_updated_at = now
-            config.save()
-            msg = f"Vocabulario {vocab_label} sincronizado e indexado correctamente ({indexed_emergency:,} conceptos prioritarios de urgencias)."
         else:
             config.icd10_updated_at = now
-            config.save()
-            msg = f"Vocabulario {vocab_label} sincronizado e indexado correctamente ({indexed_emergency:,} codigos prioritarios de urgencias)."
-
+        config.save()
         AuditLog.objects.create(
             user=request.user,
             action='UPDATE_VOCABULARY',
             resource=f'Vocabulary/{vocab_type.upper()}',
-            status='SUCCESS',
-            details=msg
+            status='SUCCESS' if not errors else 'FAILURE',
+            details=message,
         )
-
         return Response({
-            "message": msg,
+            "message": f"Catalogo recargado. {message}",
             "vocab_type": vocab_type,
-            "total_terms": total_terms,
-            "indexed_emergency_terms": indexed_emergency,
+            "total_terms": vocab['total_terms'],
+            "indexed_emergency_terms": vocab['indexed_emergency_terms'],
+            "errors": errors,
             "snomed_updated_at": config.snomed_updated_at,
             "icd10_updated_at": config.icd10_updated_at,
-            "token_notice": "Recordatorio: El filtrado semantico mediante LLM consume tokens de API segun la complejidad del texto del paciente."
+            "token_notice": TOKEN_NOTICE,
         }, status=status.HTTP_200_OK)
-

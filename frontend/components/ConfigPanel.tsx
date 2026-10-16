@@ -62,6 +62,7 @@ interface RuntimeStatus {
   gemini_configured: boolean;
   active_keys_count: number;
   system_timezone: string;
+  ner_status?: { model_loaded: boolean; source?: string; detail?: string };
 }
 
 interface VocabItem {
@@ -86,10 +87,10 @@ export default function ConfigPanel() {
   const [config, setConfig] = useState<ConfigData>({
     active_asr_model: 'auto',
     active_llm_engine: 'gemini-2.5-flash',
-    active_ner_model: 'ClinicalBERT (v2.1 - Recomendado)',
-    snomed_version: 'SNOMED CT (Edicion en Espanol)',
+    active_ner_model: 'auto',
+    snomed_version: 'SNOMED CT International Edition',
     snomed_updated_at: new Date().toISOString(),
-    icd10_version: 'ICD-10 (CIE-10)',
+    icd10_version: 'CIE-10 (OMS)',
     icd10_updated_at: new Date().toISOString(),
   });
 
@@ -392,9 +393,7 @@ export default function ConfigPanel() {
                 {(availableOptions?.llm_engines || [
                   { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash - Baja Latencia Clinica (Recomendado)' },
                   { id: 'gemini-3.5-flash-lite', name: 'Google Gemini 3.5 Flash-Lite - Bajo Costo' },
-                  { id: 'gpt-4o-mini', name: 'OpenAI GPT-4o-mini - Soporte Multimodal' },
-                  { id: 'gpt-4o', name: 'OpenAI GPT-4o - Modelo de Referencia' },
-                  { id: 'claude-3-5-sonnet', name: 'Anthropic Claude 3.5 Sonnet - Precision Diagnostica' },
+                  { id: 'gemini-3.8-flash', name: 'Google Gemini 3.8 Flash' },
                 ]).map((opt) => (
                   <option key={opt.id} value={opt.id}>
                     {opt.name}
@@ -402,29 +401,38 @@ export default function ConfigPanel() {
                 ))}
               </select>
               <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
-                El motor analiza la conversacion medica para extraer sintomas, signos vitales y escala ESI/Manchester.
+                Gemini recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas.
               </span>
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Modelo NER Especializado (Entidades Medicas)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Extraccion de Entidades (NER)
+                </label>
+                {runtimeStatus?.ner_status && (
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase border ${runtimeStatus.ner_status.model_loaded ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                    {runtimeStatus.ner_status.model_loaded ? 'RoBERTa cargado' : 'Sin modelo: catalogo'}
+                  </span>
+                )}
+              </div>
               <select
                 value={config.active_ner_model}
                 onChange={(e) => setConfig({ ...config, active_ner_model: e.target.value })}
                 className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
               >
                 {(availableOptions?.ner_models || [
-                  { id: 'ClinicalBERT (v2.1 - Recomendado)', name: 'ClinicalBERT (v2.1 - Recomendado)' },
-                  { id: 'BioBERT (v1.5 - Legacy)', name: 'BioBERT (v1.5 - Legacy)' },
-                  { id: 'PubMedBERT (Experimental)', name: 'PubMedBERT (Experimental)' },
+                  { id: 'auto', name: 'RoBERTa clinico + catalogo' },
+                  { id: 'catalogo', name: 'Solo catalogo terminologico y LLM' },
                 ]).map((opt) => (
                   <option key={opt.id} value={opt.id}>
                     {opt.name}
                   </option>
                 ))}
               </select>
+              <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
+                El modelo se carga en el worker LLM desde NER_MODEL_PATH (ver ml/ner/README.md). La negacion y el contexto (alergias, antecedentes) los decide el pipeline, no el modelo.
+              </span>
             </div>
           </div>
         </div>
@@ -435,7 +443,7 @@ export default function ConfigPanel() {
             <div className="flex items-center gap-2.5 text-slate-200">
               <Key className="w-4 h-4 text-emerald-400" />
               <h3 className="text-xs uppercase font-semibold tracking-wider text-slate-200">
-                Boveda de Llaves API Cifradas (AES)
+                Boveda de Llaves API Cifradas (Fernet)
               </h3>
             </div>
             <button
@@ -447,7 +455,7 @@ export default function ConfigPanel() {
           </div>
 
           <p className="text-[11px] text-slate-400">
-            Las credenciales de acceso se cifran mediante algoritmos simetricos AES en base de datos. Una vez registradas, las llaves nunca son expuestas en texto plano; unicamente pueden eliminarse.
+            Las credenciales se cifran en base de datos con Fernet (AES-128 + HMAC-SHA256). Una vez registradas no se vuelven a mostrar en texto plano; solo pueden eliminarse. El triaje usa la llave de Gemini.
           </p>
 
           {/* Keys list */}
@@ -503,7 +511,7 @@ export default function ConfigPanel() {
 
           <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 flex items-center gap-2.5 text-[11px] text-emerald-300">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Almacenamiento seguro conforme a estandares HIPAA y Ley 1581 de proteccion de datos.</span>
+            <span>Cifrado en reposo como medida de seguridad para la Ley 1581 de proteccion de datos; no es una certificacion de cumplimiento.</span>
           </div>
         </div>
 
@@ -517,7 +525,7 @@ export default function ConfigPanel() {
               </h3>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Mapeo Semantico Activo
+              Catalogo local versionado
             </span>
           </div>
 
@@ -525,9 +533,9 @@ export default function ConfigPanel() {
           <div className="p-3.5 rounded-xl bg-sky-950/20 border border-sky-500/30 flex items-start gap-3 text-[11px] text-sky-200">
             <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-white block mb-0.5">Control de Consumo de Tokens (Filtrado Semantico LLM):</span>
+              <span className="font-semibold text-white block mb-0.5">Consumo de tokens de la normalizacion:</span>
               <p className="text-slate-300 leading-relaxed text-[11px]">
-                El motor realiza busqueda determinista y RAG semantico para vocabulario clinico. Cuando se activa el LLM para disambiguar lenguaje coloquial, cada consulta consume un promedio de <strong>~120 a 180 tokens</strong> (entrada: ~100 tokens, salida estructurada: ~40 tokens). Mantener vocabularios sincronizados permite maximizar el acierto local y reducir llamadas a API de terceros.
+                {vocabularies?.snomed?.token_notice || 'Las capas del catalogo no consumen tokens; el LLM solo procesa los terminos residuales en el monitor de normalizacion.'}
               </p>
             </div>
           </div>
@@ -537,31 +545,31 @@ export default function ConfigPanel() {
             <div className="p-4 bg-[var(--surface-card)] rounded-xl border border-[var(--surface-border)] flex flex-col justify-between space-y-3.5">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">{config.snomed_version}</span>
+                  <span className="text-xs font-semibold text-slate-200">{vocabularies?.snomed?.title || config.snomed_version}</span>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                    {vocabularies?.snomed?.status || 'OPERACIONAL'}
+                    {vocabularies?.snomed?.status || '—'}
                   </span>
                 </div>
                 <span className="text-[11px] text-slate-400 block mt-1">
-                  Proveedor: {vocabularies?.snomed?.provider || 'IHTSDO / SNOMED International (Edicion Espanol)'}
+                  Fuente: {vocabularies?.snomed?.provider || '—'}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.snomed_updated_at)} • Ultimo release: {vocabularies?.snomed?.latest_release || '2026-09-01'}
+                  Ultima recarga: {formatDate(config.snomed_updated_at)} • Version del catalogo: {vocabularies?.snomed?.latest_release || '—'}
                 </span>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--surface-base)] border border-[var(--surface-border)] text-[11px]">
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Terminos del Catalogo:</span>
-                    <span className="font-mono font-semibold text-slate-300">{(vocabularies?.snomed?.total_terms || 352267).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Codigos verificados:</span>
+                    <span className="font-mono font-semibold text-slate-300">{vocabularies?.snomed ? vocabularies.snomed.total_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Prioritarios Urgencias:</span>
-                    <span className="font-mono font-semibold text-emerald-400">{(vocabularies?.snomed?.indexed_emergency_terms || 24500).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Conceptos con codigo:</span>
+                    <span className="font-mono font-semibold text-emerald-400">{vocabularies?.snomed ? vocabularies.snomed.indexed_emergency_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                 </div>
 
                 <span className="text-[10px] text-teal-400 uppercase font-semibold tracking-wider mt-2.5 block">
-                  Ontologia de sintomas, signos y hallazgos
+                  Sintomas, hallazgos, trastornos y sustancias
                 </span>
               </div>
 
@@ -570,14 +578,14 @@ export default function ConfigPanel() {
                   onClick={() => handleCheckUpdate('snomed')}
                   disabled={checkingUpdate === 'snomed'}
                   className="bg-[var(--surface-panel)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                  title="Validar la consistencia del catalogo local"
                 >
                   {checkingUpdate === 'snomed' ? (
                     <RefreshCw className="w-3 h-3 animate-spin text-sky-400" />
                   ) : (
                     <RefreshCw className="w-3 h-3 text-slate-400" />
                   )}
-                  Comprobar
+                  Validar
                 </button>
 
                 <button
@@ -590,7 +598,7 @@ export default function ConfigPanel() {
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}
-                  Sincronizar
+                  Recargar
                 </button>
               </div>
             </div>
@@ -599,26 +607,26 @@ export default function ConfigPanel() {
             <div className="p-4 bg-[var(--surface-card)] rounded-xl border border-[var(--surface-border)] flex flex-col justify-between space-y-3.5">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">{config.icd10_version}</span>
+                  <span className="text-xs font-semibold text-slate-200">{vocabularies?.icd10?.title || config.icd10_version}</span>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                    {vocabularies?.icd10?.status || 'OPERACIONAL'}
+                    {vocabularies?.icd10?.status || '—'}
                   </span>
                 </div>
                 <span className="text-[11px] text-slate-400 block mt-1">
-                  Proveedor: {vocabularies?.icd10?.provider || 'OMS / Catalogo Oficial CIE-10 (Edicion Clinica)'}
+                  Fuente: {vocabularies?.icd10?.provider || '—'}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.icd10_updated_at)} • Ultimo release: {vocabularies?.icd10?.latest_release || '2026-08-15'}
+                  Ultima recarga: {formatDate(config.icd10_updated_at)} • Version del catalogo: {vocabularies?.icd10?.latest_release || '—'}
                 </span>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--surface-base)] border border-[var(--surface-border)] text-[11px]">
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Codigos del Catalogo:</span>
-                    <span className="font-mono font-semibold text-slate-300">{(vocabularies?.icd10?.total_terms || 14200).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Codigos en el catalogo:</span>
+                    <span className="font-mono font-semibold text-slate-300">{vocabularies?.icd10 ? vocabularies.icd10.total_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Prioritarios Urgencias:</span>
-                    <span className="font-mono font-semibold text-sky-400">{(vocabularies?.icd10?.indexed_emergency_terms || 4200).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Conceptos con codigo:</span>
+                    <span className="font-mono font-semibold text-sky-400">{vocabularies?.icd10 ? vocabularies.icd10.indexed_emergency_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                 </div>
 
@@ -632,14 +640,14 @@ export default function ConfigPanel() {
                   onClick={() => handleCheckUpdate('icd10')}
                   disabled={checkingUpdate === 'icd10'}
                   className="bg-[var(--surface-panel)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                  title="Validar la consistencia del catalogo local"
                 >
                   {checkingUpdate === 'icd10' ? (
                     <RefreshCw className="w-3 h-3 animate-spin text-sky-400" />
                   ) : (
                     <RefreshCw className="w-3 h-3 text-slate-400" />
                   )}
-                  Comprobar
+                  Validar
                 </button>
 
                 <button
@@ -652,7 +660,7 @@ export default function ConfigPanel() {
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}
-                  Sincronizar
+                  Recargar
                 </button>
               </div>
             </div>

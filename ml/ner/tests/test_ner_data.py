@@ -158,6 +158,14 @@ class TestMetricsAndFolds:
         assert report['FARMACO']['f1'] == 0.0
         assert report['micro']['precision'] == 0.5
 
+    def test_spans_created_before_a_module_reload_still_match(self):
+        # En Colab se recargo ner_data despues de fusionar los corpus: la F1 de la etapa 1 salio 0.
+        import importlib
+        import ner_data as module
+        gold = {'a': [module.Span(0, 5, 'SINTOMA')]}
+        reloaded = importlib.reload(module)
+        assert reloaded.span_prf(gold, {'a': [reloaded.Span(0, 5, 'SINTOMA')]})['micro']['f1'] == 1.0
+
     def test_false_positives_without_gold_give_zero_f1(self):
         report = span_prf({'a': []}, {'a': [Span(0, 5, 'FARMACO')]})
         assert report['FARMACO']['f1'] == 0.0
