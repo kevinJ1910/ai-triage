@@ -6,7 +6,7 @@ Etiquetas (esquema BIO):
   SINTOMA     sintomas, signos y hallazgos  (SympTEMIST; symptoms del corpus propio)
   ENFERMEDAD  enfermedades, lesiones y antecedentes patologicos  (DisTEMIST; diagnoses e history)
   FARMACO     medicamentos  (DrugTEMIST; opcionalmente PharmaCoNER NORMALIZABLES/NO_NORMALIZABLES;
-              medications y allergies del corpus propio)
+              medications y las allergies a medicamentos del corpus propio)
 
 El modelo detecta menciones; si una mencion esta negada, es un antecedente o una alergia lo decide despues
 el pipeline (negation.py y las reglas de contexto), igual que en los corpus publicos, que anotan las
@@ -49,6 +49,8 @@ def split_language(stem: str) -> Tuple[Optional[str], str]:
     found = _LANG_PREFIX.match(stem)
     return (found.group(1).lower(), stem[found.end():]) if found else (None, stem)
 # Tipos del corpus propio (triage/benchmark/corpus_entidades.json). vitals queda en 'O': lo extrae el regex.
+# allergies solo es FARMACO si la sustancia es un medicamento (campo farmaco); alimentos, polvo o picaduras
+# quedan en 'O', porque DrugTEMIST solo anota medicamentos y el modelo no los puede aprender de ahi.
 CORPUS_TYPE_MAP = {
     'symptoms': 'SINTOMA', 'diagnoses': 'ENFERMEDAD', 'history': 'ENFERMEDAD',
     'medications': 'FARMACO', 'allergies': 'FARMACO',
@@ -246,6 +248,8 @@ def corpus_to_documents(corpus_path: Path, split: Optional[str] = None) -> List[
         spans = []
         for etype, label in CORPUS_TYPE_MAP.items():
             for item in case['entities'].get(etype, []):
+                if etype == 'allergies' and not item.get('farmaco', True):
+                    continue
                 start = text.find(item['text'])
                 while start >= 0 and any(start < e and s < start + len(item['text']) for s, e in used):
                     start = text.find(item['text'], start + 1)
@@ -377,6 +381,26 @@ def spans_from_bio(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int])
     if current:
         spans.append(Span(*current))
     return spans
+
+
+# Palabras que nunca son una mencion por si solas. El modelo a veces marca una suelta («una», «al»); ningun
+# span gold del corpus propio esta formado solo por ellas.
+FUNCTION_WORDS = frozenset({
+    'a', 'al', 'como', 'con', 'de', 'del', 'el', 'en', 'es', 'esta', 'está', 'la', 'las', 'le', 'les', 'lo', 'los',
+    'me', 'mi', 'muy', 'ni', 'no', 'o', 'para', 'pero', 'por', 'que', 'se', 'si', 'su', 'te', 'un', 'una', 'unas',
+    'unos', 'y', 'ya',
+})
+
+
+def drop_function_word_spans(text: str, spans: Sequence[Span]) -> List[Span]:
+    """Quita los spans formados solo por palabras funcionales."""
+    return [s for s in spans if not all(w in FUNCTION_WORDS for w in re.findall(r'\w+', text[s.start:s.end].lower()))]
+
+
+def clean_predictions(text: str, spans: Sequence[Span]) -> List[Span]:
+    """Posproceso de las predicciones, igual que en backend/triage/ner_model.py: palabras completas y sin
+    spans de solo palabras funcionales."""
+    return drop_function_word_spans(text, snap_to_words(text, spans))
 
 
 def snap_to_words(text: str, spans: Sequence[Span]) -> List[Span]:

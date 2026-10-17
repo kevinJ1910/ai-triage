@@ -116,6 +116,8 @@ def validate_entity_corpus(cases: List[Dict[str, Any]]) -> List[str]:
                     errors.append(f'{cid}: {etype} {text!r} sin negated booleano')
                 if 'cie10' not in item:
                     errors.append(f'{cid}: {etype} {text!r} sin campo cie10')
+                if etype == 'allergies' and not isinstance(item.get('farmaco'), bool):
+                    errors.append(f'{cid}: allergies {text!r} sin farmaco booleano')
 
     expected = assign_splits(by_level)
     for case in cases:

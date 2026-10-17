@@ -9,6 +9,7 @@ no carga, get_engine() devuelve None y el analisis sigue con el catalogo y el mo
 import json
 import logging
 import os
+import re
 import threading
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -55,6 +56,20 @@ def decode_spans(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int], s
             current = {"start": start, "end": end, "label": etype, "_scores": [score], "_n": 1}
     close()
     return spans
+
+
+# Igual que ml/ner/ner_data.FUNCTION_WORDS: nunca son una mencion por si solas.
+FUNCTION_WORDS = frozenset({
+    'a', 'al', 'como', 'con', 'de', 'del', 'el', 'en', 'es', 'esta', 'está', 'la', 'las', 'le', 'les', 'lo', 'los',
+    'me', 'mi', 'muy', 'ni', 'no', 'o', 'para', 'pero', 'por', 'que', 'se', 'si', 'su', 'te', 'un', 'una', 'unas',
+    'unos', 'y', 'ya',
+})
+
+
+def drop_function_word_spans(text: str, spans: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Quita los spans formados solo por palabras funcionales («una», «al»), como en ml/ner."""
+    return [s for s in spans
+            if not all(w in FUNCTION_WORDS for w in re.findall(r"\w+", text[s["start"]:s["end"]].lower()))]
 
 
 def snap_to_words(text: str, spans: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -182,8 +197,9 @@ class NEREngine:
                 if key not in best or margin > best[key][0]:
                     best[key] = (margin, int(label_ids[i]), float(scores[i]))
         ordered = sorted(best.items())
-        spans = snap_to_words(text, decode_spans([k for k, _ in ordered], [v[1] for _, v in ordered],
-                                                  [v[2] for _, v in ordered], self.id2label))
+        spans = decode_spans([k for k, _ in ordered], [v[1] for _, v in ordered], [v[2] for _, v in ordered],
+                             self.id2label)
+        spans = drop_function_word_spans(text, snap_to_words(text, spans))
         for span in spans:
             span["text"] = text[span["start"]:span["end"]]
         return spans

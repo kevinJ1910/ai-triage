@@ -19,7 +19,7 @@ Fine-tuning de [`PlanTL-GOB-ES/roberta-base-biomedical-clinical-es`](https://hug
 | DisTEMIST v5.1 (2022-05-09) | [7614764](https://zenodo.org/records/7614764) | CC BY 4.0 | `ENFERMEDAD` → `ENFERMEDAD` |
 | DrugTEMIST, dentro de MultiCardioNER (2024-05-28) | [11368861](https://zenodo.org/records/11368861) | CC BY 4.0 | `FARMACO` → `FARMACO`; solo los ficheros en español (prefijo `es-` o sin prefijo) |
 | PharmaCoNER v1.1 (2020-11-12), opcional | [4270158](https://zenodo.org/records/4270158) | CC BY 4.0 | `NORMALIZABLES` y `NO_NORMALIZABLES` → `FARMACO`; `PROTEINAS` y `UNCLEAR` se descartan |
-| Corpus propio, split `dev` | `backend/triage/benchmark/corpus_entidades.json` | del proyecto | `symptoms` → `SINTOMA`; `diagnoses` y `history` → `ENFERMEDAD`; `medications` y `allergies` → `FARMACO`; `vitals` → `O` (lo extrae el regex) |
+| Corpus propio, split `dev` | `backend/triage/benchmark/corpus_entidades.json` | del proyecto | `symptoms` → `SINTOMA`; `diagnoses` y `history` → `ENFERMEDAD`; `medications` y las `allergies` con `farmaco: true` → `FARMACO`; `vitals` y las alergias a alimentos, polvo o picaduras → `O` |
 
 Las licencias se comprobaron en la API de Zenodo el 15-10-2026. CC BY 4.0 exige citar los corpus en la tesis.
 
@@ -33,15 +33,23 @@ Las licencias se comprobaron en la API de Zenodo el 15-10-2026. CC BY 4.0 exige 
 2. **Transferencia sin adaptar.** El modelo de la etapa 1 se evalúa sobre `dev` del corpus propio. Mide cuánto se pierde al pasar de texto clínico escrito a habla transcrita.
 3. **Etapa 2.** Validación cruzada de 5 particiones sobre `dev`: cada partición parte del modelo de la etapa 1. Se prueba una rejilla pequeña y se elige la configuración con mayor F1 exacta media:
    - `base`: 10 épocas, lr 2e-5, lote 8.
-   - `aumento`: igual, y además las particiones de entrenamiento llevan copias en minúsculas y sin puntuación, como sale el texto del ASR. La validación siempre usa el texto original.
-   - `mas_epocas`: 20 épocas, lr 3e-5.
+   - `mas_epocas`: 20 épocas, lr 3e-5. Ganó en la corrida del 17-10-2026 (0,769 frente a 0,730).
+   - `epocas_30`: 30 épocas, lr 3e-5.
+
+   El aumento de datos (copias de entrenamiento en minúsculas y sin puntuación, `augment_documents`) se probó en la corrida del 17-10-2026 y no aportó (0,738 frente a 0,730), así que salió de la rejilla.
 
    Se reporta la media ± desviación de la elegida. Como se elige con la misma validación cruzada, esa cifra es algo optimista: la tabla de la rejilla es una ablación y el resultado es el de `test`.
 4. **Modelo final.** Etapa 1 + todo `dev`, con la configuración elegida. Se guarda con `metrics.json`, `training_config.json`, `ner_labels.json` y la carpeta `analisis/`, que contiene las predicciones de la validación cruzada, de la transferencia y de la validación de la etapa 1.
 
 La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparable con las métricas del resto del proyecto. Junto a ella se reporta la **parcial**: un predicho acierta si se solapa con un gold de la misma etiqueta, con emparejamiento uno a uno. Separa los errores de límites («dolor torácico» frente a «dolor torácico opresivo») de los fallos reales.
 
-Las predicciones se **ajustan a palabras completas** (`snap_to_words`, también en el backend). El modelo etiqueta subtokens y a veces corta una palabra («itando» por «vomitando»); ninguno de los 674 spans gold del corpus propio lo hace, así que el ajuste no puede convertir un acierto en error. La validación cruzada también calcula la cifra sin ajuste, para medir lo que aporta. La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, verificada en 200 casos aleatorios, pero sin depender de él) solo sirve para elegir el mejor checkpoint de la etapa 1.
+Las predicciones se **posprocesan** igual en el entrenamiento y en el backend (`clean_predictions`):
+- **Palabras completas** (`snap_to_words`). El modelo etiqueta subtokens y a veces corta una palabra («itando» por «vomitando»). Ninguno de los spans gold del corpus propio corta una palabra.
+- **Sin spans de solo palabras funcionales** (`drop_function_word_spans`). El modelo a veces marca una palabra suelta, como «una» o «al». Ningún span gold está formado solo por ellas.
+
+Ninguna de las dos reglas puede convertir un acierto en error. La validación cruzada también calcula la cifra sin posproceso, para medir lo que aportan.
+
+La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, verificada en 200 casos aleatorios, pero sin depender de él) solo sirve para elegir el mejor checkpoint de la etapa 1.
 
 **El split `test` del corpus propio no se usa en ningún momento.** Se evalúa una sola vez, con el sistema híbrido completo, en el paso 4.1.
 
@@ -124,6 +132,7 @@ Además, el notebook se simuló completo, de la celda 4 a la 9, con corpus falso
 ## Limitaciones que hay que declarar
 
 - El corpus propio es pequeño (150 casos en `dev`, en dos lotes) y está anotado con asistencia de IA; la revisión humana está pendiente.
-- `ENFERMEDAD` agrupa diagnósticos del episodio y antecedentes, y `FARMACO` agrupa medicamentos y alérgenos farmacológicos. La distinción la hacen después las reglas de contexto.
+- `ENFERMEDAD` agrupa diagnósticos del episodio y antecedentes, y `FARMACO` agrupa medicamentos y alergias a medicamentos. La distinción la hacen después las reglas de contexto.
+- Desde el 17-10-2026, las alergias que no son a medicamentos (camarones, maní, polvo, abejas) no son `FARMACO`: DrugTEMIST solo anota medicamentos y el modelo no puede aprenderlas. Antes causaban la mitad de los errores de `FARMACO`. Las cifras anteriores a ese cambio no son directamente comparables en `FARMACO`.
 - Los corpus públicos son casos clínicos escritos, no diálogos de triaje.
 - Los alérgenos que no son fármacos, como «camarones», no están cubiertos por PharmaCoNER: los cubren el catálogo y Gemini.

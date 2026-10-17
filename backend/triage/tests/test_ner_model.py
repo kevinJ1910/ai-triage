@@ -80,6 +80,13 @@ class TestDecodeSpans:
         assert ner_model.snap_to_words('Hipertensión arterial', spans) == [
             {'start': 0, 'end': 21, 'label': 'ENFERMEDAD', 'score': 0.7}]
 
+    def test_spans_made_only_of_function_words_are_dropped(self):
+        text = 'Tiene una herida y al moverse le duele'
+        spans = [{'start': 6, 'end': 9, 'label': 'ENFERMEDAD', 'score': 0.7},
+                 {'start': 10, 'end': 16, 'label': 'ENFERMEDAD', 'score': 0.9},
+                 {'start': 19, 'end': 21, 'label': 'FARMACO', 'score': 0.6}]
+        assert ner_model.drop_function_word_spans(text, spans) == [spans[1]]
+
 
 class TestEngineLoading:
     def setup_method(self):

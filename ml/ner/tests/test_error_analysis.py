@@ -9,6 +9,7 @@ from ner_data import (  # noqa: E402
 )
 
 TEXT = 'Me duele el pecho, mucho. Niega fiebre; toma losartán.'
+CORPUS = Path(__file__).resolve().parents[3] / 'backend/triage/benchmark/corpus_entidades.json'
 
 
 def _texts(doc):
@@ -110,3 +111,22 @@ class TestSnapToWords:
         from ner_data import snap_to_words
         spans = [Span(0, 17, 'SINTOMA'), Span(45, 53, 'FARMACO')]
         assert snap_to_words(TEXT, spans) == spans
+
+
+class TestPostprocessing:
+    def test_function_word_spans_are_dropped(self):
+        from ner_data import clean_predictions
+        text = 'Tiene una herida y al moverse le duele'
+        spans = [Span(6, 9, 'ENFERMEDAD'), Span(10, 16, 'ENFERMEDAD'), Span(19, 21, 'FARMACO'),
+                 Span(30, 38, 'SINTOMA')]
+        assert clean_predictions(text, spans) == [Span(10, 16, 'ENFERMEDAD'), Span(30, 38, 'SINTOMA')]
+
+    def test_gold_spans_never_consist_only_of_function_words(self):
+        from ner_data import corpus_to_documents, drop_function_word_spans
+        for doc in corpus_to_documents(CORPUS):
+            assert drop_function_word_spans(doc.text, doc.spans) == doc.spans, doc.doc_id
+
+    def test_non_drug_allergens_are_not_farmaco(self):
+        from ner_data import corpus_to_documents
+        n015 = next(d for d in corpus_to_documents(CORPUS) if d.doc_id == 'N015')
+        assert 'camarones' not in [n015.text[s.start:s.end] for s in n015.spans]

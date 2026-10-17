@@ -68,6 +68,12 @@ Cada entidad tiene esta forma:
 {"text": "dolor en el pecho", "normalized": "dolor torácico", "negated": true, "cie10": null}
 ```
 
+Las alergias llevan además `farmaco`:
+
+```json
+{"text": "camarones", "normalized": "mariscos", "negated": false, "cie10": null, "farmaco": false}
+```
+
 ## Guía de anotación
 
 **Span (`text`).** Es la mención mínima, copiada **literalmente** del transcript, con sus errores de transcripción (`"posartan"`). No incluye la partícula de negación: en «no tiene dolor en el pecho», el span es `dolor en el pecho`. El span tiene que aparecer en el transcript; eso permite calcular los offsets para entrenar el NER en formato BIO.
@@ -76,7 +82,7 @@ Cada entidad tiene esta forma:
 - `symptoms`: síntomas y signos referidos u observados: dolor, fiebre, sangrado, palidez, disartria.
 - `diagnoses`: enfermedades, lesiones o estados del episodio actual que se nombran como tales: fractura, quemadura, herida, gripa, gestación, intoxicación, abuso sexual. El mecanismo («se cayó de la moto») no se anota, salvo que sea la propia condición («se atoró con comida», que es obstrucción de vía aérea).
 - `medications`: fármacos por nombre o clase explícita (losartán, insulina, inhalador). «Las pastillas», sin más contexto, no se anota.
-- `allergies`: sustancia a la que se declara alergia, o reacción adversa explícita a un fármaco (B031). Si el fármaco también se menciona como medicamento, se anota en los dos tipos.
+- `allergies`: sustancia a la que se declara alergia, o reacción adversa explícita a un fármaco (B031). Si el fármaco también se menciona como medicamento, se anota en los dos tipos. `farmaco` es `true` si la sustancia es un medicamento (penicilina, sulfas, dipirona) y `false` si es un alimento, un alérgeno ambiental o un veneno (camarones, maní, polvo, abejas). Para el NER, solo las de `farmaco: true` son `FARMACO`, como en DrugTEMIST; las demás las cubren el catálogo y Gemini. Para la evaluación de `allergies` cuentan todas.
 - `vitals`: el valor medido. `normalized` usa el formato compacto de `input_pipeline` (`PA: 70/40 mmHg`, `FC: 140 lpm`, `SpO2: 78%`, `T: 38.9°C`, `FR: 32 rpm`, `GLU: 520 mg/dL`, `GCS: 7/15`), para compararlo directamente con lo que extrae el regex.
 - `history`: antecedentes crónicos o previos: hipertensión, diabetes, asma, EPOC, diálisis, tabaquismo.
 

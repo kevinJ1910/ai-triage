@@ -1046,7 +1046,8 @@
           "text": "amoxicilina",
           "normalized": "amoxicilina",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
@@ -2111,7 +2112,8 @@
           "text": "penicilina",
           "normalized": "penicilina",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [
@@ -2238,7 +2240,8 @@
           "text": "abejas",
           "normalized": "veneno de himenópteros",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": false
         }
       ],
       "vitals": [],
@@ -2797,13 +2800,15 @@
           "text": "camarones",
           "normalized": "mariscos",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": false
         },
         {
           "text": "maní",
           "normalized": "maní",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": false
         }
       ],
       "vitals": [],
@@ -2922,7 +2927,8 @@
           "text": "sulfas",
           "normalized": "sulfonamidas",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
@@ -3207,7 +3213,8 @@
           "text": "ibuprofeno",
           "normalized": "ibuprofeno",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
@@ -3670,7 +3677,8 @@
           "text": "polvo",
           "normalized": "ácaros del polvo",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": false
         }
       ],
       "vitals": [],
@@ -4490,7 +4498,8 @@
           "text": "dipirona",
           "normalized": "metamizol",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
@@ -4653,7 +4662,8 @@
           "text": "camarón",
           "normalized": "mariscos",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": false
         }
       ],
       "vitals": [],
@@ -5125,7 +5135,8 @@
           "text": "ceftriaxona",
           "normalized": "ceftriaxona",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
@@ -6932,7 +6943,8 @@
           "text": "amoxicilina",
           "normalized": "amoxicilina",
           "negated": false,
-          "cie10": null
+          "cie10": null,
+          "farmaco": true
         }
       ],
       "vitals": [],
