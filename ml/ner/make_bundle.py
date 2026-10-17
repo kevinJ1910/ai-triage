@@ -3,7 +3,7 @@ Empaqueta lo que necesita el notebook (el repositorio es privado y Colab/Kaggle 
 
     python ml/ner/make_bundle.py        # -> ml/ner/output/ner_bundle.zip
 
-Contiene ner_data.py, train_ner.py y el corpus propio. Subirlo en la celda 2 del notebook.
+Contiene ner_data.py, train_ner.py, error_analysis.py y el corpus propio. Subirlo en la celda 2 del notebook.
 """
 import hashlib
 import zipfile
@@ -14,6 +14,7 @@ ROOT = HERE.parents[1]
 FILES = {
     'ner_data.py': HERE / 'ner_data.py',
     'train_ner.py': HERE / 'train_ner.py',
+    'error_analysis.py': HERE / 'error_analysis.py',
     'corpus_entidades.json': ROOT / 'backend' / 'triage' / 'benchmark' / 'corpus_entidades.json',
 }
 

@@ -57,6 +57,32 @@ def decode_spans(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int], s
     return spans
 
 
+def snap_to_words(text: str, spans: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Extiende los spans hasta palabras completas, como ml/ner/ner_data.snap_to_words: el modelo etiqueta
+    subtokens y a veces corta una palabra («itando» por «vomitando»). Si dos spans se pisan, se unen si
+    tienen la misma etiqueta (con la confianza media) y, si no, gana el mas largo.
+    """
+    snapped: List[Dict[str, Any]] = []
+    for span in sorted(spans, key=lambda s: (s["start"], s["end"])):
+        start, end = span["start"], span["end"]
+        while start > 0 and text[start - 1].isalnum() and text[start].isalnum():
+            start -= 1
+        while end < len(text) and text[end].isalnum() and text[end - 1].isalnum():
+            end += 1
+        current = {**span, "start": start, "end": end}
+        if snapped and start < snapped[-1]["end"]:
+            previous = snapped[-1]
+            if previous["label"] == span["label"]:
+                previous["end"] = max(previous["end"], end)
+                previous["score"] = round((previous["score"] + span["score"]) / 2, 4)
+            elif end - start > previous["end"] - previous["start"]:
+                snapped[-1] = {**current, "start": min(start, previous["start"])}
+            continue
+        snapped.append(current)
+    return snapped
+
+
 def _load_tokenizer(source: str, token: Optional[str]):
     """
     Tokenizador del modelo. Si el tokenizer.json lo escribio una version de tokenizers mas nueva que la del
@@ -156,8 +182,8 @@ class NEREngine:
                 if key not in best or margin > best[key][0]:
                     best[key] = (margin, int(label_ids[i]), float(scores[i]))
         ordered = sorted(best.items())
-        spans = decode_spans([k for k, _ in ordered], [v[1] for _, v in ordered], [v[2] for _, v in ordered],
-                             self.id2label)
+        spans = snap_to_words(text, decode_spans([k for k, _ in ordered], [v[1] for _, v in ordered],
+                                                  [v[2] for _, v in ordered], self.id2label))
         for span in spans:
             span["text"] = text[span["start"]:span["end"]]
         return spans

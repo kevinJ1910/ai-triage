@@ -13,14 +13,14 @@ import json
 import math
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ner_data import (  # noqa: E402
-    ID2LABEL, IGNORE_INDEX, LABEL2ID, LABELS, Document, Span, bio_labels, corpus_to_documents, span_prf,
-    spans_from_bio,
+    ID2LABEL, IGNORE_INDEX, LABEL2ID, LABELS, Document, Span, augment_documents, bio_labels, corpus_to_documents,
+    cv_summary, kfold, snap_to_words, span_prf, span_prf_partial, spans_from_bio,
 )
 
 BASE_MODEL = 'PlanTL-GOB-ES/roberta-base-biomedical-clinical-es'
@@ -142,10 +142,11 @@ def train(model, tokenizer, train_docs: Sequence[Document], eval_docs: Optional[
 
 
 def predict_spans(model, tokenizer, docs: Sequence[Document], max_length: int = MAX_LENGTH,
-                  stride: int = STRIDE, batch_size: int = 16) -> Dict[str, List[Span]]:
+                  stride: int = STRIDE, batch_size: int = 16, snap: bool = True) -> Dict[str, List[Span]]:
     """
     Spans predichos por documento. En los solapes entre ventanas se queda la prediccion del token mas
-    alejado del borde de su ventana, donde el modelo tiene mas contexto.
+    alejado del borde de su ventana, donde el modelo tiene mas contexto. Los spans se ajustan a palabras
+    completas (snap_to_words), igual que en backend/triage/ner_model.py; snap=False lo desactiva.
     """
     import torch
     device = next(model.parameters()).device
@@ -172,13 +173,56 @@ def predict_spans(model, tokenizer, docs: Sequence[Document], max_length: int = 
                 if key not in best or margin > best[key][0]:
                     best[key] = (margin, predictions[i])
         ordered = sorted(best.items())
-        result[doc.doc_id] = spans_from_bio([k for k, _ in ordered], [v[1] for _, v in ordered])
+        spans = spans_from_bio([k for k, _ in ordered], [v[1] for _, v in ordered])
+        result[doc.doc_id] = snap_to_words(doc.text, spans) if snap else spans
     return result
 
 
 def evaluate(model, tokenizer, docs: Sequence[Document], **kwargs) -> Dict[str, Dict]:
     predicted = predict_spans(model, tokenizer, docs, **kwargs)
     return span_prf({d.doc_id: d.spans for d in docs}, predicted)
+
+
+def predictions_payload(docs: Sequence[Document], predicted: Dict[str, List[Span]]) -> Dict[str, Dict]:
+    """Formato de cv_predicciones.json, el que lee error_analysis.py."""
+    as_rows = lambda spans: [[s.start, s.end, s.label] for s in spans]  # noqa: E731
+    return {d.doc_id: {'text': d.text, 'gold': as_rows(d.spans), 'pred': as_rows(predicted.get(d.doc_id, []))}
+            for d in docs}
+
+
+def cross_validate(model_factory: Callable, tokenizer, docs: Sequence[Document], output_dir: str, k: int = 5,
+                   seed: int = 42, augment: Sequence[str] = (), log: Callable = print, **train_kwargs) -> Dict:
+    """
+    Validacion cruzada de k particiones. model_factory() devuelve el modelo de partida (el de la etapa 1).
+    augment (variantes de ner_data.augment_documents) solo se aplica a las particiones de entrenamiento.
+    Devuelve las metricas exactas y parciales por particion, su resumen (tambien la exacta sin snap_to_words,
+    para medir lo que aporta) y las predicciones de cada documento, hechas por el modelo que no lo vio.
+    """
+    import torch
+    by_id = {d.doc_id: d for d in docs}
+    reports, partial_reports, raw_reports, predictions = [], [], [], {}
+    eval_kwargs = {key: train_kwargs[key] for key in ('max_length', 'stride') if key in train_kwargs}
+    for index, (train_ids, val_ids) in enumerate(kfold(list(by_id), k=k, seed=seed), start=1):
+        train_docs = [by_id[i] for i in train_ids]
+        if augment:
+            train_docs = augment_documents(train_docs, augment)
+        val_docs = [by_id[i] for i in val_ids]
+        trainer = train(model_factory(), tokenizer, train_docs, None, f'{output_dir}/fold{index}', seed=seed,
+                        **train_kwargs)
+        raw = predict_spans(trainer.model, tokenizer, val_docs, snap=False, **eval_kwargs)
+        predicted = {d.doc_id: snap_to_words(d.text, raw[d.doc_id]) for d in val_docs}
+        gold = {d.doc_id: d.spans for d in val_docs}
+        reports.append(span_prf(gold, predicted))
+        raw_reports.append(span_prf(gold, raw))
+        partial_reports.append(span_prf_partial(gold, predicted))
+        predictions.update(predictions_payload(val_docs, predicted))
+        log(f'particion {index}: micro-F1 exacta {reports[-1]["micro"]["f1"]} | parcial {partial_reports[-1]["micro"]["f1"]}')
+        del trainer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    return {'exacta': cv_summary(reports), 'parcial': cv_summary(partial_reports),
+            'exacta_sin_ajuste_a_palabras': cv_summary(raw_reports), 'particiones': reports,
+            'predicciones': predictions}
 
 
 def _save_bpe_files(target: Path) -> None:
@@ -238,7 +282,11 @@ def smoke_test(corpus_path: Path, output_dir: Path) -> dict:
     long_spans = predict_spans(trainer.model, tokenizer, [long_doc], max_length=128, stride=32)['largo']
     assert all(0 <= s.start < s.end <= len(long_doc.text) for s in long_spans)
     save_artifacts(trainer, tokenizer, str(output_dir / 'modelo'), {'smoke': metrics}, {'smoke': True})
-    return metrics
+    cv = cross_validate(lambda: new_model(str(output_dir / 'modelo')), tokenizer, docs[:9], str(output_dir / 'cv'),
+                        k=3, augment=('minusculas', 'sin_puntuacion'), epochs=1, batch_size=4, max_length=128,
+                        stride=32)
+    assert sorted(cv['predicciones']) == sorted(d.doc_id for d in docs[:9])
+    return {'evaluacion': metrics, 'cv_parcial': cv['parcial']['micro']}
 
 
 if __name__ == '__main__':

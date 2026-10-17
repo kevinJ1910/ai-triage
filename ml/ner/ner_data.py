@@ -258,6 +258,77 @@ def corpus_to_documents(corpus_path: Path, split: Optional[str] = None) -> List[
     return docs
 
 
+# --------------------------------------------------------------------------- aumento de datos
+
+_PUNCTUATION = set(',.;:¿?¡!…"«»()')
+
+
+def _remap(doc: Document, keep: Sequence[bool], text: str, suffix: str) -> Document:
+    """Documento con los caracteres marcados en keep; los spans se trasladan y se recortan a lo conservado."""
+    new_index, position = [], 0
+    for kept in keep:
+        new_index.append(position)
+        position += kept
+    new_index.append(position)
+    spans = []
+    for span in doc.spans:
+        inside = [i for i in range(span.start, span.end) if keep[i]]
+        if inside:
+            start, end = new_index[inside[0]], new_index[inside[-1]] + 1
+            while end > start and text[end - 1] == ' ':
+                end -= 1
+            if end > start:
+                spans.append(Span(start, end, span.label))
+    return Document(f'{doc.doc_id}#{suffix}', text, spans, set(doc.sources))
+
+
+def lowercase_variant(doc: Document) -> Optional[Document]:
+    """Todo en minusculas, como los fragmentos del ASR. None si cambia la longitud (no pasa en espanol)."""
+    text = doc.text.lower()
+    if len(text) != len(doc.text):
+        return None
+    return Document(f'{doc.doc_id}#minusculas', text, list(doc.spans), set(doc.sources))
+
+
+def unpunctuated_variant(doc: Document) -> Document:
+    """Sin signos de puntuacion y con espacios simples, como una transcripcion sin puntuar."""
+    keep = [ch not in _PUNCTUATION for ch in doc.text]
+    previous_space = True
+    for i, ch in enumerate(doc.text):
+        if keep[i] and ch.isspace():
+            keep[i] = not previous_space
+        if keep[i]:
+            previous_space = ch.isspace()
+    for i in range(len(keep) - 1, -1, -1):  # sin espacio final
+        if keep[i] and not doc.text[i].isspace():
+            break
+        keep[i] = False
+    text = ''.join(' ' if ch.isspace() else ch for ch, kept in zip(doc.text, keep) if kept)
+    return _remap(doc, keep, text, 'sin_puntuacion')
+
+
+def augment_documents(docs: Sequence[Document], variants: Sequence[str] = ('minusculas', 'sin_puntuacion')
+                      ) -> List[Document]:
+    """
+    Originales mas variantes con estilo de transcripcion. Solo para entrenar: las particiones de validacion
+    se evaluan siempre sobre el texto original.
+    """
+    result = list(docs)
+    for doc in docs:
+        if 'minusculas' in variants:
+            variant = lowercase_variant(doc)
+            if variant is not None:
+                result.append(variant)
+        if 'sin_puntuacion' in variants:
+            result.append(unpunctuated_variant(doc))
+        if 'ambas' in variants:
+            lowered = lowercase_variant(doc)
+            if lowered is not None:
+                both = unpunctuated_variant(lowered)
+                result.append(Document(f'{doc.doc_id}#ambas', both.text, both.spans, set(doc.sources)))
+    return result
+
+
 # --------------------------------------------------------------------------- alineacion BIO
 
 def bio_labels(offsets: Sequence[Tuple[int, int]], spans: Sequence[Span]) -> List[int]:
@@ -308,7 +379,50 @@ def spans_from_bio(offsets: Sequence[Tuple[int, int]], label_ids: Sequence[int])
     return spans
 
 
+def snap_to_words(text: str, spans: Sequence[Span]) -> List[Span]:
+    """
+    Extiende cada span predicho hasta palabras completas: el modelo etiqueta subtokens y a veces abre o cierra
+    una entidad dentro de una palabra («itando» por «vomitando»). Ningun span gold corta una palabra, asi que
+    un span asi nunca seria exacto. Si al extenderse dos spans se pisan, se unen si tienen la misma etiqueta
+    y, si no, gana el mas largo.
+    """
+    snapped: List[Span] = []
+    for span in sorted(spans, key=lambda s: (s.start, s.end)):
+        start, end = span.start, span.end
+        while start > 0 and text[start - 1].isalnum() and text[start].isalnum():
+            start -= 1
+        while end < len(text) and text[end].isalnum() and text[end - 1].isalnum():
+            end += 1
+        if snapped and start < snapped[-1].end:
+            previous = snapped[-1]
+            if previous.label == span.label:
+                snapped[-1] = Span(previous.start, max(previous.end, end), previous.label)
+            elif end - start > previous.end - previous.start:
+                snapped[-1] = Span(min(start, previous.start), end, span.label)
+            continue
+        snapped.append(Span(start, end, span.label))
+    return snapped
+
+
 # --------------------------------------------------------------------------- metricas y particiones
+
+def prf_from_counts(c: Counter) -> Dict:
+    precision = c['tp'] / (c['tp'] + c['fp']) if c['tp'] + c['fp'] else None
+    recall = c['tp'] / (c['tp'] + c['fn']) if c['tp'] + c['fn'] else None
+    if precision is None or recall is None:
+        # Sin predicciones o sin entidades reales: F1 es 0 si hubo algun error y no definido si no hubo nada.
+        f1 = 0.0 if c['fn'] or c['fp'] else None
+    else:
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    rnd = lambda x: round(x, 3) if x is not None else None  # noqa: E731
+    return {'tp': c['tp'], 'fp': c['fp'], 'fn': c['fn'], 'precision': rnd(precision), 'recall': rnd(recall), 'f1': rnd(f1)}
+
+
+def _report(counts: Dict[str, Counter]) -> Dict[str, Dict]:
+    report = {label: prf_from_counts(c) for label, c in counts.items()}
+    report['micro'] = prf_from_counts(sum(counts.values(), Counter()))
+    return report
+
 
 def span_prf(gold: Dict[str, Sequence[Span]], predicted: Dict[str, Sequence[Span]]) -> Dict[str, Dict]:
     """
@@ -326,21 +440,34 @@ def span_prf(gold: Dict[str, Sequence[Span]], predicted: Dict[str, Sequence[Span
             counts[label]['tp'] += len(gl & pl)
             counts[label]['fp'] += len(pl - gl)
             counts[label]['fn'] += len(gl - pl)
+    return _report(counts)
 
-    def prf(c):
-        precision = c['tp'] / (c['tp'] + c['fp']) if c['tp'] + c['fp'] else None
-        recall = c['tp'] / (c['tp'] + c['fn']) if c['tp'] + c['fn'] else None
-        if precision is None or recall is None:
-            # Sin predicciones o sin entidades reales: F1 es 0 si hubo algun error y no definido si no hubo nada.
-            f1 = 0.0 if c['fn'] or c['fp'] else None
-        else:
-            f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-        rnd = lambda x: round(x, 3) if x is not None else None  # noqa: E731
-        return {'tp': c['tp'], 'fp': c['fp'], 'fn': c['fn'], 'precision': rnd(precision), 'recall': rnd(recall), 'f1': rnd(f1)}
 
-    report = {label: prf(c) for label, c in counts.items()}
-    report['micro'] = prf(sum(counts.values(), Counter()))
-    return report
+def span_prf_partial(gold: Dict[str, Sequence[Span]], predicted: Dict[str, Sequence[Span]]) -> Dict[str, Dict]:
+    """
+    P/R/F1 con coincidencia parcial: un predicho acierta si se solapa con un gold de la misma etiqueta.
+    Emparejamiento uno a uno, primero los pares con mas solape, para que un span largo no acierte varios gold
+    ni varios predichos acierten el mismo gold.
+    """
+    counts = {label: Counter() for label in ENTITY_LABELS}
+    for doc_id in set(gold) | set(predicted):
+        g = sorted({(s.start, s.end, s.label) for s in gold.get(doc_id, [])})
+        p = sorted({(s.start, s.end, s.label) for s in predicted.get(doc_id, [])})
+        pairs = sorted(((min(a[1], b[1]) - max(a[0], b[0]), i, j) for i, a in enumerate(g) for j, b in enumerate(p)
+                        if a[2] == b[2] and min(a[1], b[1]) > max(a[0], b[0])), reverse=True)
+        used_g, used_p = set(), set()
+        for _, i, j in pairs:
+            if i not in used_g and j not in used_p:
+                used_g.add(i)
+                used_p.add(j)
+                counts[g[i][2]]['tp'] += 1
+        for i, s in enumerate(g):
+            if i not in used_g:
+                counts[s[2]]['fn'] += 1
+        for j, s in enumerate(p):
+            if j not in used_p:
+                counts[s[2]]['fp'] += 1
+    return _report(counts)
 
 
 def kfold(ids: Sequence[str], k: int, seed: int = 42) -> List[Tuple[List[str], List[str]]]:
@@ -349,6 +476,19 @@ def kfold(ids: Sequence[str], k: int, seed: int = 42) -> List[Tuple[List[str], L
     random.Random(seed).shuffle(shuffled)
     folds = [shuffled[i::k] for i in range(k)]
     return [([x for j, f in enumerate(folds) if j != i for x in f], folds[i]) for i in range(k)]
+
+
+def cv_summary(reports: Sequence[Dict[str, Dict]]) -> Dict[str, Dict]:
+    """Media y desviacion (poblacional) de P/R/F1 por etiqueta y micro sobre las particiones."""
+    import statistics
+
+    def summary(label, key):
+        values = [r[label][key] for r in reports if r[label][key] is not None]
+        return {'media': round(statistics.mean(values), 3),
+                'desviacion': round(statistics.pstdev(values), 3)} if values else None
+
+    return {label: {key: summary(label, key) for key in ('precision', 'recall', 'f1')}
+            for label in (*ENTITY_LABELS, 'micro')}
 
 
 def holdout(docs: Sequence[Document], fraction: float = 0.1, seed: int = 42) -> Tuple[List[Document], List[Document]]:

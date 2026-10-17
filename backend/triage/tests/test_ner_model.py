@@ -65,6 +65,21 @@ class TestDecodeSpans:
         spans = ner_model.decode_spans([(0, 4), (5, 9)], [1, 4], [0.9, 0.9], ID2LABEL)
         assert [s['label'] for s in spans] == ['SINTOMA', 'ENFERMEDAD']
 
+    def test_spans_cut_inside_a_word_are_extended_to_whole_words(self):
+        text = 'Está vomitando y embarazada'
+        spans = [{'start': 7, 'end': 14, 'label': 'SINTOMA', 'score': 0.8},       # «itando»
+                 {'start': 17, 'end': 21, 'label': 'ENFERMEDAD', 'score': 0.6},    # «emba»
+                 {'start': 22, 'end': 27, 'label': 'ENFERMEDAD', 'score': 0.8}]    # «razada»
+        assert ner_model.snap_to_words(text, spans) == [
+            {'start': 5, 'end': 14, 'label': 'SINTOMA', 'score': 0.8},
+            {'start': 17, 'end': 27, 'label': 'ENFERMEDAD', 'score': 0.7}]
+
+    def test_overlap_with_another_label_keeps_the_longest(self):
+        spans = [{'start': 0, 'end': 3, 'label': 'SINTOMA', 'score': 0.9},
+                 {'start': 3, 'end': 15, 'label': 'ENFERMEDAD', 'score': 0.7}]
+        assert ner_model.snap_to_words('Hipertensión arterial', spans) == [
+            {'start': 0, 'end': 21, 'label': 'ENFERMEDAD', 'score': 0.7}]
+
 
 class TestEngineLoading:
     def setup_method(self):

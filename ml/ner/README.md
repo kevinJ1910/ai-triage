@@ -6,9 +6,10 @@ Fine-tuning de [`PlanTL-GOB-ES/roberta-base-biomedical-clinical-es`](https://hug
 | :--- | :--- |
 | `finetune_roberta_ner.ipynb` | Notebook para Colab o Kaggle (GPU T4): descarga, fusión, etapa 1, etapa 2, métricas y exportación. |
 | `ner_data.py` | Lectura de los corpus (TSV y brat), fusión por documento, alineación BIO, métricas por span y particiones. Solo usa la biblioteca estándar. |
-| `train_ner.py` | Tokenización con ventanas solapadas, `Trainer`, predicción por documento y guardado. Incluye `--smoke`. |
+| `train_ner.py` | Tokenización con ventanas solapadas, `Trainer`, predicción por documento, validación cruzada (`cross_validate`) y guardado. Incluye `--smoke`. |
+| `error_analysis.py` | Tipología de errores (límites, etiqueta, omitidos, espurios), métrica parcial y auditoría de coherencia del corpus propio. Solo usa la biblioteca estándar. |
 | `make_bundle.py` | Empaqueta el código y el corpus propio para subirlos al notebook, porque el repositorio es privado. |
-| `tests/test_ner_data.py` | Pruebas de la preparación de datos con corpus sintéticos en los formatos reales. |
+| `tests/` | Pruebas de la preparación de datos (con corpus sintéticos en los formatos reales), de las métricas, del aumento de datos y del análisis de errores. |
 
 ## Datos
 
@@ -28,12 +29,19 @@ Las licencias se comprobaron en la API de Zenodo el 15-10-2026. CC BY 4.0 exige 
 
 ## Protocolo
 
-1. **Etapa 1.** Se entrena con los tres corpus fusionados, usando todos sus splits con anotación gold, y se aparta un 10 % de documentos para validación. Hiperparámetros: 3 épocas, lr 5e-5, lote 16, 512 tokens con *stride* de 128, semilla 42.
+1. **Etapa 1.** Se entrena con los tres corpus fusionados, usando todos sus splits con anotación gold, y se aparta un 10 % de documentos para validación. Hiperparámetros: 5 épocas (3 en la primera corrida) con el mejor checkpoint por época, lr 5e-5, lote 16, 512 tokens con *stride* de 128, semilla 42. El notebook guarda `etapa1_modelo.zip`; con `REUSE_STAGE1 = True` las corridas siguientes empiezan directamente en la etapa 2.
 2. **Transferencia sin adaptar.** El modelo de la etapa 1 se evalúa sobre `dev` del corpus propio. Mide cuánto se pierde al pasar de texto clínico escrito a habla transcrita.
-3. **Etapa 2.** Validación cruzada de 5 particiones sobre `dev`: cada partición parte del modelo de la etapa 1, con 10 épocas, lr 2e-5 y lote 8. Se reporta la media ± desviación.
-4. **Modelo final.** Etapa 1 + todo `dev`. Se guarda con `metrics.json`, `training_config.json` y `ner_labels.json`.
+3. **Etapa 2.** Validación cruzada de 5 particiones sobre `dev`: cada partición parte del modelo de la etapa 1. Se prueba una rejilla pequeña y se elige la configuración con mayor F1 exacta media:
+   - `base`: 10 épocas, lr 2e-5, lote 8.
+   - `aumento`: igual, y además las particiones de entrenamiento llevan copias en minúsculas y sin puntuación, como sale el texto del ASR. La validación siempre usa el texto original.
+   - `mas_epocas`: 20 épocas, lr 3e-5.
 
-La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparable con las métricas del resto del proyecto. La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, verificada en 200 casos aleatorios, pero sin depender de él) solo sirve para elegir el mejor checkpoint de la etapa 1.
+   Se reporta la media ± desviación de la elegida. Como se elige con la misma validación cruzada, esa cifra es algo optimista: la tabla de la rejilla es una ablación y el resultado es el de `test`.
+4. **Modelo final.** Etapa 1 + todo `dev`, con la configuración elegida. Se guarda con `metrics.json`, `training_config.json`, `ner_labels.json` y la carpeta `analisis/`, que contiene las predicciones de la validación cruzada, de la transferencia y de la validación de la etapa 1.
+
+La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparable con las métricas del resto del proyecto. Junto a ella se reporta la **parcial**: un predicho acierta si se solapa con un gold de la misma etiqueta, con emparejamiento uno a uno. Separa los errores de límites («dolor torácico» frente a «dolor torácico opresivo») de los fallos reales.
+
+Las predicciones se **ajustan a palabras completas** (`snap_to_words`, también en el backend). El modelo etiqueta subtokens y a veces corta una palabra («itando» por «vomitando»); ninguno de los 674 spans gold del corpus propio lo hace, así que el ajuste no puede convertir un acierto en error. La validación cruzada también calcula la cifra sin ajuste, para medir lo que aporta. La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, verificada en 200 casos aleatorios, pero sin depender de él) solo sirve para elegir el mejor checkpoint de la etapa 1.
 
 **El split `test` del corpus propio no se usa en ningún momento.** Se evalúa una sola vez, con el sistema híbrido completo, en el paso 4.1.
 
@@ -56,6 +64,19 @@ La métrica principal es por **span exacto** (inicio, fin y etiqueta), comparabl
    Si después solo cambias el modelo, basta con `docker compose restart worker-llm`.
 
    Comprueba que cargó con `curl -k https://localhost/api/health_check/`: debe aparecer `"ner": {"model_loaded": true, ...}`. Si usas el Hub, define en `.env` `NER_MODEL_PATH=TU_USUARIO/ai-triage-ner-roberta` y `HF_TOKEN`.
+
+## Análisis de errores
+
+```bash
+# Tipología de errores y métrica parcial de las predicciones de la validación cruzada (carpeta analisis/ del modelo)
+python ml/ner/error_analysis.py errores ml/ner/output/ai_triage_ner_roberta/analisis/cv_predicciones.json
+# Coherencia de las anotaciones del corpus propio (no necesita modelo)
+python ml/ner/error_analysis.py auditoria --split dev
+```
+
+Tipos de error: `limites` (misma etiqueta, otros límites), `etiqueta` (mismos límites), `limites_y_etiqueta`, `omitido` (gold sin ninguna predicción solapada) y `espurio` (predicción sin gold solapado). Si dominan los de límites, lo que más rinde es unificar la guía de anotación; si dominan los omitidos o espurios, más datos o más entrenamiento.
+
+La auditoría busca textos anotados en un caso y sin anotar en otro, etiquetas contradictorias, menciones repetidas con una sola anotación, solapes y bordes en palabras funcionales. Sobre `dev`, el 16-10-2026, solo dio avisos aislados; el más claro es N008, donde «una convulsión tras otra» no está anotada.
 
 ## Integración en el backend (paso 3.2)
 
