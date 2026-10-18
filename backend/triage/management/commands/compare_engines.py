@@ -4,6 +4,7 @@ Tabla comparativa de los motores de triaje evaluados sobre un split.
 Uso:
     python manage.py compare_engines --split test
     python manage.py compare_engines --split dev --baseline dev_reglas_lotes
+    python manage.py compare_engines --split dev --only dev_reglas_lotes dev_hibrido_gemini-2.5-flash_pv1
     python manage.py compare_engines --split dev --repeatability resultados/dev_a.json resultados/dev_a_r2.json
 
 Lee las corridas completas de benchmark/resultados/*.json (evaluate_extraction o evaluate_benchmark con
@@ -36,6 +37,8 @@ class Command(BaseCommand):
         parser.add_argument('--results-dir', type=Path, default=None, help="Carpeta de los JSON de resultados")
         parser.add_argument('--baseline', help="Corrida de referencia para las diferencias pareadas "
                                                "(nombre del archivo sin .json; por defecto, la de reglas)")
+        parser.add_argument('--only', nargs='+', metavar='CORRIDA',
+                            help="Comparar solo estas corridas (nombres de archivo sin .json)")
         parser.add_argument('--repeatability', nargs=2, type=Path, metavar=('CORRIDA_A', 'CORRIDA_B'),
                             help="Dos corridas del mismo motor para medir la repetibilidad")
         parser.add_argument('--output', type=Path, help="JSON de salida (por defecto comparativa_<split>.json)")
@@ -52,7 +55,7 @@ class Command(BaseCommand):
                 data = json.loads(path.read_text(encoding='utf-8'))
             except (OSError, ValueError):
                 continue
-            if isinstance(data, dict):
+            if isinstance(data, dict) and (not options.get('only') or path.stem in options['only']):
                 runs.append((path.stem, data))
         try:
             comparison = compare(runs, split, baseline=options.get('baseline'))
