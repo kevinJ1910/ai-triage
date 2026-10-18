@@ -185,6 +185,58 @@ export default function MetricsDashboard() {
         </button>
       </div>
 
+      {/* Validacion contra referencia ciega (sin sesgo de anclaje) */}
+      <div className="bg-slate-950/70 border border-sky-500/20 rounded-2xl p-5 space-y-4" data-testid="reference-validation">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <GitCompare className="w-4 h-4 text-sky-400" />
+              <span>Validación contra nivel de referencia ciego</span>
+            </h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Un clínico distinto al tratante asigna el nivel viendo solo la transcripción. Es la referencia válida para la evaluación:
+              las métricas de abajo usan el nivel final, fijado después de ver la propuesta de la IA, y por eso tienden a sobrestimar la concordancia.
+            </p>
+          </div>
+          <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 shrink-0 font-medium">
+            {metrics?.reference_validation?.referenced_count ?? 0} de {metrics?.total_triages ?? 0} casos adjudicados
+          </span>
+        </div>
+
+        {metrics?.reference_validation && metrics.reference_validation.referenced_count > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-slate-400 font-medium text-[11px] pb-2">
+                  <th className="py-2 pr-4 font-semibold">Métrica</th>
+                  <th className="py-2 pr-4 font-semibold">IA vs referencia</th>
+                  <th className="py-2 font-semibold">Médico tratante vs referencia</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-slate-200">
+                {REFERENCE_ROWS.map((row) => (
+                  <tr key={row.key} className="border-t border-slate-800/70">
+                    <td className="py-2.5 pr-4 font-sans text-slate-300 font-medium">{row.label}</td>
+                    <td className="py-2.5 pr-4 font-semibold text-sky-300">{row.format(metrics.reference_validation!.ai_vs_reference)}</td>
+                    <td className="py-2.5 font-semibold text-emerald-300">{row.format(metrics.reference_validation!.physician_vs_reference)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-[11px] text-slate-400">
+            Aún no hay casos adjudicados. Use el módulo &quot;Validacion Ciega&quot; para asignar niveles de referencia.
+          </p>
+        )}
+      </div>
+
+      {/* Metricas contra el nivel final del medico (con sesgo de anclaje) */}
+      <div className="flex items-center gap-2 text-[11px] text-slate-400" data-testid="anchored-metrics-note">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <span>Concordancia con el nivel final del médico tratante, que vio la propuesta de la IA (sesgo de anclaje).</span>
+      </div>
+
       {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Concordance Rate */}
@@ -318,52 +370,6 @@ export default function MetricsDashboard() {
         </div>
       </div>
 
-      {/* Validacion contra referencia ciega (sin sesgo de anclaje) */}
-      <div className="bg-slate-950/70 border border-sky-500/20 rounded-2xl p-5 space-y-4" data-testid="reference-validation">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-              <GitCompare className="w-4 h-4 text-sky-400" />
-              <span>Validación contra nivel de referencia ciego</span>
-            </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Un clínico distinto al tratante asigna el nivel viendo solo la transcripción. Las métricas anteriores usan como
-              referencia el nivel final, fijado después de ver la propuesta de la IA, y por eso tienden a sobrestimar la concordancia.
-            </p>
-          </div>
-          <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 shrink-0 font-medium">
-            {metrics?.reference_validation?.referenced_count ?? 0} de {metrics?.total_triages ?? 0} casos adjudicados
-          </span>
-        </div>
-
-        {metrics?.reference_validation && metrics.reference_validation.referenced_count > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-slate-400 font-medium text-[11px] pb-2">
-                  <th className="py-2 pr-4 font-semibold">Métrica</th>
-                  <th className="py-2 pr-4 font-semibold">IA vs referencia</th>
-                  <th className="py-2 font-semibold">Médico tratante vs referencia</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono text-slate-200">
-                {REFERENCE_ROWS.map((row) => (
-                  <tr key={row.key} className="border-t border-slate-800/70">
-                    <td className="py-2.5 pr-4 font-sans text-slate-300 font-medium">{row.label}</td>
-                    <td className="py-2.5 pr-4 font-semibold text-sky-300">{row.format(metrics.reference_validation!.ai_vs_reference)}</td>
-                    <td className="py-2.5 font-semibold text-emerald-300">{row.format(metrics.reference_validation!.physician_vs_reference)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-[11px] text-slate-400">
-            Aún no hay casos adjudicados. Use el módulo &quot;Validacion Ciega&quot; para asignar niveles de referencia.
-          </p>
-        )}
-      </div>
-
       {/* Token Governance & Input Optimization KPIs */}
       <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-5 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
@@ -394,7 +400,7 @@ export default function MetricsDashboard() {
             <div className="text-xl font-bold font-mono text-emerald-400 mt-1">
               {metrics?.cached_triages_count ?? 0}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Respuestas sub-3ms a 0 tokens</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Servidos desde la caché, sin tokens</div>
           </div>
           <div className="bg-slate-900/70 rounded-xl p-3.5 border border-slate-800/80">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Aciertos de Caché</div>

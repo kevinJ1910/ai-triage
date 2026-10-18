@@ -100,25 +100,42 @@ export default function AppNavigation() {
     );
   }
 
+  // Solo se muestran los paneles que el servidor permite usar (los mismos permisos que exige cada endpoint).
+  const perms = currentUser?.permissions;
+  const isAdmin = currentUser?.role === 'admin';
+  const canSee = (id: string): boolean => {
+    switch (id) {
+      case 'emr': return isAdmin || !!perms?.can_view_emr;
+      case 'blind': return isAdmin || !!perms?.can_edit_symptoms;
+      case 'normalization': return isAdmin || !!perms?.can_use_transcriber;
+      case 'fhir': return isAdmin || !!perms?.can_view_fhir;
+      case 'security': return isAdmin;
+      case 'config': return isAdmin || !!perms?.can_manage_config;
+      default: return true;
+    }
+  };
+
   const clinicalItems = [
     { id: 'triage', icon: <Stethoscope className="w-4 h-4"/>, label: 'Modulo de Triaje' },
     { id: 'emr', icon: <Database className="w-4 h-4"/>, label: 'Simulador HCE' },
     { id: 'blind', icon: <EyeOff className="w-4 h-4"/>, label: 'Validacion Ciega' },
-  ];
+  ].filter(item => canSee(item.id));
 
   const qualityItems = [
     { id: 'metrics', icon: <BarChart className="w-4 h-4"/>, label: 'Metricas y Evaluacion' },
     { id: 'normalization', icon: <RefreshCw className="w-4 h-4"/>, label: 'Monitor Normalizacion' },
     { id: 'fhir', icon: <Server className="w-4 h-4"/>, label: 'Monitor FHIR/HL7' },
-  ];
+  ].filter(item => canSee(item.id));
 
   const adminItems = [
     { id: 'security', icon: <Shield className="w-4 h-4"/>, label: 'Seguridad y RBAC' },
     { id: 'config', icon: <Settings className="w-4 h-4"/>, label: 'Configuracion' },
-  ];
+  ].filter(item => canSee(item.id));
 
   const allNavItems = [...clinicalItems, ...qualityItems, ...adminItems];
-  const currentActiveItem = allNavItems.find(i => i.id === activeTab);
+  // Si la pestaña activa deja de estar permitida, se vuelve al triaje.
+  const visibleTab = allNavItems.some(i => i.id === activeTab) ? activeTab : 'triage';
+  const currentActiveItem = allNavItems.find(i => i.id === visibleTab);
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full bg-[#0b1120] text-slate-200 font-sans overflow-hidden">
@@ -201,7 +218,7 @@ export default function AppNavigation() {
             <nav className="flex-1 py-3 flex flex-col gap-1 overflow-y-auto">
               <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1">Atención Clínica</div>
               {clinicalItems.map(item => {
-                const isActive = activeTab === item.id;
+                const isActive = visibleTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -223,7 +240,7 @@ export default function AppNavigation() {
 
               <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1 mt-3">Evaluación y Calidad</div>
               {qualityItems.map(item => {
-                const isActive = activeTab === item.id;
+                const isActive = visibleTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -243,9 +260,9 @@ export default function AppNavigation() {
                 );
               })}
 
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1 mt-3">Administración del Sistema</div>
+              {adminItems.length > 0 && <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1 mt-3">Administración del Sistema</div>}
               {adminItems.map(item => {
-                const isActive = activeTab === item.id;
+                const isActive = visibleTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -320,7 +337,7 @@ export default function AppNavigation() {
               Atención Clínica
             </span>
             {clinicalItems.map(item => {
-              const isActive = activeTab === item.id;
+              const isActive = visibleTab === item.id;
               return (
                 <button
                   key={item.id}
@@ -347,7 +364,7 @@ export default function AppNavigation() {
               Evaluación y Métricas
             </span>
             {qualityItems.map(item => {
-              const isActive = activeTab === item.id;
+              const isActive = visibleTab === item.id;
               return (
                 <button
                   key={item.id}
@@ -369,12 +386,12 @@ export default function AppNavigation() {
           </div>
 
           {/* Section 3: Administracion */}
-          <div className="flex flex-col gap-0.5">
+          {adminItems.length > 0 && <div className="flex flex-col gap-0.5">
             <span className={`px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 ${isCollapsed ? 'hidden' : 'block'}`}>
               Administración
             </span>
             {adminItems.map(item => {
-              const isActive = activeTab === item.id;
+              const isActive = visibleTab === item.id;
               return (
                 <button
                   key={item.id}
@@ -393,7 +410,7 @@ export default function AppNavigation() {
                 </button>
               );
             })}
-          </div>
+          </div>}
         </nav>
 
         {/* Bottom Actions */}
@@ -427,14 +444,14 @@ export default function AppNavigation() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0b1120] p-2 md:p-3">
         <Toaster theme="dark" position="bottom-right" richColors closeButton duration={4000} />
-        {activeTab === 'triage' && <TriageDashboard userProfile={currentUser} />}
-        {activeTab === 'config' && <ConfigPanel />}
-        {activeTab === 'security' && <SecurityPanel />}
-        {activeTab === 'normalization' && <NormalizationMonitor />}
-        {activeTab === 'fhir' && <FHIRMonitor />}
-        {activeTab === 'emr' && <EMRSimulator />}
-        {activeTab === 'metrics' && <MetricsDashboard />}
-        {activeTab === 'blind' && <BlindReview />}
+        {visibleTab === 'triage' && <TriageDashboard userProfile={currentUser} />}
+        {visibleTab === 'config' && <ConfigPanel />}
+        {visibleTab === 'security' && <SecurityPanel />}
+        {visibleTab === 'normalization' && <NormalizationMonitor />}
+        {visibleTab === 'fhir' && <FHIRMonitor />}
+        {visibleTab === 'emr' && <EMRSimulator />}
+        {visibleTab === 'metrics' && <MetricsDashboard />}
+        {visibleTab === 'blind' && <BlindReview />}
       </div>
     </div>
   );
