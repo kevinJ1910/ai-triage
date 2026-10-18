@@ -590,6 +590,40 @@ class TestTriageSessions:
         ratings = self.client.get("/api/triage/sessions/evaluation_metrics/").data["justification_ratings"]
         assert ratings == {"n": 2, "clarity": 3.5, "relevance": 5.0, "fidelity": 4.0}
 
+    def test_benchmark_results_summarizes_saved_runs(self, tmp_path, settings, mocker):
+        import json
+        results = tmp_path / "resultados"
+        results.mkdir()
+        (results / "test_hibrido.json").write_text(json.dumps({
+            "engine": "hibrido", "model": "gemini", "split": "test", "match": "relaxed", "corpus": "C:/ruta/privada.json",
+            "entities": {"micro": {"precision": 0.8, "recall": 0.7, "f1": 0.75}, "micro_f1_ci95": [0.7, 0.8],
+                         "macro_f1": 0.7, "by_type": {"symptoms": {"f1": 0.8}},
+                         "negation": {"negation_accuracy": 0.9}, "normalization": {"cie10_accuracy": 0.85}},
+            "triage": {"n": 10, "cohen_kappa": 0.6, "cohen_kappa_ci95": [0.4, 0.8]},
+            "cases": [{"id": "B1", "transcript": "texto del caso"}],
+        }), encoding="utf-8")
+        (results / "roto.json").write_text("{no es json", encoding="utf-8")
+        asr = tmp_path / "data" / "asr"
+        asr.mkdir(parents=True)
+        (asr / "manifest.json").write_text("[]", encoding="utf-8")
+        (asr / "resultado_small_cpu.json").write_text(json.dumps({
+            "model_size": "small", "device": "cpu", "chunk_seconds": 4, "initial_prompt": True,
+            "global": {"audios": 40, "wer": 0.12}, "por_condicion": {"ruido": {"wer": 0.2}}, "audios": [{"id": "a"}],
+        }), encoding="utf-8")
+        mocker.patch("triage.benchmark_results.RESULTS_DIR", results)
+        settings.BASE_DIR = tmp_path
+
+        data = self.client.get("/api/triage/sessions/benchmark_results/").data
+        [run] = data["extraction"]
+        assert run["name"] == "test_hibrido" and run["cases"] == 1
+        assert run["entities"]["f1"] == 0.75 and run["entities"]["by_type"] == {"symptoms": 0.8}
+        assert run["triage"]["cohen_kappa_ci95"] == [0.4, 0.8]
+        # Solo cifras agregadas: ni casos ni rutas del equipo
+        assert "corpus" not in run and "texto del caso" not in json.dumps(data)
+        [asr_run] = data["asr"]
+        assert asr_run["global"]["wer"] == 0.12 and asr_run["by_condition"] == {"ruido": {"wer": 0.2}}
+        assert "audios" not in asr_run
+
     def test_evaluation_metrics_reports_reference_validation(self):
         session = self._blind_case(author=self.user, ai_level=3, final_level=2)
         TriageSession.objects.create(patient=self.patient, level=4, ai_level=4, final_level=4, justification="Sin referencia")

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ExplainabilityPanel from '../../components/ExplainabilityPanel';
 import EngineStatus from '../../components/EngineStatus';
+import EvaluationResults from '../../components/EvaluationResults';
 
 const analysis = {
   engine_used: 'LLM (gemini-2.5-flash) + Christus Sinergia',
@@ -71,5 +72,43 @@ describe('EngineStatus', () => {
     expect(screen.getByText('Sin clave: reglas')).toBeInTheDocument();
     const urls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) => String(url));
     expect(urls.some(url => url.includes('/api/config/engines/'))).toBe(true);
+  });
+});
+
+describe('EvaluationResults', () => {
+  it('muestra las corridas guardadas de extracción y de ASR', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({
+        extraction: [{
+          name: 'test_hibrido', updated_at: '2026-10-17T00:00:00Z', engine: 'hibrido', model: null, ner_engine: null,
+          split: 'test', match: 'relaxed', cases: 60,
+          entities: { precision: 0.8, recall: 0.7, f1: 0.751, f1_ci95: [0.7, 0.796], macro_f1: 0.818,
+                      by_type: { symptoms: 0.8 }, negation_accuracy: 1, cie10_accuracy: 0.839 },
+          triage: { n: 60, exact_agreement: 50, cohen_kappa: 0.6, cohen_kappa_ci95: [0.4, 0.8],
+                    critical_sensitivity: 80, critical_sensitivity_ci95: [60, 92], undertriage_rate: 10, overtriage_rate: 5 },
+          performance: { latency_ms_mean: 900 },
+        }],
+        asr: [{
+          name: 'resultado_small_cpu', updated_at: '2026-10-17T00:00:00Z', model_size: 'small', device: 'cpu',
+          chunk_seconds: 4, initial_prompt: true,
+          global: { audios: 40, wer: 0.12, cer: 0.05, error_terminos_clinicos: 0.1, rtf: 1.3, latencia_media_s: 5 },
+          by_condition: { ruido: { audios: 20, wer: 0.2, cer: 0.1, error_terminos_clinicos: 0.2, rtf: 1.3, latencia_media_s: 5 } },
+        }],
+      }),
+    } as Response);
+    render(<EvaluationResults />);
+    await waitFor(() => expect(screen.getByText('test_hibrido')).toBeInTheDocument());
+    expect(screen.getByText('[0.700–0.796]')).toBeInTheDocument();
+    expect(screen.getByText('83.9%')).toBeInTheDocument();
+    expect(screen.getByText('resultado_small_cpu')).toBeInTheDocument();
+    expect(screen.getByText('ruido: 20.0%')).toBeInTheDocument();
+  });
+
+  it('explica cómo generar resultados cuando no hay', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ extraction: [], asr: [] }) } as Response);
+    render(<EvaluationResults />);
+    await waitFor(() => expect(screen.getByText(/Aún no hay corridas guardadas/)).toBeInTheDocument());
+    expect(screen.getByText(/Aún no hay mediciones de WER/)).toBeInTheDocument();
   });
 });

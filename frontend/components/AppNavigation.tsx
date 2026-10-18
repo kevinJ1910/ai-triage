@@ -16,7 +16,8 @@ import {
   X,
   EyeOff,
   Activity,
-  HeartPulse
+  HeartPulse,
+  FlaskConical
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Toaster } from 'sonner';
@@ -31,6 +32,7 @@ import EMRSimulator from '@/components/EMRSimulator';
 import MetricsDashboard from '@/components/MetricsDashboard';
 import BlindReview from '@/components/BlindReview';
 import EngineStatus from '@/components/EngineStatus';
+import EvaluationResults from '@/components/EvaluationResults';
 
 interface UserProfile {
   id: number;
@@ -124,6 +126,7 @@ export default function AppNavigation() {
 
   const qualityItems = [
     { id: 'metrics', icon: <BarChart className="w-4 h-4"/>, label: 'Metricas y Evaluacion' },
+    { id: 'results', icon: <FlaskConical className="w-4 h-4"/>, label: 'Resultados de Evaluacion' },
     { id: 'normalization', icon: <RefreshCw className="w-4 h-4"/>, label: 'Monitor Normalizacion' },
     { id: 'fhir', icon: <Server className="w-4 h-4"/>, label: 'Monitor FHIR/HL7' },
   ].filter(item => canSee(item.id));
@@ -461,6 +464,7 @@ export default function AppNavigation() {
         {visibleTab === 'emr' && <EMRSimulator />}
         {visibleTab === 'metrics' && <MetricsDashboard />}
         {visibleTab === 'blind' && <BlindReview />}
+        {visibleTab === 'results' && <EvaluationResults />}
       </div>
     </div>
   );

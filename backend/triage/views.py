@@ -15,6 +15,7 @@ from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanR
 from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
 from .clinical_rag import ClinicalKnowledgeRAG
+from .benchmark_results import load_results
 from .fhir_validation import validate_fhir_bundle
 from .metrics import (
     confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
@@ -453,6 +454,11 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
 
         return Response({"session_id": session.id, "clarity": validated.clarity,
                          "relevance": validated.relevance, "fidelity": validated.fidelity})
+
+    @action(detail=False, methods=['GET'])
+    def benchmark_results(self, request):
+        """Resultados reproducibles guardados por evaluate_extraction/evaluate_benchmark y evaluate_asr."""
+        return Response(load_results())
 
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def emr_patients(self, request):
