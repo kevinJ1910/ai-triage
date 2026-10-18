@@ -76,34 +76,29 @@ La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, 
 
 ## Compartir el modelo por Hugging Face
 
-El modelo no va en git (485 MB). Para que otro equipo lo use sin copiar carpetas, se publica en un repositorio **privado** de Hugging Face Hub y el worker LLM lo descarga la primera vez al volumen `ner_model_cache`.
+El modelo no va en git (485 MB). Está publicado en un repositorio **público** de Hugging Face Hub, [`HoraYMedia/ai-triage-ner-roberta`](https://huggingface.co/HoraYMedia/ai-triage-ner-roberta), y el worker LLM lo descarga la primera vez al volumen `ner_model_cache`. La ficha del modelo (licencia, atribución de los corpus, métricas y limitaciones) está versionada en [`MODEL_CARD.md`](MODEL_CARD.md) y se publica como `README.md` del repositorio.
 
-**Quien publica** (una vez por versión):
+**Quien publica una versión nueva** (necesita un token de **escritura** en `hf auth login`):
 
 ```bash
 pip install -U huggingface_hub
 hf auth login
-hf repo create ai-triage-ner-roberta --private
-hf upload TU_USUARIO/ai-triage-ner-roberta ml/ner/output/ai_triage_ner_roberta . --exclude "analisis/*" --exclude "training_args.bin" --commit-message "Modelo NER corrida 2026-10-17"
-hf repo tag create TU_USUARIO/ai-triage-ner-roberta v1
+hf upload HoraYMedia/ai-triage-ner-roberta ml/ner/output/ai_triage_ner_roberta . --exclude "analisis/*" --exclude "training_args.bin" --commit-message "Modelo NER corrida AAAA-MM-DD"
+hf upload HoraYMedia/ai-triage-ner-roberta ml/ner/MODEL_CARD.md README.md --commit-message "Ficha del modelo"
+hf repo tag create HoraYMedia/ai-triage-ner-roberta v2
 ```
 
-- `hf auth login` pide un token con permiso de **escritura**.
-- `analisis/` (predicciones de la validación cruzada) y `training_args.bin` no se suben porque el backend no los usa.
-- La etiqueta `v1` fija la versión con la que se calculan las cifras de la tesis. Al publicar otra corrida se sube igual y se etiqueta `v2`.
+- `analisis/` (predicciones de la validación cruzada, con texto del corpus propio) y `training_args.bin` no se suben: el backend no los usa y el corpus propio no se publica.
+- La etiqueta `v1` es la versión de las cifras de la tesis. Una corrida nueva se etiqueta `v2` (y se actualizan las métricas de `MODEL_CARD.md`); quien quiera usarla cambia `NER_MODEL_REVISION`.
 
-**Quien lo usa** añade a su `.env`:
+**Quien lo usa** tiene ya en `.env.example` estas líneas, que se copian a `.env` y se dejan ahí (el worker las lee en cada arranque y, tras la primera descarga, usa la caché):
 
 ```
-NER_MODEL_PATH=TU_USUARIO/ai-triage-ner-roberta
+NER_MODEL_PATH=HoraYMedia/ai-triage-ner-roberta
 NER_MODEL_REVISION=v1
-HF_TOKEN=<token de solo lectura>
 ```
 
-Después reinicia el worker con `docker compose up -d worker-llm` y comprueba el health check. La primera vez tarda lo que dure la descarga.
-
-- Un repositorio de una cuenta personal solo lo leen tokens de esa cuenta. Para un compañero hay dos opciones: crear una organización en Hugging Face, mover allí el repositorio y añadirlo como miembro con rol *read* (cada uno usa su propio token); o darle un token *fine-grained* de solo lectura limitado a ese repositorio.
-- El token va solo en `.env`, que está en `.gitignore`. Nunca en el código ni en el chat.
+Después reinicia el worker con `docker compose up -d worker-llm` y comprueba el health check. No hace falta `HF_TOKEN` mientras el repositorio sea público; si se define, debe ser un token real, porque uno inválido hace fallar la descarga. Para usar la carpeta local del notebook en vez del Hub, se comentan las dos líneas.
 
 ## Análisis de errores
 
