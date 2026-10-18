@@ -250,6 +250,7 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_ROUTES = {
     'transcription.tasks.transcribe_audio_chunk': {'queue': 'asr'},
+    'transcription.tasks.reload_asr_model': {'queue': 'asr'},
     'transcription.tasks.normalize_clinical_text_task': {'queue': 'llm'},
     'triage.tasks.*': {'queue': 'llm'},
 }

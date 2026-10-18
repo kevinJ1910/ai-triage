@@ -1,3 +1,4 @@
+import gc
 import os
 import re
 import sys
@@ -129,16 +130,35 @@ class WhisperEngine:
                 cls._instance._initialize()
             return cls._instance
 
-    def _initialize(self) -> None:
+    @staticmethod
+    def configured_model_size() -> str:
+        """Modelo que pide la configuracion: 'auto' respeta WHISPER_MODEL_SIZE del equipo; otro valor lo impone el admin."""
         model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'small')
         try:
             from system_settings.models import SystemConfiguration
             cfg = SystemConfiguration.get_solo()
-            # 'auto' respeta WHISPER_MODEL_SIZE del equipo; otro valor es una eleccion explicita del admin.
             if cfg.active_asr_model and cfg.active_asr_model != 'auto':
                 model_size = cfg.active_asr_model
         except Exception:
             pass
+        return model_size
+
+    def reload(self) -> Dict[str, Any]:
+        """
+        Vuelve a cargar Whisper con el modelo configurado, sin reiniciar el worker. Se libera el modelo anterior
+        antes de cargar el nuevo para no tener dos en memoria; si el nuevo falla, se aplican los mismos respaldos
+        que al arrancar (CPU int8 y luego 'small').
+        """
+        with self._lock:
+            self.model = None
+            gc.collect()
+            self._initialize()
+        return self.get_status()
+
+    def _initialize(self) -> None:
+        model_size = self.configured_model_size()
+        # Lo que se pidio, aunque luego se cargue un respaldo: asi se distingue "cargando" de "no se pudo cargar".
+        self.requested_model_size = model_size
         device = getattr(settings, 'WHISPER_DEVICE', 'auto')
         compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
         cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)
@@ -276,4 +296,5 @@ class WhisperEngine:
             "device": getattr(self, 'device_used', 'unknown'),
             "compute_type": getattr(self, 'compute_type_used', 'unknown'),
             "model_loaded": getattr(self, 'model', None) is not None,
+            "requested": getattr(self, 'requested_model_size', None),
         }

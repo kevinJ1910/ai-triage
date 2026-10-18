@@ -28,12 +28,17 @@ class EngineStatusView(APIView):
             "inference_mode": "worker" if worker_mode() else "inline",
             "asr": {
                 "model_loaded": bool(asr.get("model_loaded")),
+                "loading": bool(asr.get("loading")),
                 "model_size": asr.get("model_size"),
                 "device": asr.get("device"),
                 "compute_type": asr.get("compute_type"),
+                "configured": config.active_asr_model,
+                "requested": asr.get("requested"),
             },
             "ner": {
                 "model_loaded": bool(ner.get("model_loaded")),
+                # 'catalogo' desactiva RoBERTa en el analisis aunque el modelo siga cargado en el worker.
+                "active": bool(ner.get("model_loaded")) and config.active_ner_model != 'catalogo',
                 "mode": config.active_ner_model,
                 # Nombre de la carpeta del modelo; se lee del estado publicado sin cargar el modelo aqui.
                 "engine": os.path.basename(str(ner.get("source") or "").rstrip("/")) or None,
@@ -160,9 +165,17 @@ class SystemConfigView(APIView):
             return Response(getattr(e, 'detail', {"detail": str(e)}), status=status.HTTP_400_BAD_REQUEST)
 
         config = SystemConfiguration.get_solo()
+        previous_asr = config.active_asr_model
         serializer = SystemConfigurationSerializer(config, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            # El LLM y el modo NER se leen en cada analisis; Whisper se carga una vez en el worker ASR,
+            # asi que un cambio de motor ASR se aplica recargando el modelo alli.
+            asr_reload = None
+            if config.active_asr_model != previous_asr:
+                from transcription.tasks import request_asr_reload
+                asr_reload = "encolada" if request_asr_reload() else "no disponible"
 
             AuditLog.objects.create(
                 user=request.user,
@@ -174,7 +187,8 @@ class SystemConfigView(APIView):
 
             return Response({
                 "message": "Configuracion guardada exitosamente.",
-                "config": serializer.data
+                "config": serializer.data,
+                "asr_reload": asr_reload,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

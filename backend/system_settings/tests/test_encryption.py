@@ -170,6 +170,28 @@ class TestSystemSettingsAndEncryption:
         self.client.force_authenticate(user=None)
         assert self.client.get("/api/config/engines/").status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_engine_status_reflects_catalog_mode_and_asr_reload(self, mocker):
+        from django.core.cache import cache
+        from transcription.tasks import ASR_STATUS_KEY
+        mocker.patch("triage.ner_model.get_ner_status", return_value={"model_loaded": True, "source": "/m/ai_triage_ner"})
+        self.client.force_authenticate(user=self.admin)
+        assert self.client.get("/api/config/engines/").data["ner"]["active"] is True
+
+        reload_request = mocker.patch("transcription.tasks.request_asr_reload", return_value=True)
+        response = self.client.post("/api/config/", {"active_ner_model": "catalogo"}, format="json")
+        assert response.data["asr_reload"] is None  # el NER no necesita recargar nada
+        reload_request.assert_not_called()
+        ner = self.client.get("/api/config/engines/").data["ner"]
+        assert ner["model_loaded"] is True and ner["active"] is False and ner["mode"] == "catalogo"
+
+        response = self.client.post("/api/config/", {"active_asr_model": "base"}, format="json")
+        assert response.data["asr_reload"] == "encolada"
+        reload_request.assert_called_once()
+        cache.set(ASR_STATUS_KEY, {"model_loaded": True, "model_size": "small", "device": "cpu", "loading": True})
+        mocker.patch("transcription.tasks.worker_mode", return_value=True)
+        asr = self.client.get("/api/config/engines/").data["asr"]
+        assert asr["loading"] is True and asr["configured"] == "base"
+
     def test_sync_environment_api_keys_registers_env_vars(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyTestFromEnv1234567890")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-TestFromEnv1234567890abcdef")

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ExplainabilityPanel from '../../components/ExplainabilityPanel';
-import EngineStatus from '../../components/EngineStatus';
+import EngineStatus, { ENGINES_CHANGED_EVENT } from '../../components/EngineStatus';
 import EvaluationResults from '../../components/EvaluationResults';
 
 const analysis = {
@@ -72,6 +72,40 @@ describe('EngineStatus', () => {
     expect(screen.getByText('Sin clave: reglas')).toBeInTheDocument();
     const urls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) => String(url));
     expect(urls.some(url => url.includes('/api/config/engines/'))).toBe(true);
+  });
+});
+
+describe('EngineStatus tras cambiar la configuración', () => {
+  const status = (asr: object, ner: object) => ({
+    ok: true, status: 200,
+    json: async () => ({ inference_mode: 'worker', asr, ner, llm: { configured: true, model: 'gemini-2.5-flash' } }),
+  } as Response);
+
+  it('muestra el modo solo catálogo aunque RoBERTa siga cargado y la recarga del ASR', async () => {
+    global.fetch = vi.fn().mockResolvedValue(status(
+      { model_loaded: true, loading: false, model_size: 'small', device: 'cpu', configured: 'base', requested: 'small' },
+      { model_loaded: true, active: false, mode: 'catalogo' },
+    ));
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Solo catálogo y LLM')).toBeInTheDocument());
+    expect(screen.getByText('Cargando Whisper base…')).toBeInTheDocument();
+  });
+
+  it('se refresca al guardar la configuración y avisa si se cargó un respaldo', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(status(
+      { model_loaded: true, model_size: 'small', device: 'cpu', configured: 'auto', requested: 'small' },
+      { model_loaded: true, active: true, mode: 'auto' },
+    ));
+    global.fetch = fetchMock;
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Whisper small · CPU')).toBeInTheDocument());
+
+    fetchMock.mockResolvedValue(status(
+      { model_loaded: true, model_size: 'small', device: 'cpu', configured: 'large-v3', requested: 'large-v3' },
+      { model_loaded: true, active: true, mode: 'auto' },
+    ));
+    window.dispatchEvent(new Event(ENGINES_CHANGED_EVENT));
+    await waitFor(() => expect(screen.getByTitle(/No se pudo cargar Whisper large-v3/)).toBeInTheDocument());
   });
 });
 

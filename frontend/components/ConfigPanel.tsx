@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api';
+import { ENGINES_CHANGED_EVENT } from '@/components/EngineStatus';
 
 interface APIKeyItem {
   id: number;
@@ -148,7 +149,15 @@ export default function ConfigPanel() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Error al guardar');
-      toast.success('Modelos de inferencia actualizados satisfactoriamente');
+      if (data.asr_reload === 'encolada') {
+        toast.success('Modelos actualizados. El worker ASR está cargando el nuevo modelo de Whisper.');
+      } else if (data.asr_reload === 'no disponible') {
+        toast.warning('Modelos guardados, pero el worker ASR no recibió la orden de recarga: se aplicará al reiniciarlo.');
+      } else {
+        toast.success('Modelos de inferencia actualizados satisfactoriamente');
+      }
+      // El estado de los motores de la barra lateral se refresca sin esperar a su sondeo.
+      window.dispatchEvent(new Event(ENGINES_CHANGED_EVENT));
     } catch (err: any) {
       toast.error(err.message || 'Fallo al guardar configuracion');
     } finally {
@@ -367,7 +376,7 @@ export default function ConfigPanel() {
                 ))}
               </select>
               <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
-                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8. El cambio de modelo se aplica al reiniciar el worker ASR.
+                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8. Al guardar, el worker ASR recarga el modelo sin reiniciarse (la primera vez que se usa un modelo lo descarga, y puede tardar).
               </span>
             </div>
 

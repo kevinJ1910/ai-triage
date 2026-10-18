@@ -28,6 +28,34 @@ def transcribe_audio_chunk(audio_b64: str, session_id: str) -> dict:
 
 
 @shared_task
+def reload_asr_model() -> dict:
+    """
+    Recarga Whisper con el modelo de Configuracion y publica el estado. La encola la vista de configuracion
+    cuando cambia el motor ASR; corre en el worker ASR, que procesa las tareas de una en una.
+    """
+    if not worker_mode() and WhisperEngine._instance is None:
+        # En linea y sin modelo cargado todavia: se cargara con la configuracion nueva al primer uso.
+        return {"model_loaded": False, "detail": "modelo aun no cargado"}
+    previous = cache.get(ASR_STATUS_KEY) or {}
+    cache.set(ASR_STATUS_KEY, {**previous, "loading": True, "model_size": WhisperEngine.configured_model_size()},
+              timeout=None)
+    status = WhisperEngine().reload()
+    cache.set(ASR_STATUS_KEY, status, timeout=None)
+    logger.info(f"Modelo ASR recargado: {status}")
+    return status
+
+
+def request_asr_reload() -> bool:
+    """Encola la recarga sin esperarla (la carga o descarga del modelo puede tardar). False si no hay broker."""
+    try:
+        reload_asr_model.apply_async(retry=False)
+        return True
+    except Exception as exc:
+        logger.warning(f"No se pudo encolar la recarga del modelo ASR: {exc}")
+        return False
+
+
+@shared_task
 def normalize_clinical_text_task(raw_text: str, custom_instruction: str = "") -> dict:
     return normalize_clinical_text(raw_text, custom_instruction)
 
@@ -50,7 +78,7 @@ def get_asr_status(load: bool = True) -> dict:
     """
     if not worker_mode():
         if load or WhisperEngine._instance is not None:
-            return WhisperEngine().get_status()
+            return {**WhisperEngine().get_status(), **({"loading": True} if cache.get(ASR_STATUS_KEY, {}).get("loading") else {})}
         return {"model_loaded": False, "device": "unknown", "detail": "modelo aun no cargado"}
     status = cache.get(ASR_STATUS_KEY)
     return status or {"model_loaded": False, "device": "unavailable", "detail": "worker ASR sin publicar estado"}

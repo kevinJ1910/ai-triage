@@ -267,6 +267,32 @@ class TestWhisperModelSelection:
         assert model_cls.call_args.kwargs["device"] == "cpu"
         assert engine.get_status()["model_size"] == "small"
 
+    @override_settings(WHISPER_MODEL_SIZE="small", WHISPER_DEVICE="cpu", WHISPER_COMPUTE_TYPE="int8")
+    def test_reload_applies_new_config_without_restarting(self, mocker):
+        from system_settings.models import SystemConfiguration
+        engine, model_cls = self._init_engine(mocker)
+        assert engine.get_status()["model_size"] == "small"
+        cfg = SystemConfiguration.get_solo()
+        cfg.active_asr_model = "base"
+        cfg.save()
+        status = engine.reload()
+        assert model_cls.call_args.args[0] == "base"
+        assert status["model_size"] == "base" and status["model_loaded"] is True
+        assert status["requested"] == "base"
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+    def test_reload_task_publishes_loading_then_new_status(self, mocker):
+        from transcription.tasks import reload_asr_model
+        cache.set(ASR_STATUS_KEY, {"model_loaded": True, "model_size": "small"})
+        published = []
+        mocker.patch("transcription.tasks.cache.set", side_effect=lambda key, value, timeout=None: published.append(value))
+        engine = mocker.patch("transcription.tasks.WhisperEngine")
+        engine.configured_model_size.return_value = "base"
+        engine.return_value.reload.return_value = {"model_loaded": True, "model_size": "base"}
+        assert reload_asr_model() == {"model_loaded": True, "model_size": "base"}
+        assert published[0]["loading"] is True and published[0]["model_size"] == "base"
+        assert published[-1] == {"model_loaded": True, "model_size": "base"}
+
     @override_settings(WHISPER_MODEL_SIZE="small")
     def test_explicit_admin_choice_overrides_environment(self, mocker):
         from system_settings.models import SystemConfiguration
