@@ -269,8 +269,10 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         - Matriz de confusion 5x5, deriva de severidad y retencion de sintomas
         Sin sesiones no se inventan valores: las metricas se devuelven como null.
         """
-        # Agregaciones en la base de datos: no se cargan todas las sesiones en memoria.
-        qs = TriageSession.objects.order_by()
+        # Agregaciones en la base de datos: no se cargan todas las sesiones en memoria. Los casos del corpus
+        # cargados para la validacion ciega (CORPUS-) no son pacientes reales y se resumen con export_blind_review.
+        from .blind_review_corpus import CORPUS_PREFIX
+        qs = TriageSession.objects.exclude(patient__document_id__startswith=CORPUS_PREFIX).order_by()
         matrix = _level_matrix(qs, 'ai_level', 'final_level')
         dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
         dist_phy = {lvl: sum(row[lvl - 1] for row in matrix) for lvl in range(1, 6)}
@@ -326,7 +328,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "is_modified": s.is_level_modified,
             "agreement_score": round(s.agreement_score * 100, 1),
             "date": local_strftime(s.created_at, '%Y-%m-%d %H:%M')
-        } for s in TriageSession.objects.select_related('patient').order_by('-created_at')[:10]]
+        } for s in qs.select_related('patient').order_by('-created_at')[:10]]
 
         return Response({
             "total_triages": total,
