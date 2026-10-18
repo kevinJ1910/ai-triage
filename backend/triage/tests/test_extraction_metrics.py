@@ -108,9 +108,11 @@ class TestCodeMetrics:
 
 
 class TestEvaluateExtractionCommand:
-    def _fake_analysis(self, transcript, use_cache, allow_llm, model, use_ner=None):
-        return {'triage': {'level': 1}, 'engine_used': f'LLM ({model})', 'total_tokens': 100,
-                'entities': {'symptoms': ['inconsciencia'], 'vitals': []}}
+    def _fake_analysis(self, transcript, use_cache, allow_llm, model, use_ner=None, **kwargs):
+        engine = f'LLM ({model})' if allow_llm else 'Motor de Reglas Clínico (Christus Sinergia)'
+        return {'triage': {'level': 1, 'justification': 'prueba'}, 'engine_used': engine, 'total_tokens': 100,
+                'llm_level': 1 if allow_llm else None, 'rule_level': 2, 'model_version': model,
+                'entities': {'symptoms': ['inconsciencia'], 'vitals': []}, 'llm_raw': '{"triage": {}}'}
 
     def test_gemini_engine_requires_model(self):
         with pytest.raises(CommandError, match='--model'):
@@ -124,8 +126,11 @@ class TestEvaluateExtractionCommand:
                      '--limit', '3', '--output', str(output), stdout=out, stderr=StringIO())
 
         assert analyzer.call_count == 3
+        from triage.ai_analyzer import PROMPT_VERSION
         assert analyzer.call_args.kwargs == {'use_cache': False, 'allow_llm': True, 'model': 'gemini-2.5-flash',
-                                             'use_ner': False}
+                                             'use_ner': False, 'strict_llm': True, 'include_raw': True,
+                                             'prompt_version': PROMPT_VERSION, 'rule_hint': True, 'rag': True,
+                                             'combine_policy': 'llm'}
         text = out.getvalue()
         assert 'Casos: 3 | Motor: gemini (gemini-2.5-flash) | Split: dev' in text
         detail = json.loads(output.read_text(encoding='utf-8'))
@@ -149,10 +154,9 @@ class TestEvaluateExtractionCommand:
         assert json.loads(output.read_text(encoding='utf-8'))['ner_engine'] == 'roberta:fake'
 
     def test_failed_llm_case_is_retried(self, mocker):
-        failed = {'triage': {'level': 4}, 'engine_used': 'Motor de Reglas Clínico (Christus Sinergia)',
-                  'entities': {}, 'total_tokens': 0}
-        ok = {'triage': {'level': 1}, 'engine_used': 'LLM (m)', 'entities': {}, 'total_tokens': 10}
-        analyzer = mocker.patch('triage.ai_analyzer.analyze_triage_transcript', side_effect=[failed, ok])
+        ok = {'triage': {'level': 1}, 'engine_used': 'LLM (m)', 'entities': {}, 'total_tokens': 10, 'llm_level': 1}
+        analyzer = mocker.patch('triage.ai_analyzer.analyze_triage_transcript',
+                                side_effect=[RuntimeError('503 UNAVAILABLE'), ok])
         sleep = mocker.patch('triage.management.commands.evaluate_extraction.time.sleep')
         output = StringIO()
         call_command('evaluate_extraction', '--engine', 'gemini', '--model', 'm', '--limit', '1',
@@ -160,6 +164,16 @@ class TestEvaluateExtractionCommand:
         assert analyzer.call_count == 2
         sleep.assert_called_once_with(7.0)
         assert 'fallos del LLM 0 (casos reintentados 1)' in output.getvalue()
+
+    def test_rules_fallback_is_never_counted_as_llm(self, mocker):
+        rules = {'triage': {'level': 4}, 'engine_used': 'Motor de Reglas Clínico (Christus Sinergia)',
+                 'entities': {}, 'total_tokens': 0}
+        mocker.patch('triage.ai_analyzer.analyze_triage_transcript', return_value=rules)
+        output = StringIO()
+        call_command('evaluate_extraction', '--engine', 'gemini', '--model', 'm', '--limit', '2', '--retries', '0',
+                     stdout=output, stderr=StringIO())
+        assert 'Casos: 0' in output.getvalue()
+        assert 'Corrida incompleta' in output.getvalue()
 
     def test_rules_engine_runs_offline(self, mocker):
         mocker.patch('triage.ai_analyzer._resolve_gemini_api_key', side_effect=AssertionError('no debe usar la red'))
@@ -192,7 +206,9 @@ class TestEvaluateBenchmarkOptions:
         out = StringIO()
         call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', '--model', 'gemini-3.8-flash',
                      '--split', 'dev', stdout=out)
-        analyzer.assert_called_once_with('dolor', use_cache=False, model='gemini-3.8-flash')
+        from triage.ai_analyzer import PROMPT_VERSION
+        analyzer.assert_called_once_with('dolor', use_cache=False, model='gemini-3.8-flash', strict_llm=True,
+                                         include_raw=True, combine_policy='llm', prompt_version=PROMPT_VERSION)
         assert 'Casos evaluados: 1' in out.getvalue()
         assert 'Tokens: 50' in out.getvalue()
 

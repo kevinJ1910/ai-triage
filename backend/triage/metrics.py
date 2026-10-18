@@ -2,7 +2,9 @@
 Metricas de concordancia IA vs medico para la escala ordinal de triaje (1 = mas urgente, 5 = menos urgente).
 Funciones puras sobre pares (ai_level, final_level) para poder probarlas sin base de datos.
 """
-from typing import Dict, Iterable, List, Optional, Tuple
+import random
+import statistics
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 LEVELS = (1, 2, 3, 4, 5)
 CRITICAL_LEVELS = (1, 2)
@@ -143,4 +145,119 @@ def triage_safety_metrics_from_matrix(matrix: List[List[int]]) -> Dict[str, Opti
         "critical_cases": critical,
         "critical_sensitivity": round(detected / critical * 100, 1) if critical else None,
         "critical_undertriage_count": critical - detected,
+    }
+
+
+# --- Intervalos de confianza por bootstrap y resumenes de evaluacion ---
+
+CI_METRICS = ('exact_agreement', 'cohen_kappa', 'critical_sensitivity', 'undertriage_rate', 'overtriage_rate')
+
+
+def _percentile_ci(values: List[float], alpha: float) -> Optional[Tuple[float, float]]:
+    if not values:
+        return None
+    values = sorted(values)
+    low = values[int((alpha / 2) * (len(values) - 1))]
+    high = values[int((1 - alpha / 2) * (len(values) - 1))]
+    return round(low, 3), round(high, 3)
+
+
+def bootstrap_many(items: Sequence[Any], statistic: Callable[[Sequence[Any]], Dict[str, Optional[float]]],
+                   keys: Sequence[str], n_resamples: int = 1000, alpha: float = 0.05,
+                   seed: int = 0) -> Dict[str, Optional[Tuple[float, float]]]:
+    """
+    IC percentil (1 - alpha) de varias estadisticas a la vez, remuestreando los casos con reemplazo.
+    Con la misma semilla usa los mismos remuestreos que bootstrap_ci, asi que sus IC coinciden.
+    """
+    if not items:
+        return {key: None for key in keys}
+    rng = random.Random(seed)
+    collected: Dict[str, List[float]] = {key: [] for key in keys}
+    for _ in range(n_resamples):
+        sample = [items[rng.randrange(len(items))] for _ in items]
+        values = statistic(sample)
+        for key in keys:
+            if values.get(key) is not None:
+                collected[key].append(values[key])
+    return {key: _percentile_ci(collected[key], alpha) for key in keys}
+
+
+def bootstrap_ci(items: Sequence[Any], statistic: Callable[[Sequence[Any]], Optional[float]],
+                 n_resamples: int = 1000, alpha: float = 0.05, seed: int = 0) -> Optional[Tuple[float, float]]:
+    """Intervalo de confianza percentil (1 - alpha) remuestreando los casos con reemplazo."""
+    return bootstrap_many(items, lambda sample: {'v': statistic(sample)}, ('v',), n_resamples, alpha, seed)['v']
+
+
+def triage_summary(pairs: List[Tuple[int, int]], n_resamples: int = 1000) -> Dict[str, Any]:
+    """
+    Concordancia contra la referencia (reference_agreement) con IC95 bootstrap de la exactitud, el Kappa
+    ponderado cuadratico, la sensibilidad en niveles 1-2 y las tasas de infratriaje y sobretriaje.
+    """
+    summary = reference_agreement(pairs)
+    cis = bootstrap_many(pairs, lambda sample: reference_agreement(list(sample)), CI_METRICS, n_resamples)
+    for key in CI_METRICS:
+        summary[f'{key}_ci95'] = cis[key]
+    return summary
+
+
+def triage_breakdown(results: Sequence[Dict[str, Any]], key: str, min_n_for_ci: int = 20) -> Dict[str, Any]:
+    """Metricas de triaje por grupo (tipo, lote, sexo...). Con menos de min_n_for_ci casos no se dan IC."""
+    groups: Dict[str, List[Tuple[int, int]]] = {}
+    for r in results:
+        groups.setdefault(str(r.get(key)), []).append((r['predicted_level'], r['reference_level']))
+    out = {}
+    for group in sorted(groups):
+        pairs = groups[group]
+        full = triage_summary(pairs) if len(pairs) >= min_n_for_ci else reference_agreement(pairs)
+        out[group] = {k: full.get(k) for k in ('n', 'exact_agreement', 'cohen_kappa', 'critical_cases',
+                                               'critical_sensitivity', 'undertriage_rate', 'overtriage_rate')}
+        if len(pairs) >= min_n_for_ci:
+            out[group].update({f'{k}_ci95': full[f'{k}_ci95'] for k in CI_METRICS})
+    return out
+
+
+def critical_undertriage(results: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Casos criticos (referencia 1-2) clasificados como 3-5, ordenados por la distancia del error."""
+    misses = []
+    for r in results:
+        if r['reference_level'] in CRITICAL_LEVELS and r['predicted_level'] not in CRITICAL_LEVELS:
+            misses.append({
+                'id': r['id'], 'tipo': r.get('tipo'), 'lote': r.get('lote'),
+                'reference_level': r['reference_level'], 'predicted_level': r['predicted_level'],
+                'llm_level': r.get('llm_level'), 'rule_level': r.get('rule_level'),
+                'distance': r['predicted_level'] - r['reference_level'],
+                'justification': r.get('justification'),
+            })
+    return sorted(misses, key=lambda m: (-m['distance'], m['id']))
+
+
+def paired_bootstrap_diff(triples: Sequence[Tuple[int, int, int]], metric: str, n_resamples: int = 1000,
+                          seed: int = 0) -> Dict[str, Any]:
+    """
+    Diferencia de una metrica de reference_agreement entre dos motores evaluados sobre los mismos casos.
+    triples: (nivel_motor_a, nivel_motor_b, nivel_referencia). Devuelve a - b con su IC95 pareado.
+    """
+    def stat(sample):
+        a = reference_agreement([(t[0], t[2]) for t in sample])[metric]
+        b = reference_agreement([(t[1], t[2]) for t in sample])[metric]
+        return {'diff': None if a is None or b is None else a - b}
+
+    point = stat(list(triples))['diff']
+    return {
+        'metric': metric,
+        'n': len(triples),
+        'diff': round(point, 3) if point is not None else None,
+        'ci95': bootstrap_many(list(triples), stat, ('diff',), n_resamples, seed=seed)['diff'],
+    }
+
+
+def mean_ci(values: Sequence[float], n_resamples: int = 1000, seed: int = 0) -> Dict[str, Any]:
+    """Media con IC95 bootstrap (p. ej. valoraciones Likert)."""
+    values = [v for v in values if v is not None]
+    if not values:
+        return {'n': 0, 'mean': None, 'ci95': None}
+    return {
+        'n': len(values),
+        'mean': round(statistics.mean(values), 2),
+        'ci95': bootstrap_ci(values, lambda sample: statistics.mean(sample), n_resamples, seed=seed),
     }
