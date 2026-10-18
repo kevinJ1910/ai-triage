@@ -76,5 +76,9 @@ class Command(BaseCommand):
         self.stdout.write(f"Comparativa guardada en {output}")
         if not options['no_markdown']:
             doc = options.get('markdown') or Path(settings.BASE_DIR).parent / 'docs' / 'EVALUACION_TRIAJE.md'
+            if not doc.parent.is_dir():
+                # En Docker solo se monta backend/: la tabla se actualiza ejecutando el comando en el host.
+                self.stdout.write(self.style.WARNING(f"No existe {doc.parent}: no se actualiza el documento"))
+                return
             write_markdown_section(doc, split, table)
             self.stdout.write(f"Tabla actualizada en {doc}")

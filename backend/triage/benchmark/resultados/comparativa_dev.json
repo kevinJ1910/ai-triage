@@ -4,6 +4,84 @@
     "baseline": "dev_reglas_lotes",
     "rows": [
       {
+        "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1",
+        "label": "LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER)",
+        "engine": "hibrido",
+        "model": "local:qwen2.5:7b-instruct-q4_K_M",
+        "model_versions": [
+          "qwen2.5:7b-instruct-q4_K_M"
+        ],
+        "prompt_version": "v1",
+        "policy": "llm",
+        "n": 150,
+        "exact_agreement": 50.0,
+        "exact_agreement_ci95": [
+          41.3,
+          58.0
+        ],
+        "cohen_kappa": 0.487,
+        "cohen_kappa_ci95": [
+          0.357,
+          0.609
+        ],
+        "critical_sensitivity": 50.0,
+        "critical_sensitivity_ci95": [
+          36.8,
+          62.5
+        ],
+        "undertriage_rate": 46.7,
+        "undertriage_rate_ci95": [
+          38.0,
+          54.7
+        ],
+        "overtriage_rate": 3.3,
+        "critical_undertriage_count": 30,
+        "latency_ms_p50": 45150,
+        "latency_ms_p95": 55070,
+        "hardware": "CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      },
+      {
+        "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1_min-critico",
+        "label": "LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER)",
+        "engine": "hibrido",
+        "model": "local:qwen2.5:7b-instruct-q4_K_M",
+        "model_versions": [
+          "qwen2.5:7b-instruct-q4_K_M"
+        ],
+        "prompt_version": "v1",
+        "policy": "min_critico",
+        "n": 150,
+        "exact_agreement": 51.3,
+        "exact_agreement_ci95": [
+          42.7,
+          59.3
+        ],
+        "cohen_kappa": 0.497,
+        "cohen_kappa_ci95": [
+          0.365,
+          0.619
+        ],
+        "critical_sensitivity": 51.7,
+        "critical_sensitivity_ci95": [
+          39.0,
+          64.0
+        ],
+        "undertriage_rate": 44.7,
+        "undertriage_rate_ci95": [
+          36.7,
+          53.3
+        ],
+        "overtriage_rate": 4.0,
+        "critical_undertriage_count": 29,
+        "latency_ms_p50": 45150,
+        "latency_ms_p95": 55070,
+        "hardware": "CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      },
+      {
         "name": "dev_reglas_lotes",
         "label": "Reglas (Christus Sinergia / Res. 5596)",
         "engine": "reglas",
@@ -41,8 +119,571 @@
         "privacy": "local (los datos no salen del servidor)"
       }
     ],
-    "paired": [],
+    "paired": [
+      {
+        "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1",
+        "baseline": "dev_reglas_lotes",
+        "n": 150,
+        "metrics": {
+          "exact_agreement": {
+            "metric": "exact_agreement",
+            "n": 150,
+            "diff": 6.7,
+            "ci95": [
+              2.0,
+              11.4
+            ]
+          },
+          "cohen_kappa": {
+            "metric": "cohen_kappa",
+            "n": 150,
+            "diff": 0.232,
+            "ci95": [
+              0.125,
+              0.344
+            ]
+          },
+          "critical_sensitivity": {
+            "metric": "critical_sensitivity",
+            "n": 150,
+            "diff": 20.0,
+            "ci95": [
+              8.4,
+              31.5
+            ]
+          },
+          "undertriage_rate": {
+            "metric": "undertriage_rate",
+            "n": 150,
+            "diff": -7.3,
+            "ci95": [
+              -12.6,
+              -2.0
+            ]
+          }
+        }
+      },
+      {
+        "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1_min-critico",
+        "baseline": "dev_reglas_lotes",
+        "n": 150,
+        "metrics": {
+          "exact_agreement": {
+            "metric": "exact_agreement",
+            "n": 150,
+            "diff": 8.0,
+            "ci95": [
+              4.0,
+              12.7
+            ]
+          },
+          "cohen_kappa": {
+            "metric": "cohen_kappa",
+            "n": 150,
+            "diff": 0.242,
+            "ci95": [
+              0.137,
+              0.355
+            ]
+          },
+          "critical_sensitivity": {
+            "metric": "critical_sensitivity",
+            "n": 150,
+            "diff": 21.7,
+            "ci95": [
+              11.7,
+              32.7
+            ]
+          },
+          "undertriage_rate": {
+            "metric": "undertriage_rate",
+            "n": 150,
+            "diff": -9.3,
+            "ci95": [
+              -14.0,
+              -5.3
+            ]
+          }
+        }
+      }
+    ],
     "critical_misses": {
+      "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1": [
+        {
+          "id": "B005",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B006",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N002",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N057",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N059",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N061",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N065",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N072",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N076",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N077",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B020",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B026",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N087",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N088",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N101",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N102",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 4,
+          "distance": 3
+        },
+        {
+          "id": "N106",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N107",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N011",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 2
+        },
+        {
+          "id": "N014",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N017",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N018",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N071",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 3,
+          "distance": 2
+        },
+        {
+          "id": "N093",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N095",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N105",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "B024",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N015",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N100",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N104",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 1,
+          "distance": 1
+        }
+      ],
+      "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1_min-critico": [
+        {
+          "id": "B005",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B006",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N002",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N057",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N059",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N061",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N065",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N072",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N076",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N077",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B020",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B026",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N087",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N088",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N101",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N102",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 4,
+          "distance": 3
+        },
+        {
+          "id": "N106",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N107",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N011",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 2
+        },
+        {
+          "id": "N014",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N017",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N018",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N071",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 3,
+          "distance": 2
+        },
+        {
+          "id": "N093",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N095",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N105",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "B024",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N015",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N100",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        }
+      ],
       "dev_reglas_lotes": [
         {
           "id": "B004",
@@ -382,6 +1023,6 @@
         }
       ]
     },
-    "generated_at": "2026-10-18T20:54:56+00:00"
+    "generated_at": "2026-10-18T23:21:16+00:00"
   }
 }

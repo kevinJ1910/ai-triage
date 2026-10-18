@@ -217,5 +217,4 @@ def write_markdown_section(path: Path, split: str, table: str) -> None:
         text = pattern.sub(lambda _: block, text)
     else:
         text = text.rstrip('\n') + ('\n\n' if text else '') + block + '\n'
-    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding='utf-8', newline='\n')

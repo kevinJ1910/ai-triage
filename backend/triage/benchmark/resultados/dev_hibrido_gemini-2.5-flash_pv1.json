@@ -1,0 +1,1300 @@
+{
+  "engine": "hibrido",
+  "model": "gemini-2.5-flash",
+  "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+  "split": "dev",
+  "match": "relaxed",
+  "corpus": "corpus_entidades.json",
+  "complete": false,
+  "cases_expected": 150,
+  "run": {
+    "run_id": "dev_hibrido_gemini-2.5-flash_pv1",
+    "engine": "hibrido",
+    "model": "gemini-2.5-flash",
+    "model_versions": [
+      "gemini-2.5-flash"
+    ],
+    "prompt_version": "v1",
+    "prompt_sha256": "06e56653b71e295a3131e9651a90d14828e670b424925653198b7664806a8c4e",
+    "rule_hint": true,
+    "rag": true,
+    "policy": "llm",
+    "temperature": 0.1,
+    "thinking": "por defecto del modelo",
+    "tier": "gratuito",
+    "privacy": "nube (texto seudonimizado)",
+    "corpus": "corpus_entidades.json",
+    "corpus_sha256": "6b5043b2871c180b23f584beec4fc4629c94eddc05e5ddf888c3fcc4dde223bd",
+    "git_commit": null,
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "processor": "x86_64",
+    "python": "3.12.15",
+    "hardware": "Docker CPU (AMD Ryzen, equipo de Kevin)",
+    "prices": {
+      "checked_at": "2026-10-18",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "usd_per_million": {
+        "input": 0.3,
+        "output": 2.5
+      }
+    },
+    "generated_at": "2026-10-18T21:11:20+00:00"
+  },
+  "entities": {
+    "by_type": {
+      "symptoms": {
+        "tp": 15,
+        "fp": 3,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": 0.833,
+        "recall": 1.0,
+        "f1": 0.909
+      },
+      "diagnoses": {
+        "tp": 6,
+        "fp": 5,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": 0.545,
+        "recall": 1.0,
+        "f1": 0.706
+      },
+      "medications": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "allergies": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": null,
+        "f1": null
+      },
+      "vitals": {
+        "tp": 2,
+        "fp": 1,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": 0.667,
+        "recall": 1.0,
+        "f1": 0.8
+      },
+      "history": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "micro": {
+      "tp": 24,
+      "fp": 9,
+      "fn": 0,
+      "precision": 0.727,
+      "recall": 1.0,
+      "f1": 0.842
+    },
+    "macro_f1": 0.854,
+    "negation": {
+      "negated_gold": 0,
+      "negation_accuracy": null,
+      "negation_errors": 0,
+      "negated_detection_recall": null
+    },
+    "micro_f1_ci95": [
+      0.756,
+      0.914
+    ],
+    "normalization": {
+      "coded_gold": 12,
+      "code_hits": 12,
+      "cie10_accuracy": 1.0
+    },
+    "by_lote": {
+      "1": {
+        "tp": 24,
+        "fp": 9,
+        "fn": 0,
+        "precision": 0.727,
+        "recall": 1.0,
+        "f1": 0.842
+      }
+    }
+  },
+  "triage": {
+    "n": 10,
+    "exact_agreement": 100.0,
+    "cohen_kappa": 1.0,
+    "kappa_interpretation": "Concordancia casi perfecta",
+    "undertriage_rate": 0.0,
+    "overtriage_rate": 0.0,
+    "critical_cases": 10,
+    "critical_sensitivity": 100.0,
+    "critical_undertriage_count": 0,
+    "confusion_matrix": [
+      [
+        6,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        4,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "exact_agreement_ci95": [
+      100.0,
+      100.0
+    ],
+    "cohen_kappa_ci95": [
+      1.0,
+      1.0
+    ],
+    "critical_sensitivity_ci95": [
+      100.0,
+      100.0
+    ],
+    "undertriage_rate_ci95": [
+      0.0,
+      0.0
+    ],
+    "overtriage_rate_ci95": [
+      0.0,
+      0.0
+    ],
+    "by_tipo": {
+      "coloquial": {
+        "n": 6,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 6,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "signos_vitales": {
+        "n": 2,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 2,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "tipico": {
+        "n": 2,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 2,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      }
+    },
+    "by_lote": {
+      "1": {
+        "n": 10,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 10,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      }
+    },
+    "by_sexo": {
+      "desconocido": {
+        "n": 6,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 6,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "femenino": {
+        "n": 2,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 2,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "masculino": {
+        "n": 2,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 2,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      }
+    },
+    "by_grupo_edad": {
+      "adulto": {
+        "n": 1,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 1,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "desconocido": {
+        "n": 8,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 8,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      },
+      "pediatrico": {
+        "n": 1,
+        "exact_agreement": 100.0,
+        "cohen_kappa": 1.0,
+        "critical_cases": 1,
+        "critical_sensitivity": 100.0,
+        "undertriage_rate": 0.0,
+        "overtriage_rate": 0.0
+      }
+    },
+    "critical_undertriage": []
+  },
+  "performance": {
+    "latency_ms_mean": 6283,
+    "latency_ms_p50": 5485,
+    "latency_ms_p95": 9029,
+    "prompt_tokens_mean": 495.3,
+    "completion_tokens_mean": 282.9,
+    "thoughts_tokens_mean": 853.7,
+    "total_tokens_mean": 1631.9,
+    "tokens_mean": 1631.9,
+    "tokens_total": 16319,
+    "cost_usd": 0.0299,
+    "cost_usd_per_1000": 2.99,
+    "llm_failures": 0,
+    "retried_cases": 0,
+    "pending_cases": 140
+  },
+  "cases": [
+    {
+      "id": "B002",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 1,
+      "predicted_entities": {
+        "symptoms": [
+          "inconsciencia",
+          "no abre los ojos ni responde al dolor",
+          "no responde al dolor"
+        ],
+        "diagnoses": [
+          "accidente de tránsito"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 9004,
+      "llm_latency_ms": 8580,
+      "prompt_tokens": 500,
+      "completion_tokens": 266,
+      "thoughts_tokens": 893,
+      "total_tokens": 1659,
+      "justification": "Paciente inconsciente y sin respuesta a estímulos dolorosos, indicativo de coma profundo (Glasgow <= 8), lo que clasifica como Triage 1 según criterios institucionales.",
+      "predicted_codes": [
+        "R40.2",
+        "V89.2",
+        "R52.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:09:16+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "B004",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "hemorragia profusa",
+          "palidez",
+          "frío"
+        ],
+        "diagnoses": [
+          "Herida por arma blanca en el abdomen",
+          "herida por arma cortopunzante en el abdomen"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5485,
+      "llm_latency_ms": 5378,
+      "prompt_tokens": 551,
+      "completion_tokens": 310,
+      "thoughts_tokens": 617,
+      "total_tokens": 1478,
+      "justification": "Paciente con herida penetrante en el abdomen (herida por arma blanca) y hemorragia profusa, presentando signos de hipoperfusión (palidez y frío), lo que constituye una emergencia vital que requiere atención inmediata según los criterios de Reanimación (herida penetrante de tórax/abdomen y hemorragia masiva exanguinante activa).",
+      "predicted_codes": [
+        "T14.1",
+        "R58",
+        "R23.1"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:09:25+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "B005",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [],
+        "diagnoses": [
+          "amputó el brazo derecho",
+          "amputación traumática del brazo derecho"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 4527,
+      "llm_latency_ms": 4394,
+      "prompt_tokens": 415,
+      "completion_tokens": 253,
+      "thoughts_tokens": 615,
+      "total_tokens": 1283,
+      "justification": "Paciente presenta amputación traumática mayor de miembro superior (brazo derecho), lo que es un criterio directo para Triage 1 (Reanimación) según los protocolos institucionales de CHRISTUS SINERGIA SALUD.",
+      "predicted_codes": [
+        "T14.7"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:09:38+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 0,
+        "code_hits": 0
+      }
+    },
+    {
+      "id": "B006",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "coronamiento fetal",
+          "pujo materno"
+        ],
+        "diagnoses": [
+          "Embarazada de 39 semanas",
+          "gestación de 39 semanas"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6853,
+      "llm_latency_ms": 6765,
+      "prompt_tokens": 536,
+      "completion_tokens": 280,
+      "thoughts_tokens": 1118,
+      "total_tokens": 1934,
+      "justification": "Paciente en gestación de 39 semanas con signos de parto inminente (coronamiento fetal y pujo materno), lo que constituye una emergencia obstétrica que requiere atención médica inmediata para garantizar la seguridad de la madre y el recién nacido.",
+      "predicted_codes": [
+        "Z33"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:09:53+00:00",
+      "llm_level": 1,
+      "sexo": "femenino",
+      "grupo_edad": "pediatrico",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 0,
+        "code_hits": 0
+      }
+    },
+    {
+      "id": "B007",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [],
+        "diagnoses": [
+          "quemaduras en casi todo el cuerpo",
+          "quemadura"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 9029,
+      "llm_latency_ms": 8937,
+      "prompt_tokens": 449,
+      "completion_tokens": 266,
+      "thoughts_tokens": 1323,
+      "total_tokens": 2038,
+      "justification": "Paciente con quemaduras extensas en casi todo el cuerpo por incendio, lo que representa una lesión grave con riesgo inminente para la vida, incluyendo compromiso de la vía aérea, shock y dolor severo. Requiere atención inmediata para estabilización.",
+      "predicted_codes": [
+        "T30.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:10:08+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 0,
+        "code_hits": 0
+      }
+    },
+    {
+      "id": "B009",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "lote": 1,
+      "reference_level": 1,
+      "predicted_level": 1,
+      "rule_level": 1,
+      "predicted_entities": {
+        "symptoms": [
+          "inconsciencia"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "T: 27°C"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5147,
+      "llm_latency_ms": 5053,
+      "prompt_tokens": 454,
+      "completion_tokens": 274,
+      "thoughts_tokens": 699,
+      "total_tokens": 1427,
+      "justification": "Paciente con temperatura corporal de 27°C, lo cual es menor a 32°C, indicando hipotermia severa que requiere reanimación inmediata según el protocolo de Triage 1 por signos vitales de Christus Sinergia Salud.",
+      "predicted_codes": [
+        "R40.2"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:10:18+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "B014",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor torácico opresivo",
+          "diaforesis",
+          "se le irradia al brazo izquierdo",
+          "irradiación a miembro superior izquierdo"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6435,
+      "llm_latency_ms": 6336,
+      "prompt_tokens": 529,
+      "completion_tokens": 313,
+      "thoughts_tokens": 888,
+      "total_tokens": 1730,
+      "justification": "Paciente masculino de 58 años con dolor torácico opresivo, diaforesis e irradiación a miembro superior izquierdo, lo que sugiere un Síndrome Coronario Agudo y cumple con los criterios de Triage 2 para dolor torácico con signos de alarma.",
+      "predicted_codes": [
+        "R07.4",
+        "R61.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:10:32+00:00",
+      "llm_level": 2,
+      "sexo": "masculino",
+      "grupo_edad": "adulto",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "B015",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "crisis convulsiva",
+          "somnolencia",
+          "convulsión"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "Sin reporte"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 4760,
+      "llm_latency_ms": 4684,
+      "prompt_tokens": 476,
+      "completion_tokens": 283,
+      "thoughts_tokens": 706,
+      "total_tokens": 1465,
+      "justification": "Paciente pediátrico con antecedente de convulsión reciente y somnolencia persistente (período postictal prolongado o alteración neurológica), lo que cumple con el criterio de Triage 2 para estado convulsivo o alteración neurológica persistente.",
+      "predicted_codes": [
+        "R56.8",
+        "R40.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:10:44+00:00",
+      "llm_level": 2,
+      "sexo": "masculino",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "B017",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "taquipnea",
+          "vómito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "GLU: 520 mg/dL"
+        ],
+        "history": [
+          "diabetes mellitus"
+        ],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6575,
+      "llm_latency_ms": 6486,
+      "prompt_tokens": 549,
+      "completion_tokens": 321,
+      "thoughts_tokens": 961,
+      "total_tokens": 1831,
+      "justification": "Paciente con diabetes mellitus y glucometría de 520 mg/dL, lo que indica una descompensación diabética aguda (estado hiperosmolar) con riesgo de rápido deterioro vital, cumpliendo el criterio de glucemia \"> 350 mg/dL\" y \"≥ 400 mg/dL\" para Triage 2.",
+      "predicted_codes": [
+        "E14.9",
+        "R11"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:10:59+00:00",
+      "llm_level": 2,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "B020",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [],
+        "diagnoses": [
+          "intoxicación medicamentosa",
+          "intento de autolesión"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5017,
+      "llm_latency_ms": 4930,
+      "prompt_tokens": 494,
+      "completion_tokens": 263,
+      "thoughts_tokens": 717,
+      "total_tokens": 1474,
+      "justification": "Paciente con ingestión de sobredosis medicamentosa y antecedente de intento de autolesión, lo cual cumple con los criterios de triaje nivel 2 para emergencia médica y psiquiátrica.",
+      "predicted_codes": [
+        "T50.9",
+        "X84"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-18T21:11:10+00:00",
+      "llm_level": 2,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    }
+  ]
+}

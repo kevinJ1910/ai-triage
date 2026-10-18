@@ -126,7 +126,9 @@ python manage.py evaluate_extraction --engine hibrido --model local:qwen2.5:7b-i
 
 **Modelo principal:** Qwen2.5-7B-Instruct en Q4_K_M (licencia Apache-2.0, buen desempeño en español). **Alternativa:** Llama-3.1-8B-Instruct en Q4_K_M (licencia Llama Community, que hay que citar).
 
-El LLM local usa el prompt y la política congelados con Gemini, sin ajuste propio, para que la comparación sea justa. Fuera de Docker se arranca Ollama nativo con `LOCAL_LLM_BASE_URL=http://localhost:11434`.
+El LLM local usa el prompt y la política congelados con Gemini, sin ajuste propio, para que la comparación sea justa.
+
+Ollama impone la estructura del esquema, pero no sus límites numéricos. En la corrida de *dev* del 18-10-2026, Qwen devolvió la confianza en porcentaje (`95` en vez de `0.95`) en 40 de 150 casos. `_coerce_llm_output` la divide entre 100 antes de validar y lo deja anotado en `output_coerced` y en `performance.coerced_cases`. El nivel de triaje nunca se modifica, y una confianza mayor que 100 sigue siendo inválida. Fuera de Docker se arranca Ollama nativo con `LOCAL_LLM_BASE_URL=http://localhost:11434`.
 
 Para usarlo desde la interfaz, se elige «LLM local» en Configuración. En CPU hay que subir `LLM_TASK_TIMEOUT` por encima de `LOCAL_LLM_TIMEOUT_SECONDS`.
 
@@ -166,10 +168,21 @@ Split **dev**. Intervalos de confianza al 95 % por bootstrap (1.000 remuestreos)
 
 | Motor | n | Exactitud | Kappa ponderado | Sensibilidad I–II | Infratriaje | Sobretriaje | Latencia p50 / p95 | Costo por 1.000 | Privacidad |
 | :--- | ---: | :--- | :--- | :--- | :--- | ---: | :--- | ---: | :--- |
+| LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 50,0 % [41,3–58,0] | 0,487 [0,357–0,609] | 50,0 % [36,8–62,5] | 46,7 % [38,0–54,7] | 3,3 % | 45150 / 55070 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
+| LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER) | 150 | 51,3 % [42,7–59,3] | 0,497 [0,365–0,619] | 51,7 % [39,0–64,0] | 44,7 % [36,7–53,3] | 4,0 % | 45150 / 55070 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
 | Reglas (Christus Sinergia / Res. 5596) | 150 | 43,3 % [35,3–51,3] | 0,255 [0,134–0,373] | 30,0 % [18,3–41,5] | 54,0 % [46,0–62,0] | 2,7 % | 3 / 6 ms (AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD) | 0,00 USD | local (los datos no salen del servidor) |
+
+Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor − referencia, IC95):
+
+| Motor | n | Exactitud (pp) | Kappa | Sensibilidad I–II (pp) | Infratriaje (pp) |
+| :--- | ---: | :--- | :--- | :--- | :--- |
+| LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 6,7 [2,0–11,4] | 0,232 [0,125–0,344] | 20,0 [8,4–31,5] | -7,3 [-12,6–-2,0] |
+| LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER) | 150 | 8,0 [4,0–12,7] | 0,242 [0,137–0,355] | 21,7 [11,7–32,7] | -9,3 [-14,0–-5,3] |
 
 Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
 
+- LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER): 30 casos: B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N072 (tipico; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), N077 (negacion; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N088 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5) y 15 más
+- LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER): 29 casos: B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N072 (tipico; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), N077 (negacion; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N088 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5) y 14 más
 - Reglas (Christus Sinergia / Res. 5596): 42 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N011 (negacion; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N060 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N067 (coloquial; ref. 1, pred. 5), N068 (tipico; ref. 1, pred. 5), N070 (tipico; ref. 1, pred. 5) y 27 más
 <!-- comparativa:dev:fin -->
 
