@@ -155,7 +155,7 @@ class SystemConfigUpdateSchema(BaseModel):
 
 class APIKeyCreateSchema(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    provider: Optional[Literal['gemini', 'openai', 'anthropic', 'deepseek', 'custom']] = None
+    provider: Optional[Literal['gemini', 'custom']] = None
     api_key: str = Field(min_length=4, max_length=500)
     description: Optional[str] = Field(default="", max_length=500)
 

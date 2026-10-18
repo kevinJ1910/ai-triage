@@ -42,12 +42,7 @@ def mask_api_key(key: str) -> str:
 
 def detect_key_provider(key: str) -> str:
     cleaned = key.strip()
+    # El triaje solo llama a Gemini; cualquier otra clave se registra como servidor local.
     if cleaned.startswith("AIza") or "AQ." in cleaned:
         return "gemini"
-    elif cleaned.startswith("sk-ant-"):
-        return "anthropic"
-    elif cleaned.startswith("sk-proj-") or (cleaned.startswith("sk-") and len(cleaned) > 35):
-        return "openai"
-    elif "deepseek" in cleaned.lower():
-        return "deepseek"
     return "custom"

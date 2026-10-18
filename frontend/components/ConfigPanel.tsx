@@ -159,10 +159,7 @@ export default function ConfigPanel() {
   const handleDetectProvider = (val: string) => {
     const trimmed = val.trim();
     if (trimmed.startsWith('AIza') || trimmed.includes('AQ.')) return 'Google Gemini';
-    if (trimmed.startsWith('sk-ant-')) return 'Anthropic Claude';
-    if (trimmed.startsWith('sk-proj-') || (trimmed.startsWith('sk-') && trimmed.length > 35)) return 'OpenAI';
-    if (trimmed.toLowerCase().includes('deepseek')) return 'DeepSeek';
-    return 'Autodetectar';
+    return 'Servidor local';
   };
 
   const handleCreateKey = async (e: React.FormEvent) => {
@@ -472,7 +469,7 @@ export default function ConfigPanel() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[var(--surface-base)] border border-[var(--surface-border)] flex items-center justify-center text-slate-300 text-xs font-mono font-bold">
-                      {key.provider === 'gemini' ? 'G' : key.provider === 'openai' ? 'OA' : key.provider === 'anthropic' ? 'CL' : key.provider === 'deepseek' ? 'DS' : 'K'}
+                      {key.provider === 'gemini' ? 'G' : 'L'}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -743,10 +740,7 @@ export default function ConfigPanel() {
                 >
                   <option value="auto">Autodetectar por formato de prefijo</option>
                   <option value="gemini">Google Gemini (AIza / AQ)</option>
-                  <option value="openai">OpenAI (sk-...)</option>
-                  <option value="anthropic">Anthropic Claude (sk-ant-...)</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="custom">Servidor Local / Compatible OpenAI</option>
+                  <option value="custom">Servidor local / compatible con OpenAI</option>
                 </select>
               </div>
 

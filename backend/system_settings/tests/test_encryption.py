@@ -41,8 +41,8 @@ class TestSystemSettingsAndEncryption:
         assert masked.endswith(secret[-4:])
 
         assert detect_key_provider("AIzaSyExampleKey") == "gemini"
-        assert detect_key_provider("sk-ant-api03-example") == "anthropic"
-        assert detect_key_provider("sk-example-openai-key-long-enough-35-chars") == "openai"
+        assert detect_key_provider("sk-ant-api03-example") == "custom"
+        assert detect_key_provider("sk-example-openai-key-long-enough-35-chars") == "custom"
 
     def test_dedicated_encryption_key_keeps_legacy_ciphertexts_readable(self, settings):
         from cryptography.fernet import Fernet
@@ -128,9 +128,9 @@ class TestSystemSettingsAndEncryption:
     def test_create_and_delete_api_key_endpoint(self):
         self.client.force_authenticate(user=self.admin)
         post_res = self.client.post("/api/config/keys/", {
-            "name": "OpenAI Backup",
+            "name": "Servidor local",
             "api_key": "sk-proj-1234567890abcdef1234567890abcdef12",
-            "provider": "openai"
+            "provider": "custom"
         }, format="json")
         assert post_res.status_code == status.HTTP_201_CREATED
         key_id = post_res.data["credential"]["id"]
@@ -170,7 +170,7 @@ class TestSystemSettingsAndEncryption:
         api_keys = get_res.data["api_keys"]
         key_names = [k["name"] for k in api_keys]
         assert any("Google Gemini (Entorno .env)" in name for name in key_names)
-        assert any("OpenAI (Entorno .env)" in name for name in key_names)
+        assert any("Openai (Entorno .env)" in name for name in key_names)
         assert any("Groq (Entorno .env)" in name for name in key_names)
 
         gemini_cred = APIKeyCredential.objects.filter(provider="gemini").first()

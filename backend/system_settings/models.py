@@ -44,10 +44,7 @@ class SystemConfiguration(models.Model):
 class APIKeyCredential(models.Model):
     PROVIDER_CHOICES = (
         ('gemini', 'Google Gemini'),
-        ('openai', 'OpenAI'),
-        ('anthropic', 'Anthropic Claude'),
-        ('deepseek', 'DeepSeek'),
-        ('custom', 'Personalizado / Local'),
+        ('custom', 'Servidor local'),
     )
 
     provider = models.CharField(max_length=30, choices=PROVIDER_CHOICES, default='gemini')
