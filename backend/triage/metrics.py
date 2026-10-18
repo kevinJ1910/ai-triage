@@ -6,6 +6,19 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 LEVELS = (1, 2, 3, 4, 5)
 CRITICAL_LEVELS = (1, 2)
+# Politicas para combinar el nivel del LLM con el del motor de reglas:
+#   llm          el nivel del LLM tal cual.
+#   min_critico  si las reglas detectan un nivel 1-2, prevalece el mas urgente de los dos (red de seguridad).
+COMBINE_POLICIES = ('llm', 'min_critico')
+
+
+def combine_levels(llm_level: int, rule_level: Optional[int], policy: str = 'llm') -> int:
+    """Nivel final segun la politica de combinacion (1 = mas urgente)."""
+    if policy not in COMBINE_POLICIES:
+        raise ValueError(f"politica desconocida: {policy}")
+    if policy == 'min_critico' and rule_level in CRITICAL_LEVELS:
+        return min(llm_level, rule_level)
+    return llm_level
 
 
 def confusion_matrix(pairs: Iterable[Tuple[int, int]]) -> List[List[int]]:
