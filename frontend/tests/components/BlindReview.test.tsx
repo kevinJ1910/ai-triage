@@ -17,6 +17,9 @@ function mockFetch(referenceResponse: { ok: boolean; status: number; body: objec
     if (url.includes('/blind_review_queue/')) {
       return Promise.resolve({ ok: true, status: 200, json: async () => queue } as Response);
     }
+    if (url.includes('/justification_rating/')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({}) } as Response);
+    }
     if (url.includes('/reference_level/')) {
       return Promise.resolve({
         ok: referenceResponse.ok,
@@ -54,6 +57,29 @@ describe('BlindReview Component', () => {
     expect(call).toBeDefined();
     expect(JSON.parse(call![1].body)).toEqual({ reference_level: 2 });
     expect(screen.getByText('1 pendientes')).toBeInTheDocument();
+  });
+
+  it('tras fijar la referencia pide valorar la justificacion de la IA (Likert)', async () => {
+    const fetchMock = mockFetch({
+      ok: true, status: 200, body: { session_id: 7, reference_level: 2, justification: 'Dolor toracico con signos de alarma' },
+    });
+    render(<BlindReview />);
+
+    await waitFor(() => expect(screen.getByText('dolor toracico opresivo')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Emergencia/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Registrar nivel de referencia/i }));
+
+    await waitFor(() => expect(screen.getByText('Dolor toracico con signos de alarma')).toBeInTheDocument());
+    const submitRating = screen.getByRole('button', { name: /Registrar valoración/i });
+    expect(submitRating).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Claridad: 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pertinencia clínica: 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fidelidad al protocolo: 3' }));
+    fireEvent.click(submitRating);
+
+    await waitFor(() => expect(screen.getByText('tos leve')).toBeInTheDocument());
+    const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/7/justification_rating/'));
+    expect(JSON.parse(call![1].body)).toEqual({ clarity: 4, relevance: 5, fidelity: 3 });
   });
 
   it('mantiene el caso si el servidor rechaza el registro', async () => {

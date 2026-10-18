@@ -14,7 +14,8 @@ import {
   AlertCircle,
   HelpCircle,
   History,
-  Check
+  Check,
+  Star
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api';
@@ -80,6 +81,22 @@ const LEVELS = [
 
 const GENDER_LABELS: Record<string, string> = { male: 'Masculino', female: 'Femenino', other: 'Otro' };
 
+type RatingKey = 'clarity' | 'relevance' | 'fidelity';
+
+// Escala Likert de la justificacion de la IA (seccion 4.2 de la evaluacion).
+const RATING_ITEMS: { key: RatingKey; label: string; help: string }[] = [
+  { key: 'clarity', label: 'Claridad', help: 'Se entiende sin ambigüedad por qué se asignó el nivel.' },
+  { key: 'relevance', label: 'Pertinencia clínica', help: 'Los hallazgos citados son los que importan para el triaje.' },
+  { key: 'fidelity', label: 'Fidelidad al protocolo', help: 'El razonamiento sigue los criterios Christus Sinergia / Res. 5596.' },
+];
+
+const EMPTY_SCORES: Record<RatingKey, number | null> = { clarity: null, relevance: null, fidelity: null };
+
+interface PendingRating {
+  id: number;
+  justification: string;
+}
+
 /**
  * Adjudicacion ciega: el clinico asigna un nivel de referencia viendo solo la transcripcion.
  * El backend nunca envia el nivel de la IA ni el del medico tratante a esta vista.
@@ -94,6 +111,10 @@ export default function BlindReview() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<AdjudicatedRecord[]>([]);
+  // Tras fijar la referencia se pide valorar la justificacion de la IA (ya no puede sesgar el nivel ciego).
+  const [pendingRating, setPendingRating] = useState<PendingRating | null>(null);
+  const [scores, setScores] = useState<Record<RatingKey, number | null>>(EMPTY_SCORES);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -145,6 +166,10 @@ export default function BlindReview() {
 
       const selectedLevelObj = LEVELS.find(l => l.value === selected);
       toast.success(`Nivel de referencia registrado para el caso #${current.id}`);
+      if (data.justification) {
+        setPendingRating({ id: current.id, justification: data.justification });
+        setScores(EMPTY_SCORES);
+      }
 
       // Registrar en el historial de la sesion
       setSessionHistory(prev => [
@@ -170,6 +195,36 @@ export default function BlindReview() {
       toast.error('No se pudo conectar con el servidor.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const closeRating = () => {
+    setPendingRating(null);
+    setScores(EMPTY_SCORES);
+  };
+
+  const submitRating = async () => {
+    if (!pendingRating || RATING_ITEMS.some(item => scores[item.key] == null)) return;
+    setRatingSubmitting(true);
+    try {
+      const res = await fetchWithAuth(`/api/triage/sessions/${pendingRating.id}/justification_rating/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scores),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || `No se pudo registrar la valoración (HTTP ${res.status})`);
+        if (res.status === 409) closeRating();
+        return;
+      }
+      toast.success(`Valoración registrada para el caso #${pendingRating.id}`);
+      closeRating();
+    } catch (err) {
+      console.error('Error registrando la valoracion de la justificacion:', err);
+      toast.error('No se pudo conectar con el servidor.');
+    } finally {
+      setRatingSubmitting(false);
     }
   };
 
@@ -254,6 +309,78 @@ export default function BlindReview() {
         <div role="alert" className="p-4 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 text-sm flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
           <span>{error}</span>
+        </div>
+      ) : pendingRating ? (
+        <div className="space-y-4 max-w-4xl" data-testid="justification-rating">
+          <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-slate-300 flex items-start gap-3">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              Nivel de referencia del caso <strong>#{pendingRating.id}</strong> registrado. Ahora puede ver la justificación que dio la IA:
+              valórela de 1 (muy en desacuerdo) a 5 (muy de acuerdo). La valoración ya no influye en el nivel adjudicado.
+            </p>
+          </div>
+
+          <div className="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-sky-400" />
+              <span>Justificación de la IA</span>
+            </h2>
+            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed bg-slate-900/40 p-4 rounded-xl border border-slate-800/40">
+              {pendingRating.justification}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {RATING_ITEMS.map(item => (
+              <fieldset key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <legend className="sr-only">{item.label}</legend>
+                <div>
+                  <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-amber-400" /> {item.label}
+                  </span>
+                  <span className="text-[11px] text-slate-400">{item.help}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4, 5].map(value => {
+                    const active = scores[item.key] === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`${item.label}: ${value}`}
+                        onClick={() => setScores(prev => ({ ...prev, [item.key]: value }))}
+                        className={`w-9 h-9 rounded-lg border text-sm font-bold font-mono transition-colors ${
+                          active ? 'bg-sky-600 border-sky-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={submitRating}
+              disabled={ratingSubmitting || RATING_ITEMS.some(item => scores[item.key] == null)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl text-xs font-semibold transition-all"
+            >
+              <Check className="w-4 h-4" />
+              <span>{ratingSubmitting ? 'Registrando...' : 'Registrar valoración'}</span>
+            </button>
+            <button
+              onClick={closeRating}
+              disabled={ratingSubmitting}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition-colors"
+            >
+              Omitir y seguir
+            </button>
+            <p className="text-[11px] text-slate-400">La valoración es definitiva; si la omite, el caso queda sin valorar.</p>
+          </div>
         </div>
       ) : !current ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-slate-400">

@@ -301,6 +301,15 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 retention_sum += 1.0 if not ai_s else len(ai_s & fin_s) / len(ai_s)
             symptom_retention = round((retention_sum / total) * 100, 1)
 
+        rated = qs.filter(justification_rated_at__isnull=False).aggregate(
+            n=Count('id'), clarity=Avg('justification_clarity'), relevance=Avg('justification_relevance'),
+            fidelity=Avg('justification_fidelity'),
+        )
+        justification_ratings = {
+            "n": rated['n'],
+            **{key: (round(rated[key], 2) if rated[key] is not None else None) for key in ('clarity', 'relevance', 'fidelity')},
+        }
+
         referenced = qs.filter(reference_level__isnull=False)
         ai_vs_reference = _level_matrix(referenced, 'ai_level', 'reference_level')
         physician_vs_reference = _level_matrix(referenced, 'final_level', 'reference_level')
@@ -337,6 +346,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "cached_triages_count": totals['cached'],
             "clinical_cache_stats": ClinicalQueryCache.stats(),
             "recent_evaluations": recent,
+            "justification_ratings": justification_ratings,
             # Validacion contra el nivel de referencia ciego: es la medida sin sesgo de anclaje.
             "reference_validation": {
                 "referenced_count": sum(map(sum, ai_vs_reference)),
@@ -404,7 +414,45 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 ip_address=request.META.get('REMOTE_ADDR')
             )
 
-        return Response({"session_id": session.id, "reference_level": session.reference_level})
+        # Fijada la referencia, el adjudicador ya puede ver la justificacion de la IA para valorarla (Likert).
+        return Response({"session_id": session.id, "reference_level": session.reference_level,
+                         "justification": session.justification})
+
+    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanEditSymptoms])
+    def justification_rating(self, request, pk=None):
+        """
+        Valoracion Likert de la justificacion de la IA. Solo la registra quien adjudico la referencia,
+        despues de fijarla (asi no influye en el nivel ciego), y una sola vez.
+        """
+        from core.validation import validate_payload, JustificationRatingSchema
+        validated = validate_payload(JustificationRatingSchema, request.data)
+
+        with transaction.atomic():
+            session = TriageSession.objects.select_for_update().get(pk=self.get_object().pk)
+            if session.reference_level is None or session.reference_by_id != request.user.id:
+                return Response({"error": "Solo quien adjudicó la referencia puede valorar la justificación"},
+                                status=status.HTTP_403_FORBIDDEN)
+            if session.justification_rated_at is not None:
+                return Response({"error": "La justificación de este triaje ya fue valorada"}, status=status.HTTP_409_CONFLICT)
+
+            session.justification_clarity = validated.clarity
+            session.justification_relevance = validated.relevance
+            session.justification_fidelity = validated.fidelity
+            session.justification_rated_at = timezone.now()
+            session.save(update_fields=['justification_clarity', 'justification_relevance',
+                                        'justification_fidelity', 'justification_rated_at'])
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='TRIAGE_JUSTIFICATION_RATING',
+                resource=f'TriageSession #{session.id}',
+                details=(f'Valoracion de la justificacion: claridad {validated.clarity}, '
+                         f'pertinencia {validated.relevance}, fidelidad {validated.fidelity}'),
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+        return Response({"session_id": session.id, "clarity": validated.clarity,
+                         "relevance": validated.relevance, "fidelity": validated.fidelity})
 
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def emr_patients(self, request):

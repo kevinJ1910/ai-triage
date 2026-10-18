@@ -121,6 +121,11 @@ class TriageOverrideSchema(BaseModel):
 class TriageReferenceSchema(BaseModel):
     reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")
 
+class JustificationRatingSchema(BaseModel):
+    clarity: int = Field(ge=1, le=5, description="Claridad de la justificacion (1-5)")
+    relevance: int = Field(ge=1, le=5, description="Pertinencia clinica (1-5)")
+    fidelity: int = Field(ge=1, le=5, description="Fidelidad al protocolo (1-5)")
+
 class EMRBoxAssignSchema(BaseModel):
     assigned_box: Optional[str] = Field(default=None, max_length=50)
     box_name: Optional[str] = Field(default=None, max_length=50)

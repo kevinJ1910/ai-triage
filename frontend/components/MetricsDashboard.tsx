@@ -79,7 +79,21 @@ interface MetricsData {
   clinical_cache_stats?: CacheStats;
   recent_evaluations: EvaluationItem[];
   reference_validation?: ReferenceValidation;
+  justification_ratings?: JustificationRatings;
 }
+
+interface JustificationRatings {
+  n: number;
+  clarity: number | null;
+  relevance: number | null;
+  fidelity: number | null;
+}
+
+const RATING_LABELS: { key: keyof Omit<JustificationRatings, 'n'>; label: string }[] = [
+  { key: 'clarity', label: 'Claridad' },
+  { key: 'relevance', label: 'Pertinencia clínica' },
+  { key: 'fidelity', label: 'Fidelidad al protocolo' },
+];
 
 const pct = (value: number | null | undefined) => (value != null ? `${value}%` : NO_DATA);
 
@@ -229,6 +243,30 @@ export default function MetricsDashboard() {
             Aún no hay casos adjudicados. Use el módulo &quot;Validacion Ciega&quot; para asignar niveles de referencia.
           </p>
         )}
+
+        {/* Valoracion Likert de las justificaciones de la IA (registrada tras fijar la referencia ciega) */}
+        <div className="pt-3 border-t border-slate-800/80" data-testid="justification-ratings">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-[11px] font-semibold text-slate-300">Valoración de las justificaciones de la IA (Likert 1–5)</span>
+            <span className="text-[10px] font-mono text-slate-400">{metrics?.justification_ratings?.n ?? 0} valoradas</span>
+          </div>
+          {metrics?.justification_ratings?.n ? (
+            <div className="grid grid-cols-3 gap-2.5">
+              {RATING_LABELS.map(item => (
+                <div key={item.key} className="bg-slate-900/70 rounded-xl p-3 border border-slate-800/80">
+                  <div className="text-[10px] text-slate-400">{item.label}</div>
+                  <div className="text-lg font-bold font-mono text-amber-300 mt-0.5">
+                    {metrics.justification_ratings![item.key] ?? NO_DATA}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-400">
+              Aún no hay justificaciones valoradas. Se valoran en &quot;Validacion Ciega&quot; después de registrar cada nivel de referencia.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Metricas contra el nivel final del medico (con sesgo de anclaje) */}

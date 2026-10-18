@@ -555,6 +555,41 @@ class TestTriageSessions:
         session.refresh_from_db()
         assert session.reference_level is None
 
+    def test_justification_rating_only_after_reference_once_and_by_adjudicator(self):
+        from accounts.models import AuditLog
+        session = self._blind_case(author=self.user)
+        doctor, client = self._other_doctor()
+        rating_url = f"/api/triage/sessions/{session.id}/justification_rating/"
+        scores = {"clarity": 4, "relevance": 5, "fidelity": 3}
+
+        # Antes de fijar la referencia no se puede valorar (la justificacion revelaria el nivel de la IA)
+        assert client.post(rating_url, scores, format="json").status_code == status.HTTP_403_FORBIDDEN
+
+        reference = client.post(f"/api/triage/sessions/{session.id}/reference_level/", {"reference_level": 2}, format="json")
+        assert reference.data["justification"] == "Justificacion de la IA"
+
+        # Fuera de la escala 1-5 se rechaza; el autor del triaje no puede valorar
+        assert client.post(rating_url, {**scores, "clarity": 6}, format="json").status_code == status.HTTP_400_BAD_REQUEST
+        assert self.client.post(rating_url, scores, format="json").status_code == status.HTTP_403_FORBIDDEN
+
+        assert client.post(rating_url, scores, format="json").status_code == status.HTTP_200_OK
+        session.refresh_from_db()
+        assert (session.justification_clarity, session.justification_relevance, session.justification_fidelity) == (4, 5, 3)
+        assert AuditLog.objects.filter(action="TRIAGE_JUSTIFICATION_RATING").count() == 1
+        assert client.post(rating_url, scores, format="json").status_code == status.HTTP_409_CONFLICT
+
+    def test_evaluation_metrics_reports_justification_ratings(self):
+        from django.utils import timezone
+        empty = self.client.get("/api/triage/sessions/evaluation_metrics/").data["justification_ratings"]
+        assert empty == {"n": 0, "clarity": None, "relevance": None, "fidelity": None}
+        for clarity in (3, 4):
+            TriageSession.objects.create(
+                patient=self.patient, level=3, ai_level=3, final_level=3, justification="J",
+                justification_clarity=clarity, justification_relevance=5, justification_fidelity=4,
+                justification_rated_at=timezone.now())
+        ratings = self.client.get("/api/triage/sessions/evaluation_metrics/").data["justification_ratings"]
+        assert ratings == {"n": 2, "clarity": 3.5, "relevance": 5.0, "fidelity": 4.0}
+
     def test_evaluation_metrics_reports_reference_validation(self):
         session = self._blind_case(author=self.user, ai_level=3, final_level=2)
         TriageSession.objects.create(patient=self.patient, level=4, ai_level=4, final_level=4, justification="Sin referencia")

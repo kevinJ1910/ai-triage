@@ -35,6 +35,11 @@ class TriageSession(models.Model):
         related_name='reference_adjudications'
     )
     reference_at = models.DateTimeField(null=True, blank=True)
+    # Valoracion Likert (1-5) de la justificacion de la IA por el adjudicador, despues de fijar la referencia.
+    justification_clarity = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Claridad (1-5)")
+    justification_relevance = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Pertinencia clinica (1-5)")
+    justification_fidelity = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Fidelidad al protocolo (1-5)")
+    justification_rated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
