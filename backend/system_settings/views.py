@@ -20,10 +20,12 @@ class EngineStatusView(APIView):
         from transcription.tasks import get_asr_status, worker_mode
         from triage.ner_model import get_ner_status
         from triage.ai_analyzer import _resolve_gemini_api_key
+        from triage import local_llm
 
         asr = get_asr_status(load=False)
         ner = get_ner_status()
         config = SystemConfiguration.get_solo()
+        local = local_llm.get_status()
         return Response({
             "inference_mode": "worker" if worker_mode() else "inline",
             "asr": {
@@ -44,9 +46,26 @@ class EngineStatusView(APIView):
                 "engine": os.path.basename(str(ner.get("source") or "").rstrip("/")) or None,
                 "detail": ner.get("detail", ""),
             },
-            # Nunca se devuelve la clave: solo si hay una configurada.
-            "llm": {"configured": bool(_resolve_gemini_api_key()), "model": config.active_llm_engine},
+            # Nunca se devuelve la clave ni la URL del servidor local: solo si hay una configurada.
+            "llm": _llm_status(config, _resolve_gemini_api_key, local),
+            "local_llm": local,
         })
+
+def _llm_status(config, resolve_gemini_key, local):
+    """Motor LLM activo: con 'local' cuenta el servidor propio (debe responder); si no, la clave de Gemini."""
+    if config.active_llm_engine == 'local':
+        return {"provider": "local", "configured": bool(local["configured"] and local["reachable"]),
+                "model": local["model"]}
+    return {"provider": "gemini", "configured": bool(resolve_gemini_key()), "model": config.active_llm_engine}
+
+
+def _local_llm_option():
+    from triage import local_llm
+    return {"id": "local", "name": f"LLM local ({local_llm.default_model()})", "recommended": False,
+            "provider": "Servidor local",
+            "description": "Ollama o llama.cpp en el propio servidor: los datos no salen del hospital. Si no responde, "
+                           "clasifica el motor de reglas (nunca se recurre a Gemini)."}
+
 
 TOKEN_NOTICE = (
     "Las capas del catalogo (correcciones ASR, abreviaturas y coloquialismos) no consumen tokens. "
@@ -113,6 +132,7 @@ class SystemConfigView(APIView):
             device_info = "ASR sin iniciar"
         has_gemini = bool(os.environ.get("GEMINI_API_KEY") or keys.filter(provider='gemini').exists())
         from triage.ner_model import get_ner_status
+        from triage import local_llm
         from transcription.terminology import catalog_summary
         catalog = catalog_summary()
 
@@ -127,6 +147,7 @@ class SystemConfigView(APIView):
                 "active_keys_count": keys.count(),
                 "system_timezone": str(timezone.get_current_timezone()),
                 "ner_status": get_ner_status(),
+                "local_llm": local_llm.get_status(),
             },
             "vocabularies": _vocabularies(config, catalog),
             "catalog": catalog,
@@ -144,6 +165,7 @@ class SystemConfigView(APIView):
                     {"id": "gemini-2.5-flash", "name": "Google Gemini 2.5 Flash", "recommended": True, "provider": "Google Gemini", "description": "Baja latencia y alta precision clinica"},
                     {"id": "gemini-3.5-flash-lite", "name": "Google Gemini 3.5 Flash-Lite", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, bajo costo"},
                     {"id": "gemini-3.8-flash", "name": "Google Gemini 3.8 Flash", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, balance precision/latencia"},
+                    _local_llm_option(),
                 ],
                 "ner_models": [
                     {"id": "auto", "name": "RoBERTa clinico + catalogo", "recommended": True,

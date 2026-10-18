@@ -75,6 +75,30 @@ describe('EngineStatus', () => {
   });
 });
 
+describe('EngineStatus con el LLM local', () => {
+  const status = (configured: boolean) => ({
+    ok: true, status: 200,
+    json: async () => ({
+      inference_mode: 'worker',
+      asr: { model_loaded: true, model_size: 'small', device: 'cpu' },
+      ner: { model_loaded: true, active: true },
+      llm: { provider: 'local', configured, model: 'qwen2.5:7b-instruct-q4_K_M' },
+    }),
+  } as Response);
+
+  it('muestra el modelo local cuando el servidor responde', async () => {
+    global.fetch = vi.fn().mockResolvedValue(status(true));
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Local · qwen2.5:7b-instruct-q4_K_M')).toBeInTheDocument());
+  });
+
+  it('avisa del respaldo de reglas cuando el servidor local no responde', async () => {
+    global.fetch = vi.fn().mockResolvedValue(status(false));
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Local no disponible: reglas')).toBeInTheDocument());
+  });
+});
+
 describe('EngineStatus tras cambiar la configuración', () => {
   const status = (asr: object, ner: object) => ({
     ok: true, status: 200,

@@ -17,6 +17,9 @@ class SystemConfiguration(models.Model):
         ('gemini-2.5-flash', 'Gemini 2.5 Flash'),
         ('gemini-3.5-flash-lite', 'Gemini 3.5 Flash-Lite'),
         ('gemini-3.8-flash', 'Gemini 3.8 Flash'),
+        # Servidor propio compatible con OpenAI (Ollama, llama.cpp): LOCAL_LLM_BASE_URL y LOCAL_LLM_MODEL.
+        # Si falla, se aplica el motor de reglas, nunca Gemini: los datos no salen del servidor.
+        ('local', 'LLM local (servidor compatible con OpenAI)'),
     )
     # 'auto' usa RoBERTa (NER_MODEL_PATH) si el worker lo cargo; 'catalogo' lo desactiva (catalogo + LLM).
     NER_CHOICES = (

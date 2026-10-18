@@ -17,6 +17,10 @@ x-backend-env: &backend-env
   CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://localhost}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  # LLM local (perfil llm-local). Sin el perfil activo el estado lo muestra como no disponible.
+  LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://llm-local:11434}
+  LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-qwen2.5:7b-instruct-q4_K_M}
+  LOCAL_LLM_TIMEOUT_SECONDS: ${LOCAL_LLM_TIMEOUT_SECONDS:-300}
   EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
   EMAIL_HOST: mailpit
   EMAIL_PORT: "1025"
@@ -178,6 +182,34 @@ services:
           # RoBERTa-base en float32 (~0,5 GB) mas torch y el pool de hilos de Gemini.
           memory: 2G
 
+  # LLM local opcional (segundo motor de triaje): Ollama con API compatible con OpenAI.
+  #   docker compose --profile llm-local up -d
+  #   docker compose exec llm-local ollama pull qwen2.5:7b-instruct-q4_K_M
+  # Sin puertos al host: solo lo alcanzan backend y worker-llm por la red interna. Con GPU NVIDIA,
+  # docker-compose.gpu.yml le reserva la GPU.
+  llm-local:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.12.6}
+    container_name: ai_triage_llm_local
+    profiles: ["llm-local"]
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - ai_triage_network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          # Qwen2.5-7B Q4_K_M ocupa unos 5 GB en memoria.
+          memory: 8G
+
   frontend:
     build:
       context: ./frontend
@@ -234,3 +266,4 @@ volumes:
   nginx_certs:
   asr_model_cache:
   ner_model_cache:
+  ollama_models:

@@ -64,6 +64,7 @@ interface RuntimeStatus {
   active_keys_count: number;
   system_timezone: string;
   ner_status?: { model_loaded: boolean; source?: string; detail?: string };
+  local_llm?: { configured: boolean; reachable: boolean; model: string; model_available: boolean };
 }
 
 interface VocabItem {
@@ -385,7 +386,14 @@ export default function ConfigPanel() {
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                   Motor de Explicabilidad y Triaje (LLM)
                 </label>
-                {runtimeStatus?.gemini_configured && (
+                {config.active_llm_engine === 'local' ? (
+                  <span
+                    data-testid="local-llm-status"
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase border ${runtimeStatus?.local_llm?.reachable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                  >
+                    {runtimeStatus?.local_llm?.reachable ? 'Servidor local disponible' : 'Servidor local no disponible'}
+                  </span>
+                ) : runtimeStatus?.gemini_configured && (
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
                     Credencial Activa
                   </span>
@@ -406,8 +414,22 @@ export default function ConfigPanel() {
                   </option>
                 ))}
               </select>
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm && !runtimeStatus.local_llm.reachable && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {runtimeStatus.local_llm.configured
+                    ? 'El servidor LLM local no responde: mientras no esté disponible, clasificará el motor de reglas.'
+                    : 'No hay servidor LLM local configurado (LOCAL_LLM_BASE_URL): clasificará el motor de reglas.'}
+                </span>
+              )}
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm?.reachable && !runtimeStatus.local_llm.model_available && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {`El servidor responde pero no tiene descargado ${runtimeStatus.local_llm.model} (ollama pull).`}
+                </span>
+              )}
               <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
-                Gemini recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas.
+                El LLM recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas. El LLM local nunca recurre a Gemini.
               </span>
             </div>
 

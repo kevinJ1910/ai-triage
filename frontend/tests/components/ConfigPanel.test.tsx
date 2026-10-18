@@ -103,4 +103,29 @@ describe('ConfigPanel Component', () => {
     const geminiBadges = screen.getAllByText('Google Gemini');
     expect(geminiBadges.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('muestra el estado del servidor LLM local y avisa del respaldo de reglas', async () => {
+    const localData = {
+      ...mockConfigData,
+      config: { ...mockConfigData.config, active_llm_engine: 'local' },
+      available_options: {
+        asr_models: [{ id: 'auto', name: 'Segun entorno' }],
+        llm_engines: [
+          { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash' },
+          { id: 'local', name: 'LLM local (qwen2.5:7b-instruct-q4_K_M)' },
+        ],
+        ner_models: [{ id: 'auto', name: 'RoBERTa clinico + catalogo' }],
+      },
+      runtime_status: {
+        ...mockConfigData.runtime_status,
+        local_llm: { configured: true, reachable: false, model: 'qwen2.5:7b-instruct-q4_K_M', model_available: false },
+      },
+    };
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => localData } as Response);
+    render(<ConfigPanel />);
+
+    await waitFor(() => expect(screen.getByTestId('local-llm-status')).toHaveTextContent('Servidor local no disponible'));
+    expect(screen.getByText('LLM local (qwen2.5:7b-instruct-q4_K_M)')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('clasificará el motor de reglas');
+  });
 });
