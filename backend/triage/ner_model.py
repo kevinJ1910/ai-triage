@@ -98,6 +98,33 @@ def snap_to_words(text: str, spans: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return snapped
 
 
+# Archivos del modelo que se descargan del Hub (no la carpeta analisis/ ni training_args.bin, que no hacen falta).
+HUB_MODEL_FILES = [
+    "config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json",
+    "vocab.json", "merges.txt", "ner_labels.json", "training_config.json", "metrics.json",
+]
+
+
+def _looks_local(source: str) -> bool:
+    return source.startswith((".", "/", "~")) or os.sep in source or ":" in source[:3]
+
+
+def _resolve_model_folder(source: str, token: Optional[str], revision: Optional[str]) -> str:
+    """
+    Carpeta local del modelo. Un id del Hub (usuario/repo) se descarga primero a la cache de Hugging Face
+    (volumen ner_model_cache en Docker; solo la primera vez o al cambiar de version): asi el respaldo del
+    tokenizador, que lee vocab.json y merges.txt del disco, funciona igual que con una carpeta local.
+    """
+    if _looks_local(source):
+        folder = os.path.expanduser(source)
+        if not os.path.isdir(folder):
+            # Ruta local ausente (p. ej. el modelo aun no se ha copiado): falla sin intentar el Hub.
+            raise FileNotFoundError(f"no existe la carpeta del modelo {source}")
+        return folder
+    from huggingface_hub import snapshot_download
+    return snapshot_download(repo_id=source, revision=revision, token=token, allow_patterns=HUB_MODEL_FILES)
+
+
 def _load_tokenizer(source: str, token: Optional[str]):
     """
     Tokenizador del modelo. Si el tokenizer.json lo escribio una version de tokenizers mas nueva que la del
@@ -130,16 +157,16 @@ class NEREngine:
         from transformers import AutoModelForTokenClassification, AutoTokenizer
 
 
-        looks_local = source.startswith((".", "/", "~")) or os.sep in source or ":" in source[:3]
-        if looks_local and not os.path.isdir(os.path.expanduser(source)):
-            # Ruta local ausente (p. ej. el modelo aun no se ha copiado): falla sin intentar el Hub.
-            raise FileNotFoundError(f"no existe la carpeta del modelo {source}")
         start = time.perf_counter()
-        torch.set_num_threads(getattr(settings, "NER_CPU_THREADS", 2))
         token = os.getenv("HF_TOKEN") or None
+        # Version fija del repositorio del Hub (commit o etiqueta), para que todos usen el mismo modelo.
+        revision = getattr(settings, "NER_MODEL_REVISION", "") or None
+        folder = _resolve_model_folder(source, token, revision)
+        torch.set_num_threads(getattr(settings, "NER_CPU_THREADS", 2))
         self.source = source
-        self.tokenizer = _load_tokenizer(source, token)
-        self.model = AutoModelForTokenClassification.from_pretrained(source, token=token)
+        self.revision = revision
+        self.tokenizer = _load_tokenizer(folder, token)
+        self.model = AutoModelForTokenClassification.from_pretrained(folder)
         self.model.eval()
         self.id2label = {int(k): v for k, v in self.model.config.id2label.items()}
         self._torch = torch
@@ -216,7 +243,11 @@ def get_engine() -> Optional[NEREngine]:
 def engine_label() -> Optional[str]:
     """Identificador corto del modelo activo, para la huella de la cache y la salida (ner_engine)."""
     engine = get_engine()
-    return f"roberta:{os.path.basename(str(engine.source).rstrip('/'))}" if engine else None
+    if not engine:
+        return None
+    # La version forma parte de la etiqueta: al cambiar de modelo no se sirven triajes cacheados con el anterior.
+    revision = f"@{engine.revision}" if getattr(engine, "revision", None) else ""
+    return f"roberta:{os.path.basename(str(engine.source).rstrip('/'))}{revision}"
 
 
 def get_ner_status() -> Dict[str, Any]:

@@ -151,6 +151,7 @@ services:
       # Carpeta del modelo exportado por ml/ner (o id de un repo privado de Hugging Face con HF_TOKEN).
       # Si la carpeta no existe, el triaje sigue con el catalogo y las reglas.
       NER_MODEL_PATH: ${NER_MODEL_PATH:-/models/ner/ai_triage_ner_roberta}
+      NER_MODEL_REVISION: ${NER_MODEL_REVISION:-}
       NER_PRELOAD: "True"
       NER_CPU_THREADS: ${NER_CPU_THREADS:-2}
       HF_TOKEN: ${HF_TOKEN:-}

@@ -115,6 +115,30 @@ class TestEngineLoading:
         assert len(calls) == 1
 
 
+class TestHubModel:
+    def test_hub_id_is_downloaded_to_a_local_folder_with_the_pinned_revision(self, settings, monkeypatch, tmp_path):
+        import sys
+        import types
+        calls = {}
+
+        def fake_snapshot_download(**kwargs):
+            calls.update(kwargs)
+            return str(tmp_path)
+
+        monkeypatch.setitem(sys.modules, 'huggingface_hub', types.SimpleNamespace(snapshot_download=fake_snapshot_download))
+        folder = ner_model._resolve_model_folder('kevin/ai-triage-ner-roberta', 'hf_token', 'v1')
+        assert folder == str(tmp_path)
+        assert calls['repo_id'] == 'kevin/ai-triage-ner-roberta' and calls['revision'] == 'v1'
+        assert calls['token'] == 'hf_token'
+        # Solo los archivos del modelo: ni analisis/ ni training_args.bin
+        assert 'model.safetensors' in calls['allow_patterns'] and 'training_args.bin' not in calls['allow_patterns']
+
+    def test_local_folder_is_used_as_is_and_missing_one_fails(self, tmp_path):
+        assert ner_model._resolve_model_folder(str(tmp_path), None, None) == str(tmp_path)
+        with pytest.raises(FileNotFoundError):
+            ner_model._resolve_model_folder(str(tmp_path / 'no_existe'), None, 'v1')
+
+
 class TestFusion:
     def _fuse(self, llm_entities=None, mentions=MENTIONS):
         text = ClinicalTranscriptCompressor.process(TRANSCRIPT)['cleaned_transcript']

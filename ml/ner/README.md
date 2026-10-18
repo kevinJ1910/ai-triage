@@ -74,6 +74,37 @@ La F1 por entidad sobre las etiquetas de cada ventana (equivalente a `seqeval`, 
 
    Comprueba que cargó con `curl -k https://localhost/api/health_check/`: debe aparecer `"ner": {"model_loaded": true, ...}`. Si usas el Hub, define en `.env` `NER_MODEL_PATH=TU_USUARIO/ai-triage-ner-roberta` y `HF_TOKEN`.
 
+## Compartir el modelo por Hugging Face
+
+El modelo no va en git (485 MB). Para que otro equipo lo use sin copiar carpetas, se publica en un repositorio **privado** de Hugging Face Hub y el worker LLM lo descarga la primera vez al volumen `ner_model_cache`.
+
+**Quien publica** (una vez por versión):
+
+```bash
+pip install -U huggingface_hub
+hf auth login
+hf repo create ai-triage-ner-roberta --private
+hf upload TU_USUARIO/ai-triage-ner-roberta ml/ner/output/ai_triage_ner_roberta . --exclude "analisis/*" --exclude "training_args.bin" --commit-message "Modelo NER corrida 2026-10-17"
+hf repo tag create TU_USUARIO/ai-triage-ner-roberta v1
+```
+
+- `hf auth login` pide un token con permiso de **escritura**.
+- `analisis/` (predicciones de la validación cruzada) y `training_args.bin` no se suben porque el backend no los usa.
+- La etiqueta `v1` fija la versión con la que se calculan las cifras de la tesis. Al publicar otra corrida se sube igual y se etiqueta `v2`.
+
+**Quien lo usa** añade a su `.env`:
+
+```
+NER_MODEL_PATH=TU_USUARIO/ai-triage-ner-roberta
+NER_MODEL_REVISION=v1
+HF_TOKEN=<token de solo lectura>
+```
+
+Después reinicia el worker con `docker compose up -d worker-llm` y comprueba el health check. La primera vez tarda lo que dure la descarga.
+
+- Un repositorio de una cuenta personal solo lo leen tokens de esa cuenta. Para un compañero hay dos opciones: crear una organización en Hugging Face, mover allí el repositorio y añadirlo como miembro con rol *read* (cada uno usa su propio token); o darle un token *fine-grained* de solo lectura limitado a ese repositorio.
+- El token va solo en `.env`, que está en `.gitignore`. Nunca en el código ni en el chat.
+
 ## Análisis de errores
 
 ```bash
