@@ -7,6 +7,7 @@ Fine-tuning de [`PlanTL-GOB-ES/roberta-base-biomedical-clinical-es`](https://hug
 | `finetune_roberta_ner.ipynb` | Notebook para Colab o Kaggle (GPU T4): descarga, fusión, etapa 1, etapa 2, métricas y exportación. |
 | `ner_data.py` | Lectura de los corpus (TSV y brat), fusión por documento, alineación BIO, métricas por span y particiones. Solo usa la biblioteca estándar. |
 | `train_ner.py` | Tokenización con ventanas solapadas, `Trainer`, predicción por documento, validación cruzada (`cross_validate`) y guardado. Incluye `--smoke`. |
+| `revision_corpus.py` | Lista de casos a revisar según `backend/triage/benchmark/GUIA_LIMITES.md`. Solo mira las anotaciones, nunca predicciones, así que recorre `dev` y `test` sin contaminar la evaluación. |
 | `error_analysis.py` | Tipología de errores (límites, etiqueta, omitidos, espurios), métrica parcial y auditoría de coherencia del corpus propio. Solo usa la biblioteca estándar. |
 | `make_bundle.py` | Empaqueta el código y el corpus propio para subirlos al notebook, porque el repositorio es privado. |
 | `tests/` | Pruebas de la preparación de datos (con corpus sintéticos en los formatos reales), de las métricas, del aumento de datos y del análisis de errores. |
@@ -83,6 +84,8 @@ python ml/ner/error_analysis.py auditoria --split dev
 ```
 
 Tipos de error: `limites` (misma etiqueta, otros límites), `etiqueta` (mismos límites), `limites_y_etiqueta`, `omitido` (gold sin ninguna predicción solapada) y `espurio` (predicción sin gold solapado). Si dominan los de límites, lo que más rinde es unificar la guía de anotación; si dominan los omitidos o espurios, más datos o más entrenamiento.
+
+Los errores de límites (la mitad en la corrida del 17-10-2026) se atacan con la [guía de límites](../../backend/triage/benchmark/GUIA_LIMITES.md) y `python ml/ner/revision_corpus.py`, que genera la lista de casos a revisar.
 
 La auditoría busca textos anotados en un caso y sin anotar en otro, etiquetas contradictorias, menciones repetidas con una sola anotación, solapes y bordes en palabras funcionales. Sobre `dev`, el 16-10-2026, solo dio avisos aislados; el más claro es N008, donde «una convulsión tras otra» no está anotada.
 

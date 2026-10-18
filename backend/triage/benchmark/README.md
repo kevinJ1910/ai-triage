@@ -76,11 +76,13 @@ Las alergias llevan además `farmaco`:
 
 ## Guía de anotación
 
+Los límites de cada mención (qué palabras entran y cuáles no) están en [`GUIA_LIMITES.md`](GUIA_LIMITES.md). Es una propuesta del 17-10-2026, pendiente de que la apruebe el clínico. Si se aprueba, cambia dos criterios de esta guía: el evento traumático se anota (L8) y los hallazgos normales se anotan siempre como negados (L7).
+
 **Span (`text`).** Es la mención mínima, copiada **literalmente** del transcript, con sus errores de transcripción (`"posartan"`). No incluye la partícula de negación: en «no tiene dolor en el pecho», el span es `dolor en el pecho`. El span tiene que aparecer en el transcript; eso permite calcular los offsets para entrenar el NER en formato BIO.
 
 **Tipos.**
 - `symptoms`: síntomas y signos referidos u observados: dolor, fiebre, sangrado, palidez, disartria.
-- `diagnoses`: enfermedades, lesiones o estados del episodio actual que se nombran como tales: fractura, quemadura, herida, gripa, gestación, intoxicación, abuso sexual. El mecanismo («se cayó de la moto») no se anota, salvo que sea la propia condición («se atoró con comida», que es obstrucción de vía aérea).
+- `diagnoses`: enfermedades, lesiones o estados del episodio actual que se nombran como tales: fractura, quemadura, herida, gripa, gestación, intoxicación, abuso sexual. El mecanismo («se cayó de la moto») no se anota, salvo que sea la propia condición («se atoró con comida», que es obstrucción de vía aérea); la regla L8 de `GUIA_LIMITES.md` propone cambiarlo.
 - `medications`: fármacos por nombre o clase explícita (losartán, insulina, inhalador). «Las pastillas», sin más contexto, no se anota.
 - `allergies`: sustancia a la que se declara alergia, o reacción adversa explícita a un fármaco (B031). Si el fármaco también se menciona como medicamento, se anota en los dos tipos. `farmaco` es `true` si la sustancia es un medicamento (penicilina, sulfas, dipirona) y `false` si es un alimento, un alérgeno ambiental o un veneno (camarones, maní, polvo, abejas). Para el NER, solo las de `farmaco: true` son `FARMACO`, como en DrugTEMIST; las demás las cubren el catálogo y Gemini. Para la evaluación de `allergies` cuentan todas.
 - `vitals`: el valor medido. `normalized` usa el formato compacto de `input_pipeline` (`PA: 70/40 mmHg`, `FC: 140 lpm`, `SpO2: 78%`, `T: 38.9°C`, `FR: 32 rpm`, `GLU: 520 mg/dL`, `GCS: 7/15`), para compararlo directamente con lo que extrae el regex.
