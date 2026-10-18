@@ -117,7 +117,21 @@ def compare(runs: Sequence[Tuple[str, Dict[str, Any]]], split: str, baseline: Op
         'baseline': baseline,
         'rows': [build_row(name, data) for name, data in runs],
         'paired': paired_differences(runs, baseline) if baseline else [],
+        'critical_misses': {name: critical_misses(data) for name, data in runs},
     }
+
+
+def critical_misses(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Infratriajes criticos (referencia 1-2, prediccion 3-5) de una corrida, sin la justificacion."""
+    misses = (data.get('triage') or {}).get('critical_undertriage')
+    if misses is None:
+        misses = [{'id': c['id'], 'tipo': c.get('tipo'), 'reference_level': c['reference_level'],
+                   'predicted_level': c['predicted_level'], 'rule_level': c.get('rule_level'),
+                   'distance': c['predicted_level'] - c['reference_level']}
+                  for c in data.get('cases') or []
+                  if c['reference_level'] in (1, 2) and c['predicted_level'] not in (1, 2)]
+    return [{k: m.get(k) for k in ('id', 'tipo', 'reference_level', 'predicted_level', 'rule_level', 'distance')}
+            for m in misses]
 
 
 def run_agreement(first: Dict[str, Any], second: Dict[str, Any]) -> Dict[str, Any]:
@@ -178,6 +192,14 @@ def markdown_table(comparison: Dict[str, Any]) -> str:
                 f"| {_with_ci(m['critical_sensitivity']['diff'], m['critical_sensitivity']['ci95'])} "
                 f"| {_with_ci(m['undertriage_rate']['diff'], m['undertriage_rate']['ci95'])} |"
             )
+    if comparison.get('critical_misses'):
+        labels = {r['name']: r['label'] for r in comparison['rows']}
+        lines += ['', 'Infratriaje crítico (referencia I–II clasificada como III–V), por motor:', '']
+        for name, misses in comparison['critical_misses'].items():
+            detail = ', '.join(f"{m['id']} ({m.get('tipo') or '?'}, {m['reference_level']}→{m['predicted_level']})"
+                               for m in misses[:15])
+            more = f" y {len(misses) - 15} más" if len(misses) > 15 else ''
+            lines.append(f"- {labels.get(name, name)}: {len(misses)} casos" + (f": {detail}{more}" if misses else ''))
     if comparison.get('repeatability'):
         rep = comparison['repeatability']
         lines += ['', f"Repetibilidad ({rep['n']} casos repetidos): concordancia {_num(rep['exact_agreement'], suffix=' %')}, "

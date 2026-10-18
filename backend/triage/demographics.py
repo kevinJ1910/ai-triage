@@ -26,8 +26,12 @@ _MALE = re.compile(
     r"\b(senor|hombre|nino|muchacho|esposo|papa|padre|hijo|abuelo|el paciente|un paciente|paciente masculino|"
     r"el nino|el bebe|el joven|un joven|un senor|el senor)\b"
 )
-_AGE_YEARS = re.compile(r"\b(\d{1,3})\s*(?:anos|ano)\b")
-_AGE_MONTHS = re.compile(r"\b(\d{1,2})\s*(?:meses|mes|dias de nacido|semanas de nacido)\b")
+# Solo expresiones de edad ("de 30 anos", "tiene 30 anos", "30 anos de edad"), no de duracion ("hace 3 anos").
+_AGE_YEARS = re.compile(
+    r"\b(?:de|tiene|tengo|edad|con)\s+(?:unos\s+|aproximadamente\s+)?(\d{1,3})\s*anos\b"
+    r"|\b(\d{1,3})\s*anos\s+de\s+edad\b"
+)
+_AGE_MONTHS = re.compile(r"\b(?:de|tiene)\s+(?:unos\s+)?\d{1,2}\s*(?:meses|mes|dias de nacido|semanas de nacido)\b")
 _PEDIATRIC = re.compile(r"\b(bebe|nino|nina|recien nacido|lactante|menor de edad|colegio|hijo de|hija de)\b")
 _ELDERLY = re.compile(r"\b(abuelo|abuela|anciano|anciana|adulto mayor|tercera edad)\b")
 
@@ -41,7 +45,7 @@ def derive(transcript: str) -> Dict[str, Optional[Any]]:
     age = None
     years = _AGE_YEARS.search(text)
     if years:
-        age = int(years.group(1))
+        age = int(years.group(1) or years.group(2))
     elif _AGE_MONTHS.search(text):
         age = 0
     if age is not None:

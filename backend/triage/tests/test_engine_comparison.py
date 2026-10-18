@@ -55,6 +55,10 @@ class TestEngineComparison:
         diff = next(d for d in comparison['paired'] if d['name'] == 'test_hibrido')['metrics']
         assert diff['critical_sensitivity']['diff'] == 100.0
         assert diff['cohen_kappa']['ci95'][0] > 0
+        assert len(comparison['critical_misses']['test_reglas']) == 12
+        assert comparison['critical_misses']['test_hibrido'] == []
+        assert 'justification' not in comparison['critical_misses']['test_reglas'][0]
+        assert 'Infratriaje crítico' in markdown_table(comparison)
 
     def test_unknown_baseline_is_rejected(self):
         with pytest.raises(ValueError):
