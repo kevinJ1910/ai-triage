@@ -65,6 +65,40 @@ class TestWhisperEngineAndEndpoints:
         assert "paciente de 60 anos" in fake_model.transcribe.call_args.kwargs["initial_prompt"]
         assert get_session_context("sid-chunk") == "paciente de 60 anos me duele el pecho"
 
+    def test_whisper_loop_is_collapsed_and_kept_out_of_the_context(self, monkeypatch):
+        # Caso real del 17-10-2026: el bucle pasaba al prompt del siguiente fragmento y se perpetuaba.
+        fake_model = MagicMock()
+        fake_model.transcribe.return_value = (
+            [SimpleNamespace(text="me ha dado que " * 20)],
+            SimpleNamespace(language="es", language_probability=0.99),
+        )
+        monkeypatch.setattr(self.engine, "model", fake_model)
+        append_session_context("sid-loop", "Buenas tardes")
+
+        result = self.engine.transcribe_chunk(b"fake-audio", "sid-loop")
+
+        assert result["text"] == "me ha dado que"
+        assert result["repetition_filtered"] is True
+        assert get_session_context("sid-loop") == "Buenas tardes"
+        # Escala de temperaturas: Whisper reintenta cuando la salida es demasiado repetitiva.
+        assert fake_model.transcribe.call_args.kwargs["temperature"][0] == 0.0
+        assert len(fake_model.transcribe.call_args.kwargs["temperature"]) > 1
+        assert fake_model.transcribe.call_args.kwargs["compression_ratio_threshold"] == 2.4
+
+    @pytest.mark.parametrize("text,expected,repeated", [
+        ("soy el profesional de ertes, " * 30, "soy el profesional de ertes", True),
+        ("tos tos tos tos tos", "tos", True),
+        ("Subtítulos por la comunidad de Amara.org", "", True),
+        ("Me duele la cabeza. Gracias por ver el video.", "Me duele la cabeza", True),
+        ("me duele, me duele mucho el pecho", "me duele, me duele mucho el pecho", False),
+        ("no, no, no puedo respirar", "no, no, no puedo respirar", False),
+        ("fiebre de 38, fiebre alta desde ayer y fiebre en la noche",
+         "fiebre de 38, fiebre alta desde ayer y fiebre en la noche", False),
+    ])
+    def test_clean_transcript(self, text, expected, repeated):
+        from transcription.whisper_engine import clean_transcript
+        assert clean_transcript(text) == (expected, repeated)
+
     def test_engine_get_status_does_not_expose_sessions(self):
         append_session_context("secret-session-id", "texto")
         info = self.engine.get_status()

@@ -1,10 +1,12 @@
 import os
+import re
 import sys
 import tempfile
 import logging
 import threading
 import time
-from typing import Dict, Any
+import zlib
+from typing import Dict, Any, Tuple
 
 # --- Dynamic Path Resolution for CUDA/cuDNN DLLs on Windows ---
 if sys.platform == 'win32':
@@ -52,6 +54,56 @@ def append_session_context(session_id: str, text: str) -> None:
     previous = get_session_context(session_id)
     combined = f"{previous} {text}".strip() if previous else text
     cache.set(_context_key(session_id), combined[-_MAX_CONTEXT_CHARS:], timeout=settings.ASR_SESSION_TTL)
+
+
+# Opciones de decodificacion, compartidas con evaluate_asr para que el WER mida lo mismo que la aplicacion.
+# Con una sola temperatura (0.0), Whisper no puede reintentar: si la salida entra en bucle («me ha dado que me
+# ha dado que...»), la devuelve tal cual. Con la escala de temperaturas, una salida demasiado repetitiva
+# (compression_ratio > 2.4) o poco probable (avg_logprob < -1) se vuelve a decodificar con mas temperatura.
+DECODE_OPTIONS = dict(
+    language="es",
+    temperature=(0.0, 0.2, 0.4, 0.6),
+    compression_ratio_threshold=2.4,
+    log_prob_threshold=-1.0,
+    no_speech_threshold=0.6,
+    condition_on_previous_text=False,
+    vad_filter=True,
+    vad_parameters=dict(min_silence_duration_ms=500),
+)
+# Una frase de 2 a 8 palabras repetida al menos 3 veces seguidas, o una palabra al menos 4 veces.
+_REPEATED_PHRASE = re.compile(r"\b((?:\w+[\s,.;]+){1,7}?\w+)(?:[\s,.;]+\1\b){2,}", re.IGNORECASE)
+_REPEATED_WORD = re.compile(r"\b(\w+)(?:[\s,.;]+\1\b){3,}", re.IGNORECASE)
+# Frases que Whisper inventa sobre silencio o ruido, aprendidas de subtitulos de videos.
+_STOCK_PHRASES = re.compile(
+    r"subt[ií]tulos (?:realizados |hechos )?por (?:la comunidad de )?amara\.org|"
+    r"gracias por ver(?: el video)?|suscr[ií]bete(?: al canal)?|no olvides suscribirte",
+    re.IGNORECASE)
+# Como el umbral de Whisper: un texto que se comprime mas de 2.4 veces es casi seguro un bucle.
+MAX_COMPRESSION_RATIO = 2.4
+
+
+def _compression_ratio(text: str) -> float:
+    data = text.encode("utf-8")
+    return len(data) / len(zlib.compress(data)) if data else 0.0
+
+
+def clean_transcript(text: str) -> Tuple[str, bool]:
+    """
+    Quita las alucinaciones de Whisper. Devuelve (texto, hubo_alucinacion). Las repeticiones de una frase se
+    reducen a una sola aparicion; si aun asi el texto es demasiado repetitivo, se descarta entero. Tambien se
+    quitan las frases de subtitulos que inventa sobre silencio («Subtitulos por la comunidad de Amara.org»).
+    Repeticiones naturales y cortas («me duele, me duele») se conservan.
+    """
+    cleaned = _STOCK_PHRASES.sub("", text)
+    cleaned = _REPEATED_PHRASE.sub(r"\1", cleaned)
+    cleaned = _REPEATED_WORD.sub(r"\1", cleaned)
+    cleaned = " ".join(cleaned.split())
+    if cleaned != " ".join(text.split()):
+        cleaned = cleaned.strip(" .,;")
+    repeated = cleaned != " ".join(text.split())
+    if len(cleaned) > 60 and _compression_ratio(cleaned) > MAX_COMPRESSION_RATIO:
+        return "", True
+    return cleaned, repeated
 
 
 def reset_session_context(session_id: str) -> None:
@@ -173,23 +225,22 @@ class WhisperEngine:
             # beam_size=1 para velocidad ultra-rapida en chunks; configurable via settings
             beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 1)
 
-            # Transcripcion con VAD Silero optimizado
+            # Transcripcion con VAD Silero optimizado y reintento por temperatura ante bucles
             segments, info = self.model.transcribe(
                 temp_file_path,
-                language="es",
                 initial_prompt=full_prompt,
                 beam_size=beam_size,
-                temperature=0.0,
-                condition_on_previous_text=False,
-                vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=500)
+                **DECODE_OPTIONS,
             )
 
             text_segments = [segment.text for segment in segments]
-            transcribed_text = " ".join(text_segments).strip()
+            transcribed_text, repetition_filtered = clean_transcript(" ".join(text_segments).strip())
+            if repetition_filtered:
+                logger.warning(f"Repeticion de Whisper filtrada en la sesion {session_id}")
 
-            # Actualizar buffer de contexto de la sesion
-            if transcribed_text:
+            # El texto con repeticiones no entra en el contexto: si entrara en el prompt del siguiente
+            # fragmento, Whisper tenderia a continuar el mismo bucle.
+            if transcribed_text and not repetition_filtered:
                 append_session_context(session_id, transcribed_text)
 
             elapsed_time_ms = int((time.perf_counter() - start_time) * 1000)
@@ -200,7 +251,8 @@ class WhisperEngine:
                 "session_id": session_id,
                 "language": info.language,
                 "language_probability": info.language_probability,
-                "processing_time_ms": elapsed_time_ms
+                "processing_time_ms": elapsed_time_ms,
+                "repetition_filtered": repetition_filtered,
             }
 
         except Exception as e:

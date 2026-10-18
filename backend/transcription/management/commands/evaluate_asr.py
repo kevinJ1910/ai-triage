@@ -131,17 +131,20 @@ class Transcriber:
                                   cpu_threads=getattr(settings, 'WHISPER_CPU_THREADS', 4))
         self.prompt = CLINICAL_INITIAL_PROMPT if use_prompt else None
         self.beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 1)
+        self.repetitions = 0  # fragmentos con un bucle de Whisper filtrado
 
     def _run(self, audio, prompt):
-        segments, info = self.model.transcribe(
-            audio, language='es', initial_prompt=prompt, beam_size=self.beam_size, temperature=0.0,
-            condition_on_previous_text=False, vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500))
-        return ' '.join(s.text for s in segments).strip(), info.duration
+        from transcription.whisper_engine import DECODE_OPTIONS, clean_transcript
+        segments, info = self.model.transcribe(audio, initial_prompt=prompt, beam_size=self.beam_size, **DECODE_OPTIONS)
+        text, repeated = clean_transcript(' '.join(s.text for s in segments).strip())
+        self.repetitions += repeated
+        return text, info.duration, repeated
 
     def transcribe(self, path: Path, chunk_seconds: float = 0):
         """(texto, duracion del audio). Con chunk_seconds emula el streaming: fragmentos con el contexto previo."""
         if not chunk_seconds:
-            return self._run(str(path), self.prompt)
+            text, duration, _ = self._run(str(path), self.prompt)
+            return text, duration
         from faster_whisper.audio import decode_audio
         audio = decode_audio(str(path), sampling_rate=16000)
         step = int(chunk_seconds * 16000)
@@ -150,10 +153,11 @@ class Transcriber:
             prompt = self.prompt
             if prompt and history:
                 prompt += "\nHistorial previo de la conversacion: " + history[-400:]
-            text, _ = self._run(audio[start:start + step], prompt)
+            text, _, repeated = self._run(audio[start:start + step], prompt)
             if text:
                 texts.append(text)
-                history = f'{history} {text}'.strip()
+                if not repeated:  # como en WhisperEngine: un bucle no entra en el contexto
+                    history = f'{history} {text}'.strip()
         return ' '.join(texts), len(audio) / 16000
 
 
