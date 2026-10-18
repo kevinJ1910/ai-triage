@@ -530,7 +530,7 @@ export default function ConfigPanel() {
           <div className="p-3.5 rounded-xl bg-sky-950/20 border border-sky-500/30 flex items-start gap-3 text-[11px] text-sky-200">
             <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-white block mb-0.5">Consumo de tokens de la normalizacion:</span>
+              <span className="font-semibold text-slate-100 block mb-0.5">Consumo de tokens de la normalizacion:</span>
               <p className="text-slate-300 leading-relaxed text-[11px]">
                 {vocabularies?.snomed?.token_notice || 'Las capas del catalogo no consumen tokens; el LLM solo procesa los terminos residuales en el monitor de normalizacion.'}
               </p>
@@ -672,7 +672,7 @@ export default function ConfigPanel() {
             <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-3">
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-semibold uppercase text-white tracking-wider">
+                <h3 className="text-xs font-semibold uppercase text-slate-100 tracking-wider">
                   Registrar Llave API Cifrada
                 </h3>
               </div>

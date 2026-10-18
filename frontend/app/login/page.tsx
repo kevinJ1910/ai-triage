@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAccessToken } from '@/lib/api';
+import ThemeToggle from '@/components/ThemeToggle';
 import { 
   Lock, 
   Mail, 
@@ -353,7 +354,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 selection:bg-slate-700 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 selection:bg-slate-700 selection:text-slate-100">
       {/* Hospital Institutional Header */}
       <header className="w-full max-w-4xl flex items-center justify-between py-4 border-b border-slate-800 text-xs text-slate-400">
         <div className="flex items-center gap-2.5 font-medium text-slate-200">
@@ -364,9 +365,10 @@ export default function LoginPage() {
           <span className="text-slate-600 hidden sm:inline">|</span>
           <span className="text-slate-400 hidden sm:inline">Servicio de Urgencias y Admision</span>
         </div>
-        <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-          <span>Estacion Asistencial Conectada</span>
+        <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+          <span className="hidden sm:inline">Estacion Asistencial Conectada</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <ThemeToggle showLabel={false} className="p-1.5" />
         </div>
       </header>
 
@@ -378,7 +380,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-sky-400 mb-3 shadow-sm">
               <Activity className="w-5 h-5" />
             </div>
-            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-slate-100 flex items-center gap-2">
               AI-Triage Hospitalario
             </h1>
             <p className="text-xs text-slate-400 mt-1">

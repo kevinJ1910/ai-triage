@@ -706,15 +706,15 @@ export default function EMRSimulator() {
               <span>Arquitectura y Flujo Operativo del Simulador HCE:</span>
             </div>
             <p className="text-slate-300 leading-relaxed">
-              1. <strong className="text-white">Cola de Pacientes:</strong> Recibe los triajes procesados por la IA. Permite consultar la historia clínica, evolucionar la nota médica y asignar la camilla hospitalaria correspondiente.
+              1. <strong className="text-slate-100">Cola de Pacientes:</strong> Recibe los triajes procesados por la IA. Permite consultar la historia clínica, evolucionar la nota médica y asignar la camilla hospitalaria correspondiente.
             </p>
             <p className="text-slate-300 leading-relaxed">
-              2. <strong className="text-white">Censo y Gestión de Boxes:</strong> Representa la infraestructura física instalada (Reanimación, Boxes de Urgencias, Observación, Aislamiento). Permite crear nuevos boxes, editar equipamiento, asignar pacientes directamente o alternar ciclos de desinfección/higiene.
+              2. <strong className="text-slate-100">Censo y Gestión de Boxes:</strong> Representa la infraestructura física instalada (Reanimación, Boxes de Urgencias, Observación, Aislamiento). Permite crear nuevos boxes, editar equipamiento, asignar pacientes directamente o alternar ciclos de desinfección/higiene.
             </p>
           </div>
           <button 
             onClick={() => setShowExplanation(false)}
-            className="text-sky-400 hover:text-white p-1 rounded-lg"
+            className="text-sky-400 hover:text-slate-100 p-1 rounded-lg"
           >
             <X className="w-4 h-4" />
           </button>

@@ -737,12 +737,12 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                    placeholder="Filtrar por paciente o nivel..." 
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
-                   className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl py-1.5 pl-8.5 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all font-sans"
+                   className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl py-1.5 pl-8.5 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all font-sans"
                  />
                  {searchQuery && (
                    <button
                      onClick={() => setSearchQuery('')}
-                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-white"
+                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-100"
                      title="Limpiar filtro"
                    >
                      <X className="w-3.5 h-3.5" />
@@ -788,7 +788,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                       }
                     }}>
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold uppercase text-white truncate pr-2">{session.patientName}</span>
+                        <span className="text-xs font-bold uppercase text-slate-100 truncate pr-2">{session.patientName}</span>
                         <div className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${getLevelGradient(session.analysisResult?.triage?.level)}`}>
                           Nivel {session.analysisResult?.triage?.level || "?"}
                         </div>
@@ -852,7 +852,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                 </div>
                 <button 
                   onClick={clearAsrError} 
-                  className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors"
+                  className="p-1 text-red-400 hover:text-slate-100 rounded hover:bg-red-800/40 transition-colors"
                   title="Cerrar aviso"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1141,7 +1141,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                   </div>
                   <span>Datos del Paciente</span>
                 </h3>
-                <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md bg-[#0d1422] border border-slate-800">
+                <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md bg-[var(--surface-sunken)] border border-slate-800">
                   Admisión
                 </span>
               </div>
@@ -1154,7 +1154,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     type="text"
                     value={patientInfo.name}
                     onChange={e => setPatientInfo({ ...patientInfo, name: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Nombre del paciente"
                   />
                 </div>
@@ -1166,7 +1166,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     type="text"
                     value={patientInfo.documentId}
                     onChange={e => setPatientInfo({ ...patientInfo, documentId: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="C.C., T.I., etc."
                   />
                   <InputWarning 
@@ -1182,7 +1182,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     type="date"
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                   />
                   <InputWarning 
                     warning={patientInfo.birthDate ? validateDate(patientInfo.birthDate, { maxDate: new Date().toISOString().split('T')[0], label: 'Fecha de nacimiento' }).warning : null} 
@@ -1196,7 +1196,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     aria-label="Género"
                     value={patientInfo.gender}
                     onChange={e => setPatientInfo({ ...patientInfo, gender: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                   >
                     <option value="unknown">Desconocido</option>
                     <option value="male">Masculino</option>
@@ -1212,7 +1212,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     type="text"
                     value={patientInfo.phone}
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="Número telefónico"
                   />
                   <InputWarning 
@@ -1228,7 +1228,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     type="text"
                     value={patientInfo.insurance}
                     onChange={e => setPatientInfo({ ...patientInfo, insurance: e.target.value })}
-                    className="w-full bg-[#0d1422] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Empresa promotora de salud"
                   />
                 </div>
@@ -1334,7 +1334,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                       </div>
                       <button 
                         onClick={() => setTriageError(null)} 
-                        className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors shrink-0"
+                        className="p-1 text-red-400 hover:text-slate-100 rounded hover:bg-red-800/40 transition-colors shrink-0"
                         title="Cerrar aviso de error"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1530,7 +1530,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                     <ExplainabilityPanel analysis={analysisResult} />
                     </>
                 ) : !triageError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl bg-[#0c1322]/50 border border-slate-800/80">
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl bg-[var(--surface-input)]/50 border border-slate-800/80">
                     <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
                       <ShieldAlert className="w-5 h-5 text-slate-400" />
                     </div>
@@ -1574,7 +1574,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                      downloadFHIRJson(currentSession);
                      toast.success('Descargando HL7 FHIR R4 JSON');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#141e30] hover:bg-[#1a273e] text-cyan-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--surface-raised)] hover:bg-[var(--surface-raised-hover)] text-cyan-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
                 >
                    <Code className="w-3.5 h-3.5 text-cyan-400" />
@@ -1595,7 +1595,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                      downloadHL7v2Message(currentSession);
                      toast.success('Descargando HL7 v2.5.1 ER7');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#141e30] hover:bg-[#1a273e] text-blue-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--surface-raised)] hover:bg-[var(--surface-raised-hover)] text-blue-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
                 >
                    <FileText className="w-3.5 h-3.5 text-blue-400" />
@@ -1607,7 +1607,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       !analysisResult 
                       ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-40' 
-                      : 'bg-[#141e30] text-slate-200 hover:bg-[#1a273e] border border-slate-800 hover:border-slate-700 shadow-xs'
+                      : 'bg-[var(--surface-raised)] text-slate-200 hover:bg-[var(--surface-raised-hover)] border border-slate-800 hover:border-slate-700 shadow-xs'
                    }`}
                 >
                    <Save className="w-3.5 h-3.5" />
@@ -1659,7 +1659,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
             <div className="p-2 rounded bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
               <div>
                 <span className="text-slate-400">Nivel actual: </span>
-                <span className="font-bold text-white">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
+                <span className="font-bold text-slate-100">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
               </div>
               <div>
                 <span className="text-slate-400">Nuevo nivel propuesto: </span>
@@ -1702,7 +1702,7 @@ function EntityGroup({
           </span>
         ) : null}
       </div>
-      <div className="flex flex-col gap-1.5 min-h-[48px] bg-[#0c1322]/50 p-2.5 rounded-xl border border-slate-800/80">
+      <div className="flex flex-col gap-1.5 min-h-[48px] bg-[var(--surface-input)]/50 p-2.5 rounded-xl border border-slate-800/80">
         {!entities && !loading && (
           <div className="flex items-center gap-2 py-1.5 px-2 text-slate-500 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0"></span>
@@ -1716,7 +1716,7 @@ function EntityGroup({
           </div>
         )}
         {!loading && entities?.map((e, idx) => (
-          <div key={idx} className={`flex items-center justify-between px-2.5 py-2 bg-[#131d2e] rounded-lg border-l-2 ${border} border border-slate-800/80 hover:border-slate-700/80 transition-colors shadow-xs`}>
+          <div key={idx} className={`flex items-center justify-between px-2.5 py-2 bg-[var(--surface-raised)] rounded-lg border-l-2 ${border} border border-slate-800/80 hover:border-slate-700/80 transition-colors shadow-xs`}>
             <span className="text-xs font-medium text-slate-200 truncate">{e}</span>
             {isEditMode && (
               <button onClick={() => onRemove?.(idx)} className="text-red-400 hover:text-red-300 ml-2 shrink-0">
@@ -1737,7 +1737,7 @@ function EntityGroup({
                   setNewVal("");
                 }
               }}
-              className="flex-1 bg-[#101728] border border-slate-800 hover:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30"
+              className="flex-1 bg-[var(--surface-panel)] border border-slate-800 hover:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30"
               placeholder="Añadir..."
             />
           </div>
@@ -1756,12 +1756,13 @@ function EntityGroup({
 const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 function getLevelGradient(level?: number) {
+  // keep-dark: el degradado conserva la paleta oscura tambien en el tema claro (texto blanco legible).
   switch (level) {
-    case 1: return 'bg-gradient-to-br from-red-600 to-red-950 border-red-500 shadow-red-900/50';
-    case 2: return 'bg-gradient-to-br from-orange-600 to-orange-950 border-orange-500 shadow-orange-900/50';
-    case 3: return 'bg-gradient-to-br from-amber-500 to-amber-950 border-amber-500 shadow-amber-900/50';
-    case 4: return 'bg-gradient-to-br from-emerald-600 to-emerald-950 border-emerald-500 shadow-emerald-900/50';
-    case 5: return 'bg-gradient-to-br from-blue-600 to-blue-950 border-blue-500 shadow-blue-900/50';
+    case 1: return 'keep-dark text-white bg-gradient-to-br from-red-600 to-red-950 border-red-500 shadow-red-900/50';
+    case 2: return 'keep-dark text-white bg-gradient-to-br from-orange-600 to-orange-950 border-orange-500 shadow-orange-900/50';
+    case 3: return 'keep-dark text-white bg-gradient-to-br from-amber-500 to-amber-950 border-amber-500 shadow-amber-900/50';
+    case 4: return 'keep-dark text-white bg-gradient-to-br from-emerald-600 to-emerald-950 border-emerald-500 shadow-emerald-900/50';
+    case 5: return 'keep-dark text-white bg-gradient-to-br from-blue-600 to-blue-950 border-blue-500 shadow-blue-900/50';
     default: return 'bg-slate-800 border-slate-700 text-slate-400';
   }
 }
@@ -1855,7 +1856,7 @@ function ConfirmModal({
           type="button"
           onClick={onCancel}
           aria-label="Cerrar modal"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>

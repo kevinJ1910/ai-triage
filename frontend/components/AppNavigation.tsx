@@ -33,6 +33,8 @@ import MetricsDashboard from '@/components/MetricsDashboard';
 import BlindReview from '@/components/BlindReview';
 import EngineStatus from '@/components/EngineStatus';
 import EvaluationResults from '@/components/EvaluationResults';
+import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/lib/theme';
 
 interface UserProfile {
   id: number;
@@ -58,6 +60,7 @@ export default function AppNavigation() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const router = useRouter();
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Validar sesion en backend (renueva el access token con la cookie httpOnly si hace falta)
@@ -88,7 +91,7 @@ export default function AppNavigation() {
 
   if (isAuthChecking) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#0b1120] text-slate-200">
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--app-bg)] text-slate-200">
         <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl backdrop-blur-md">
           <div className="relative flex items-center justify-center">
             <div className="w-10 h-10 border-2 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
@@ -142,14 +145,14 @@ export default function AppNavigation() {
   const currentActiveItem = allNavItems.find(i => i.id === visibleTab);
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-[#0b1120] text-slate-200 font-sans overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full w-full bg-[var(--app-bg)] text-slate-200 font-sans overflow-hidden">
       {/* Mobile Top Header */}
       <header className="md:hidden h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between px-3 shrink-0 z-30">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Abrir menu de navegacion"
-            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
+            className="p-2 rounded-lg text-slate-300 hover:text-slate-100 hover:bg-slate-800/80 transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -167,6 +170,7 @@ export default function AppNavigation() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle showLabel={false} className="p-2" />
           <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold text-xs">
             {currentUser?.first_name ? currentUser.first_name[0].toUpperCase() : 'U'}
           </div>
@@ -195,7 +199,7 @@ export default function AppNavigation() {
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -233,7 +237,7 @@ export default function AppNavigation() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
                       isActive 
                         ? 'bg-sky-600/20 text-sky-300 border border-sky-500/30 font-medium' 
-                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
                     }`}
                   >
                     <div className="shrink-0">{item.icon}</div>
@@ -255,7 +259,7 @@ export default function AppNavigation() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
                       isActive 
                         ? 'bg-sky-600/20 text-sky-300 border border-sky-500/30 font-medium' 
-                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
                     }`}
                   >
                     <div className="shrink-0">{item.icon}</div>
@@ -277,7 +281,7 @@ export default function AppNavigation() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
                       isActive 
                         ? 'bg-sky-600/20 text-sky-300 border border-sky-500/30 font-medium' 
-                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
                     }`}
                   >
                     <div className="shrink-0">{item.icon}</div>
@@ -427,6 +431,7 @@ export default function AppNavigation() {
 
         {/* Bottom Actions */}
         <div className="p-2 border-t border-slate-800/80 flex flex-col items-center shrink-0 gap-1 bg-slate-950/20">
+          <ThemeToggle showLabel={!isCollapsed} className="justify-start px-2.5 py-2 w-full" />
           <button 
             onClick={handleLogout}
             className="flex items-center justify-start gap-2.5 px-2.5 py-2 w-full rounded-lg text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-all border border-transparent hover:border-rose-900/40 text-xs font-medium"
@@ -454,8 +459,8 @@ export default function AppNavigation() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0b1120] p-2 md:p-3">
-        <Toaster theme="dark" position="bottom-right" richColors closeButton duration={4000} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--app-bg)] p-2 md:p-3">
+        <Toaster theme={theme} position="bottom-right" richColors closeButton duration={4000} />
         {visibleTab === 'triage' && <TriageDashboard userProfile={currentUser} />}
         {visibleTab === 'config' && <ConfigPanel />}
         {visibleTab === 'security' && <SecurityPanel />}

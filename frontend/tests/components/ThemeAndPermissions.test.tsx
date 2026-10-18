@@ -1,7 +1,9 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import AppNavigation from '../../components/AppNavigation';
+import ThemeToggle from '../../components/ThemeToggle';
 import { setAccessToken } from '../../lib/api';
+import { THEME_STORAGE_KEY } from '../../lib/theme';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
@@ -14,6 +16,8 @@ vi.mock('@/components/FHIRMonitor', () => ({ default: () => <div data-testid="FH
 vi.mock('@/components/EMRSimulator', () => ({ default: () => <div data-testid="EMRSimulator-view" /> }));
 vi.mock('@/components/MetricsDashboard', () => ({ default: () => <div data-testid="MetricsDashboard-view" /> }));
 vi.mock('@/components/BlindReview', () => ({ default: () => <div data-testid="BlindReview-view" /> }));
+vi.mock('@/components/EvaluationResults', () => ({ default: () => <div data-testid="EvaluationResults-view" /> }));
+vi.mock('@/components/EngineStatus', () => ({ default: () => <div data-testid="EngineStatus-view" /> }));
 
 const nurse = {
   id: 2, email: 'enfermera@hospital.com', first_name: 'Ana', last_name: 'Gil', full_name: 'Ana Gil', role: 'enfermero',
@@ -38,9 +42,28 @@ describe('Menú según permisos', () => {
 
     await waitFor(() => expect(screen.getAllByText('Modulo de Triaje').length).toBeGreaterThan(0));
     expect(screen.getAllByText('Monitor Normalizacion').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Resultados de Evaluacion').length).toBeGreaterThan(0);
     for (const hidden of ['Simulador HCE', 'Validacion Ciega', 'Monitor FHIR/HL7', 'Seguridad y RBAC', 'Configuracion']) {
       expect(screen.queryByText(hidden)).not.toBeInTheDocument();
     }
     expect(screen.queryByText('Administración')).not.toBeInTheDocument();
+  });
+});
+
+describe('ThemeToggle', () => {
+  afterEach(() => {
+    delete document.documentElement.dataset.theme;
+    localStorage.clear();
+  });
+
+  it('alterna el tema claro y lo recuerda en el navegador', () => {
+    render(<ThemeToggle />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar a tema claro' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar a tema oscuro' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
   });
 });
