@@ -56,7 +56,9 @@ class TestChristusSinergiaProtocol:
 
     def test_ai_analyzer_fallback_on_llm_failure(self):
         # Simular fallo de LLM (e.g. 503 UNAVAILABLE)
-        with patch("google.genai.Client") as mock_client:
+        # Clave ficticia: sin ella (CI sin .env) el analizador ni siquiera llama a Gemini.
+        with patch("google.genai.Client") as mock_client, \
+                patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="clave-de-prueba"):
             mock_inst = MagicMock()
             mock_inst.models.generate_content.side_effect = Exception("503 UNAVAILABLE: Model is overloaded")
             mock_client.return_value = mock_inst
