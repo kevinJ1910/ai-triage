@@ -82,12 +82,12 @@ La repetibilidad compara solo los casos comunes: los 30 primeros de *dev*. El se
 
 ## 4. Cuota y costo de Gemini
 
-**Plan gratuito.** `gemini-2.5-flash` permite 5 peticiones por minuto y una cuota diaria que en las cuentas recientes es de pocas decenas a pocos cientos de peticiones. El corredor tiene tres protecciones:
+**Plan gratuito.** `gemini-2.5-flash` permite 5 peticiones por minuto y **20 al día por modelo**. Es la cuota `GenerateRequestsPerDayPerProjectPerModel-FreeTier` que devolvió la API el 18-10-2026. Una pasada de *dev* (150 casos) necesita unos 8 días y el programa completo más de un mes, así que el plan gratuito no alcanza para el plazo de la tesis. El corredor tiene tres protecciones:
 - respeta `--rpm`;
 - corta la tanda con `--max-calls`;
 - si el proveedor informa la cuota diaria agotada (`PerDay` en el 429) o el 429 persiste tras los reintentos, se detiene sin perder casos.
 
-Al día siguiente se repite el mismo comando. Con este plan, una pasada de *dev* puede llevar varios días.
+Al día siguiente se repite el mismo comando.
 
 **Plan de pago.** Las tarifas son de 0,30 USD por millón de tokens de entrada y 2,50 USD por millón de salida, razonamiento incluido, tanto en 2.5 Flash como en 3.5 Flash-Lite ([precios oficiales](https://ai.google.dev/gemini-api/docs/pricing), consultados el 18-10-2026 y guardados en `evaluation_runner.PRICES`).
 
