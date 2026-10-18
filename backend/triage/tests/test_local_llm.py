@@ -67,6 +67,18 @@ class TestLocalLLMAdapter:
         assert body["model"] == "qwen"
         assert "Laura" not in body["messages"][1]["content"]
 
+    def test_percentage_confidence_is_normalized_without_touching_the_level(self, local_server):
+        output = {**LLM_OUTPUT, "confidence": 95}
+        local_server["handler"] = lambda request: httpx.Response(200, json=_completion(json.dumps(output)))
+        res = analyze_triage_transcript("dolor de cabeza leve", use_cache=False, model="local:qwen")
+        assert res["confidence"] == pytest.approx(0.95)
+        assert res["output_coerced"] == ["confidence"]
+        assert res["triage"]["level"] == 4
+        output["confidence"] = 250
+        local_server["handler"] = lambda request: httpx.Response(200, json=_completion(json.dumps(output)))
+        res = analyze_triage_transcript("dolor de cabeza leve", use_cache=False, model="local:qwen")
+        assert res["engine_used"].startswith("Motor de Reglas")
+
     def test_active_local_engine_never_falls_back_to_gemini(self, local_server, mocker):
         from system_settings.models import SystemConfiguration
         config = SystemConfiguration.get_solo()

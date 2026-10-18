@@ -296,6 +296,8 @@ def performance_summary(records: List[Dict[str, Any]], model: Optional[str]) -> 
         'cost_usd_per_1000': round(cost / len(records) * 1000, 2) if cost is not None and records else None,
         'llm_failures': 0,
         'retried_cases': sum((r.get('attempts') or 1) > 1 for r in records),
+        # Casos con un campo de formato corregido antes de validar (p. ej. confianza en porcentaje).
+        'coerced_cases': sum(bool(r.get('output_coerced')) for r in records),
     }
 
 

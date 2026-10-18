@@ -112,6 +112,7 @@ def run_case(engine: str, transcript: str, model=None, prompt_version=None, rule
         'thoughts_tokens': int(analysis.get('thoughts_tokens') or 0),
         'total_tokens': int(analysis.get('total_tokens') or 0),
         'justification': triage.get('justification'),
+        'output_coerced': list(analysis.get('output_coerced') or []),
         'predicted_codes': [t['code'] for t in analysis.get('normalized_terms') or [] if t.get('code_system') == 'CIE-10'],
         **({'llm_raw': analysis.get('llm_raw')} if llm else {}),
     }

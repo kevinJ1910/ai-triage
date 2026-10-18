@@ -324,6 +324,21 @@ def _call_local(model_name: str, system_instruction: str, user_prompt: str) -> D
                                schema=_sanitize_schema_for_gemini(TriageOutputSchema), temperature=LLM_TEMPERATURE)
 
 
+def _coerce_llm_output(parsed: Any) -> List[str]:
+    """
+    Corrige desvios de formato que no cambian el contenido clinico, antes de validar con Pydantic.
+    Ollama impone la estructura del esquema pero no los limites numericos: Qwen devuelve la confianza en
+    porcentaje (95 en vez de 0.95). Devuelve los campos corregidos; el nivel de triaje nunca se toca.
+    """
+    fixed = []
+    if isinstance(parsed, dict):
+        confidence = parsed.get("confidence")
+        if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) and 1 < confidence <= 100:
+            parsed["confidence"] = confidence / 100
+            fixed.append("confidence")
+    return fixed
+
+
 def _apply_combine_policy(result: Dict[str, Any], rule_baseline: Dict[str, Any], policy: str) -> Dict[str, Any]:
     """Registra el nivel del LLM y el de reglas y, con min_critico, deja prevalecer un nivel critico de reglas."""
     llm_level = int(result["triage"]["level"])
@@ -487,10 +502,12 @@ def analyze_triage_transcript(
                 call = _call_local(model_name, system_instruction, user_prompt)
             raw_text = call["text"]
             parsed = json.loads(raw_text)
+            coerced = _coerce_llm_output(parsed)
 
             # Validar con Pydantic para garantia estructural total
             validated_model = TriageOutputSchema.model_validate(parsed)
             result = validated_model.model_dump()
+            result["output_coerced"] = coerced
             result["patientInfo"] = _restore_identifiers(
                 result.get("patientInfo") or {}, pseudonymized["identifiers"], raw_transcript
             )
