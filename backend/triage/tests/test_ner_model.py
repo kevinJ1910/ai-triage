@@ -138,6 +138,17 @@ class TestHubModel:
         with pytest.raises(FileNotFoundError):
             ner_model._resolve_model_folder(str(tmp_path / 'no_existe'), None, 'v1')
 
+    @pytest.mark.parametrize('source, local', [
+        ('HoraYMedia/ai-triage-ner-roberta', False),
+        ('/models/ner/ai_triage_ner_roberta', True),
+        ('./ml/ner/output/ai_triage_ner_roberta', True),
+        ('ml/ner/output/ai_triage_ner_roberta', True),
+        ('~/modelos/ner', True),
+        ('C:\\modelos\\ner', True),
+    ])
+    def test_hub_ids_are_told_apart_from_paths_on_any_os(self, source, local):
+        assert ner_model._looks_local(source) is local
+
 
 class TestFusion:
     def _fuse(self, llm_entities=None, mentions=MENTIONS):

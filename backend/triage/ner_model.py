@@ -105,8 +105,14 @@ HUB_MODEL_FILES = [
 ]
 
 
+# Id de un repositorio del Hub: "usuario/repo" (en Linux os.sep es "/", asi que no sirve para distinguirlo de una ruta).
+HUB_ID_RE = re.compile(r"^[A-Za-z0-9][\w.-]*/[\w.-]+$")
+
+
 def _looks_local(source: str) -> bool:
-    return source.startswith((".", "/", "~")) or os.sep in source or ":" in source[:3]
+    if os.path.isdir(os.path.expanduser(source)):
+        return True
+    return not HUB_ID_RE.match(source)
 
 
 def _resolve_model_folder(source: str, token: Optional[str], revision: Optional[str]) -> str:
