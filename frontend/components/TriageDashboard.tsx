@@ -142,7 +142,12 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     resetTranscript,
     asrError,
     clearAsrError,
+    asrLagSeconds = 0,
+    pendingChunks = 0,
   } = useWhisperASR();
+  // Los fragmentos son de 4 s: si el texto tarda mas de 6 s en llegar o se acumulan fragmentos, la
+  // transcripcion va por detras de la voz (tipico en CPU con modelos grandes).
+  const isAsrLagging = (isRecording || isTranscribing) && (asrLagSeconds > 6 || pendingChunks >= 2);
 
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -852,6 +857,18 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+              </div>
+            )}
+
+            {/* Aviso de retraso del ASR */}
+            {isAsrLagging && (
+              <div role="status" className="shrink-0 p-2.5 bg-amber-950/60 border border-amber-500/50 rounded-lg flex items-start gap-2 text-amber-200 text-[11px]" data-testid="asr-lag-warning">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  La transcripción va unos <strong>{Math.round(asrLagSeconds)} s</strong> por detrás de la voz
+                  {pendingChunks > 0 && <> ({pendingChunks} {pendingChunks === 1 ? 'fragmento' : 'fragmentos'} en cola)</>}.
+                  El texto seguirá llegando al detener la grabación. Con GPU o un modelo ASR más pequeño el retraso baja.
+                </span>
               </div>
             )}
 

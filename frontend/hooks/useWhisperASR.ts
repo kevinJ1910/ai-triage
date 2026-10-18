@@ -16,6 +16,15 @@ interface UseWhisperASRReturn {
   isTranscribing: boolean;
   asrError: string | null;
   clearAsrError: () => void;
+  // Retraso de la transcripcion: segundos entre el fin de un fragmento y la llegada de su texto,
+  // y fragmentos que aun esperan turno. En CPU el modelo puede tardar mas que el propio audio.
+  asrLagSeconds: number;
+  pendingChunks: number;
+}
+
+interface QueuedChunk {
+  blob: Blob;
+  recordedAt: number;
 }
 
 export function useWhisperASR(): UseWhisperASRReturn {
@@ -26,6 +35,8 @@ export function useWhisperASR(): UseWhisperASRReturn {
   const [interimText, setInterimText] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [asrError, setAsrError] = useState<string | null>(null);
+  const [asrLagSeconds, setAsrLagSeconds] = useState(0);
+  const [pendingChunks, setPendingChunks] = useState(0);
 
   const clearAsrError = useCallback(() => {
     setAsrError(null);
@@ -34,7 +45,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioChunksQueueRef = useRef<Blob[]>([]);
+  const audioChunksQueueRef = useRef<QueuedChunk[]>([]);
   const isProcessingQueueRef = useRef(false);
   const sessionIdRef = useRef<string>('');
   const isStoppingRef = useRef(false);
@@ -62,8 +73,10 @@ export function useWhisperASR(): UseWhisperASRReturn {
     const currentSessionId = sessionIdRef.current;
 
     while (audioChunksQueueRef.current.length > 0) {
-      const audioBlob = audioChunksQueueRef.current.shift();
-      if (!audioBlob || audioBlob.size === 0) continue;
+      const chunk = audioChunksQueueRef.current.shift();
+      setPendingChunks(audioChunksQueueRef.current.length);
+      const audioBlob = chunk?.blob;
+      if (!chunk || !audioBlob || audioBlob.size === 0) continue;
 
       setInterimText('Procesando audio...');
 
@@ -97,6 +110,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
         }
 
         const data = await response.json();
+        setAsrLagSeconds((Date.now() - chunk.recordedAt) / 1000);
         
         if (data && data.text && data.text.trim()) {
           const formattedText = data.text.trim();
@@ -125,6 +139,8 @@ export function useWhisperASR(): UseWhisperASRReturn {
       // Clear queue and states
       audioChunksQueueRef.current = [];
       isProcessingQueueRef.current = false;
+      setAsrLagSeconds(0);
+      setPendingChunks(0);
       setTranscript([]);
       setInterimText('');
       setIsPaused(false);
@@ -157,7 +173,8 @@ export function useWhisperASR(): UseWhisperASRReturn {
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
-          audioChunksQueueRef.current.push(event.data);
+          audioChunksQueueRef.current.push({ blob: event.data, recordedAt: Date.now() });
+          setPendingChunks(audioChunksQueueRef.current.length);
           processQueue();
         }
       };
@@ -209,6 +226,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
 
   const abortTranscription = useCallback(() => {
     audioChunksQueueRef.current = [];
+    setPendingChunks(0);
     setIsTranscribing(false);
     isProcessingQueueRef.current = false;
     setInterimText('');
@@ -282,5 +300,7 @@ export function useWhisperASR(): UseWhisperASRReturn {
     isTranscribing,
     asrError,
     clearAsrError,
+    asrLagSeconds,
+    pendingChunks,
   };
 }

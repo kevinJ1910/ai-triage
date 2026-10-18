@@ -30,6 +30,7 @@ import FHIRMonitor from '@/components/FHIRMonitor';
 import EMRSimulator from '@/components/EMRSimulator';
 import MetricsDashboard from '@/components/MetricsDashboard';
 import BlindReview from '@/components/BlindReview';
+import EngineStatus from '@/components/EngineStatus';
 
 interface UserProfile {
   id: number;
@@ -283,6 +284,10 @@ export default function AppNavigation() {
               })}
             </nav>
 
+            <div className="pt-2 border-t border-slate-800/80">
+              <EngineStatus />
+            </div>
+
             {/* Logout button at bottom of mobile drawer */}
             <div className="pt-3 border-t border-slate-800/80">
               <button 
@@ -412,6 +417,10 @@ export default function AppNavigation() {
             })}
           </div>}
         </nav>
+
+        <div className="border-t border-slate-800/80 px-2 py-1 shrink-0">
+          <EngineStatus compact={isCollapsed} />
+        </div>
 
         {/* Bottom Actions */}
         <div className="p-2 border-t border-slate-800/80 flex flex-col items-center shrink-0 gap-1 bg-slate-950/20">

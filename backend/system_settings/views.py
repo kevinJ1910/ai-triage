@@ -10,6 +10,39 @@ from .serializers import (
 )
 from accounts.models import AuditLog
 
+
+class EngineStatusView(APIView):
+    """Estado de los motores de inferencia (ASR, NER y LLM) para el personal autenticado."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        import os
+        from transcription.tasks import get_asr_status, worker_mode
+        from triage.ner_model import get_ner_status
+        from triage.ai_analyzer import _resolve_gemini_api_key
+
+        asr = get_asr_status(load=False)
+        ner = get_ner_status()
+        config = SystemConfiguration.get_solo()
+        return Response({
+            "inference_mode": "worker" if worker_mode() else "inline",
+            "asr": {
+                "model_loaded": bool(asr.get("model_loaded")),
+                "model_size": asr.get("model_size"),
+                "device": asr.get("device"),
+                "compute_type": asr.get("compute_type"),
+            },
+            "ner": {
+                "model_loaded": bool(ner.get("model_loaded")),
+                "mode": config.active_ner_model,
+                # Nombre de la carpeta del modelo; se lee del estado publicado sin cargar el modelo aqui.
+                "engine": os.path.basename(str(ner.get("source") or "").rstrip("/")) or None,
+                "detail": ner.get("detail", ""),
+            },
+            # Nunca se devuelve la clave: solo si hay una configurada.
+            "llm": {"configured": bool(_resolve_gemini_api_key()), "model": config.active_llm_engine},
+        })
+
 TOKEN_NOTICE = (
     "Las capas del catalogo (correcciones ASR, abreviaturas y coloquialismos) no consumen tokens. "
     "Gemini Flash-Lite solo se usa en el monitor de normalizacion para los terminos que el catalogo no resolvio; "

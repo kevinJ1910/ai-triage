@@ -158,6 +158,18 @@ class TestSystemSettingsAndEncryption:
         }, format="json")
         assert post_res.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_engine_status_reports_motors_without_secrets(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyEngineStatusKey1234567890")
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/config/engines/")
+        assert response.status_code == status.HTTP_200_OK
+        assert set(response.data) == {"inference_mode", "asr", "ner", "llm"}
+        assert response.data["llm"]["configured"] is True
+        assert "AIzaSyEngineStatusKey1234567890" not in str(response.data)
+
+        self.client.force_authenticate(user=None)
+        assert self.client.get("/api/config/engines/").status_code == status.HTTP_401_UNAUTHORIZED
+
     def test_sync_environment_api_keys_registers_env_vars(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyTestFromEnv1234567890")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-TestFromEnv1234567890abcdef")

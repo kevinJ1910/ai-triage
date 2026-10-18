@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ExplainabilityPanel from '../../components/ExplainabilityPanel';
+import EngineStatus from '../../components/EngineStatus';
 
 const analysis = {
   engine_used: 'LLM (gemini-2.5-flash) + Christus Sinergia',
@@ -50,5 +51,25 @@ describe('ExplainabilityPanel desde el historial', () => {
     fireEvent.click(screen.getByRole('button', { name: /En qué se basa este resultado/ }));
     expect(screen.queryByText(/sin modelo/)).not.toBeInTheDocument();
     expect(screen.getByText(/no se guardan en el historial/)).toBeInTheDocument();
+  });
+});
+
+describe('EngineStatus', () => {
+  it('muestra cada motor y si se usa el respaldo, sin la clave', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({
+        inference_mode: 'worker',
+        asr: { model_loaded: true, model_size: 'small', device: 'cpu' },
+        ner: { model_loaded: false, detail: 'NER_MODEL_PATH no definido' },
+        llm: { configured: false, model: 'gemini-2.5-flash' },
+      }),
+    } as Response);
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Whisper small · CPU')).toBeInTheDocument());
+    expect(screen.getByText('Respaldo (catálogo)')).toBeInTheDocument();
+    expect(screen.getByText('Sin clave: reglas')).toBeInTheDocument();
+    const urls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map(([url]) => String(url));
+    expect(urls.some(url => url.includes('/api/config/engines/'))).toBe(true);
   });
 });
