@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useSyncExternalStore } from 'react';
-import { THEME_STORAGE_KEY } from './theme-script';
+import { DEFAULT_THEME, THEME_STORAGE_KEY } from './theme-script';
 
 export { THEME_STORAGE_KEY };
 
@@ -10,8 +10,8 @@ export type Theme = 'dark' | 'light';
 const THEME_EVENT = 'ai-triage-theme';
 
 export function getTheme(): Theme {
-  if (typeof document === 'undefined') return 'dark';
-  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  if (typeof document === 'undefined') return DEFAULT_THEME;
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 }
 
 export function setTheme(theme: Theme): void {
@@ -30,7 +30,7 @@ function subscribe(callback: () => void) {
 }
 
 export function useTheme(): { theme: Theme; toggleTheme: () => void } {
-  const theme = useSyncExternalStore(subscribe, getTheme, () => 'dark' as Theme);
+  const theme = useSyncExternalStore(subscribe, getTheme, () => DEFAULT_THEME as Theme);
   const toggleTheme = useCallback(() => setTheme(getTheme() === 'light' ? 'dark' : 'light'), []);
   return { theme, toggleTheme };
 }

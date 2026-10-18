@@ -56,14 +56,14 @@ describe('ThemeToggle', () => {
     localStorage.clear();
   });
 
-  it('alterna el tema claro y lo recuerda en el navegador', () => {
+  it('parte del tema claro, alterna al oscuro y lo recuerda en el navegador', () => {
     render(<ThemeToggle />);
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar a tema claro' }));
-    expect(document.documentElement.dataset.theme).toBe('light');
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-
     fireEvent.click(screen.getByRole('button', { name: 'Cambiar a tema oscuro' }));
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar a tema claro' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
   });
 });

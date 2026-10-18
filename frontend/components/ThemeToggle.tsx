@@ -3,7 +3,7 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
 
-/** Alterna entre el tema oscuro (predeterminado) y el claro. */
+/** Alterna entre el tema claro (predeterminado) y el oscuro. */
 export default function ThemeToggle({ showLabel = true, className = '' }: { showLabel?: boolean; className?: string }) {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';

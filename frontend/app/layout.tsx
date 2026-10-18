@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
-import { THEME_INIT_SCRIPT } from '@/lib/theme-script';
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from '@/lib/theme-script';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // suppressHydrationWarning: el script de tema fija data-theme en <html> antes de hidratar.
-    <html lang="es" className={`h-full ${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
+    <html lang="es" data-theme={DEFAULT_THEME} className={`h-full ${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
