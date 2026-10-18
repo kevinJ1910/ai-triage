@@ -9,6 +9,7 @@ import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
 import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
 import { generateFHIRBundle, downloadFHIRJson, downloadHL7v2Message } from '@/lib/hl7';
+import ExplainabilityPanel from '@/components/ExplainabilityPanel';
 
 
 // FIX-TEC-008: Interfaces tipadas para datos clinicos criticos.
@@ -1382,7 +1383,9 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                      Calculando gravedad con protocolo institucional...
                   </div>
                 ) : analysisResult && analysisResult.triage && analysisResult.triage.level ? (
-                    <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
+                    <>
+                    {/* shrink-0: con el panel de explicabilidad debajo, la fila no se encoge (el contenedor hace scroll). */}
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full shrink-0">
                       <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
                          <div className="flex items-center justify-between w-full px-1 mb-1">
                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">Prioridad</span>
@@ -1507,6 +1510,8 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                          </div>
                       </div>
                     </div>
+                    <ExplainabilityPanel analysis={analysisResult} />
+                    </>
                 ) : !triageError ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl bg-[#0c1322]/50 border border-slate-800/80">
                     <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">

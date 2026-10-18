@@ -435,6 +435,27 @@ class TestTriageSessions:
         assert response.data["final_level"] == 3
         assert response.data["is_level_modified"] is False
 
+    def test_history_keeps_protocol_criteria_and_engine(self):
+        from triage.models import Transcription
+        session = TriageSession.objects.create(user=self.user, patient=self.patient, level=2, ai_level=2, final_level=2,
+                                               justification="J", rag_context=["c2_chest_pain_sca"])
+        Transcription.objects.create(triage_session=session, session_uuid="h-1", full_text="dolor", model_used="Motor de reglas")
+        result = self.client.get("/api/triage/sessions/history/").data[0]["analysisResult"]
+        assert result["engine_used"] == "Motor de reglas"
+        assert [c["id"] for c in result["rag_criteria"]] == ["c2_chest_pain_sca"]
+
+    def test_analyze_describes_retrieved_protocol_criteria(self, mocker):
+        mocker.patch("triage.tasks.analyze_triage_transcript", return_value={
+            "patientInfo": {}, "entities": {"symptoms": ["dolor toracico"]},
+            "triage": {"level": 2, "justification": "Sospecha de SCA"},
+            "rag_context": ["c2_chest_pain_sca", "id_inexistente"],
+        })
+        response = self.client.post("/api/triage/sessions/analyze/", {"transcript": "dolor toracico"}, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        criteria = response.data["analysis"]["rag_criteria"]
+        assert [c["id"] for c in criteria] == ["c2_chest_pain_sca"]
+        assert criteria[0]["level"] == 2 and criteria[0]["criterion"]
+
     def test_analyze_blank_transcript_returns_400(self):
         response = self.client.post("/api/triage/sessions/analyze/", {"transcript": "   "}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

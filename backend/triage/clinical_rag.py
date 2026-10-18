@@ -550,6 +550,15 @@ class ClinicalKnowledgeRAG:
         return retrieved
 
     @classmethod
+    def describe(cls, criterion_ids: List[str]) -> List[Dict[str, Any]]:
+        """Nivel, nombre y texto de cada criterio recuperado, para mostrar al clinico en que se apoyo el triaje."""
+        by_id = {item["id"]: item for item in CLINICAL_KNOWLEDGE_BASE}
+        return [
+            {"id": cid, "level": by_id[cid]["level"], "name": by_id[cid]["name"], "criterion": by_id[cid]["criterion"]}
+            for cid in criterion_ids or [] if cid in by_id
+        ]
+
+    @classmethod
     def format_context_for_prompt(cls, retrieved_criteria: List[Dict[str, Any]]) -> str:
         """
         Formatea los criterios recuperados en un bloque de contexto altamente comprimido y denso.

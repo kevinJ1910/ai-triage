@@ -14,6 +14,7 @@ from core.timeutils import local_strftime
 from core.permissions import is_admin_user, user_has_flag, CanEditSymptoms, CanRegisterPatients, CanViewEMR, CanViewFHIR
 from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
+from .clinical_rag import ClinicalKnowledgeRAG
 from .fhir_validation import validate_fhir_bundle
 from .metrics import (
     confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
@@ -126,6 +127,9 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 details=f'Triaje inicial guardado. AI Nivel: {ai_level_val}, Final: {final_level_val}, Paciente: {patient.document_id}',
                 ip_address=request.META.get('REMOTE_ADDR')
             )
+
+        # Explicabilidad: los criterios del protocolo recuperados, con su texto (en la sesion solo se guardan los ids).
+        analysis["rag_criteria"] = ClinicalKnowledgeRAG.describe(analysis.get('rag_context', []))
 
         return Response({
             "session_id": triage_session.id,
@@ -247,6 +251,10 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                         "symptoms": s.final_symptoms or entities.get('symptoms', []),
                     },
                     "confidence": s.confidence_score,
+                    # Explicabilidad que se conserva: criterios del protocolo y motor. Los terminos normalizados
+                    # y las menciones del NER no se guardan en la sesion.
+                    "engine_used": transcription.model_used if transcription else None,
+                    "rag_criteria": ClinicalKnowledgeRAG.describe(s.rag_context if isinstance(s.rag_context, list) else []),
                 },
             })
         return Response(results)
