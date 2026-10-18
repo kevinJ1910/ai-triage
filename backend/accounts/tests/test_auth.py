@@ -27,9 +27,49 @@ class TestAuthEndpoints:
         }, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
-        assert "refresh" in response.data
+        # El refresh token nunca viaja en el cuerpo: solo en cookie httpOnly
+        assert "refresh" not in response.data
+        cookie = response.cookies["ai_triage_refresh"]
+        assert cookie["httponly"]
+        assert cookie["samesite"] == "Strict"
+        assert cookie["path"] == "/api/auth/"
         assert response.data["user"]["email"] == "testuser@hospital.com"
         assert response.data["user"]["role"] == "medico"
+
+    def _login(self):
+        return self.client.post("/api/auth/login/", {
+            "email": "testuser@hospital.com",
+            "password": self.user_password
+        }, format="json")
+
+    def test_refresh_with_cookie_rotates_token(self):
+        login = self._login()
+        old_refresh = login.cookies["ai_triage_refresh"].value
+
+        response = self.client.post("/api/auth/refresh/")
+        assert response.status_code == status.HTTP_200_OK
+        assert "access" in response.data
+        assert "refresh" not in response.data
+        new_refresh = response.cookies["ai_triage_refresh"].value
+        assert new_refresh and new_refresh != old_refresh
+
+        # El refresh anterior queda en lista negra tras la rotacion
+        self.client.cookies["ai_triage_refresh"] = old_refresh
+        assert self.client.post("/api/auth/refresh/").status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_refresh_without_cookie_is_unauthorized(self):
+        assert self.client.post("/api/auth/refresh/").status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_logout_blacklists_refresh_and_clears_cookie(self):
+        login = self._login()
+        refresh = login.cookies["ai_triage_refresh"].value
+
+        response = self.client.post("/api/auth/logout/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.cookies["ai_triage_refresh"].value == ""
+
+        self.client.cookies["ai_triage_refresh"] = refresh
+        assert self.client.post("/api/auth/refresh/").status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_login_invalid_password(self):
         response = self.client.post("/api/auth/login/", {

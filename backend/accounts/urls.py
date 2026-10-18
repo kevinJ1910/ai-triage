@@ -1,4 +1,5 @@
 from django.urls import path
+from .jwt_cookies import LogoutView
 from .views import (
     CustomTokenObtainPairView,
     RegisterView,
@@ -22,4 +23,5 @@ urlpatterns = [
     path('password-reset/request/', PasswordResetRequestView.as_view(), name='auth_password_reset_request'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='auth_password_reset_confirm'),
     path('me/', UserProfileView.as_view(), name='auth_me'),
+    path('logout/', LogoutView.as_view(), name='auth_logout'),
 ]

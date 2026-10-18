@@ -21,12 +21,9 @@ describe('EMRSimulator Component', () => {
       justification: 'Dolor toracico opresivo con irradiacion al brazo izquierdo.',
       entities: {
         symptoms: ['Dolor toracico', 'Diaforesis', 'Disnea'],
-        vitals: {
-          ta: '145/95',
-          fc: '102 lpm',
-          spo2: '94%',
-          temp: '36.8 C',
-        },
+        vitals: ['PA: 145/95 mmHg', 'FC: 102 lpm', 'SpO2: 94%', 'T: 36.8°C'],
+        allergies: ['Penicilina'],
+        negated_findings: ['Fiebre'],
       },
     },
     {
@@ -46,12 +43,7 @@ describe('EMRSimulator Component', () => {
       justification: 'Cuadro de rinitis y odinofagia leve de 3 dias de evolucion.',
       entities: {
         symptoms: ['Rinorrea', 'Congestion nasal'],
-        vitals: {
-          ta: '120/80',
-          fc: '75 lpm',
-          spo2: '98%',
-          temp: '37.0 C',
-        },
+        vitals: ['PA: 120/80 mmHg', 'FC: 75 lpm', 'SpO2: 98%', 'T: 37.0°C'],
       },
     },
   ];
@@ -110,8 +102,10 @@ describe('EMRSimulator Component', () => {
 
     // Default first patient is selected
     expect(screen.getByText('Dolor toracico opresivo con irradiacion al brazo izquierdo.')).toBeInTheDocument();
-    expect(screen.getByText('145/95')).toBeInTheDocument();
+    expect(screen.getByText('145/95 mmHg')).toBeInTheDocument();
     expect(screen.getByText('102 lpm')).toBeInTheDocument();
+    expect(screen.getByText('Penicilina')).toBeInTheDocument();
+    expect(screen.getByText('Fiebre')).toBeInTheDocument();
 
     // Click on second patient in queue
     const jorgeCards = screen.getAllByText('Jorge Ramirez');
@@ -119,8 +113,9 @@ describe('EMRSimulator Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Cuadro de rinitis y odinofagia leve de 3 dias de evolucion.')).toBeInTheDocument();
-      expect(screen.getByText('120/80')).toBeInTheDocument();
+      expect(screen.getByText('120/80 mmHg')).toBeInTheDocument();
       expect(screen.getByText('75 lpm')).toBeInTheDocument();
+      expect(screen.getByText('No referidas')).toBeInTheDocument();
     });
   });
 

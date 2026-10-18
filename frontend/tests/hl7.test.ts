@@ -1,4 +1,4 @@
-import { generateFHIRBundle, generateHL7v2Message, TRIAGE_LEVEL_METADATA, TriageSession } from '../lib/hl7';
+import { generateFHIRBundle, generateHL7v2Message, parseVital, TRIAGE_LEVEL_METADATA, TriageSession } from '../lib/hl7';
 
 describe('HL7 Interoperability Standards Generator', () => {
   const mockSession: TriageSession = {
@@ -136,6 +136,69 @@ describe('HL7 Interoperability Standards Generator', () => {
 
       const obxProtocol = segments.find((s: string) => s.includes('CHRISTUS SINERGIA Salud - Resolucion 5596 Minsalud Colombia'));
       expect(obxProtocol).toBeDefined();
+    });
+  });
+
+  describe('Entidades ampliadas: diagnosticos, alergias, negados y signos vitales codificados', () => {
+    const extended: TriageSession = {
+      ...mockSession,
+      analysisResult: {
+        ...mockSession.analysisResult,
+        entities: {
+          symptoms: ['Dolor toracico'],
+          diagnoses: ['Sindrome coronario agudo'],
+          allergies: ['Penicilina'],
+          negated_findings: ['Disnea'],
+          history: [],
+          medications: [],
+          vitals: ['PA: 160/95 mmHg', 'FC: 98 lpm', 'SpO2: 94%', 'saturacion normal'],
+        },
+      },
+    };
+
+    it('parses compact vitals into LOINC codes and numeric values', () => {
+      expect(parseVital('PA: 160/95 mmHg')).toMatchObject({ loinc: '85354-9', systolic: 160, diastolic: 95, ucum: 'mm[Hg]' });
+      expect(parseVital('T: 38.9°C')).toMatchObject({ loinc: '8310-5', value: 38.9, ucum: 'Cel' });
+      expect(parseVital('saturacion normal')).toBeNull();
+      expect(parseVital('PA: 160')).toBeNull();
+    });
+
+    it('exports AllergyIntolerance, a provisional diagnosis and a refuted Condition', () => {
+      const resources = generateFHIRBundle(extended).entry.map((e: any) => e.resource);
+      const allergy = resources.find((r: any) => r.resourceType === 'AllergyIntolerance');
+      expect(allergy.code.text).toBe('Penicilina');
+      expect(allergy.patient.reference).toBe('Patient/pat-987654');
+      expect(allergy.verificationStatus.coding[0].code).toBe('unconfirmed');
+
+      const refuted = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Disnea');
+      expect(refuted.verificationStatus.coding[0].code).toBe('refuted');
+      expect(refuted.clinicalStatus).toBeUndefined();
+
+      const dx = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Sindrome coronario agudo');
+      expect(dx.verificationStatus.coding[0].code).toBe('provisional');
+    });
+
+    it('codes vital-sign Observations with LOINC and UCUM quantities', () => {
+      const vitals = generateFHIRBundle(extended).entry
+        .map((e: any) => e.resource)
+        .filter((r: any) => r.resourceType === 'Observation' && r.category?.[0]?.coding?.[0]?.code === 'vital-signs');
+      const bp = vitals.find((r: any) => r.code.coding?.[0]?.code === '85354-9');
+      expect(bp.component.map((c: any) => c.valueQuantity.value)).toEqual([160, 95]);
+      const hr = vitals.find((r: any) => r.code.coding?.[0]?.code === '8867-4');
+      expect(hr.valueQuantity).toEqual({ value: 98, unit: 'lpm', system: 'http://unitsofmeasure.org', code: '/min' });
+      const free = vitals.find((r: any) => r.code.text === 'saturacion normal');
+      expect(free.valueString).toBe('saturacion normal');
+    });
+
+    it('adds AL1 and DG1 segments and does not export negated findings as diagnoses', () => {
+      const segments = generateHL7v2Message(extended).split('\r');
+      expect(segments).toContain('AL1|1||^Penicilina^L');
+      const dg1 = segments.filter((s: string) => s.startsWith('DG1|'));
+      expect(dg1.some((s: string) => s.includes('Sindrome coronario agudo'))).toBe(true);
+      expect(dg1.some((s: string) => s.includes('Disnea'))).toBe(false);
+      expect(segments.some((s: string) => s.startsWith('OBX|') && s.includes('8480-6^Systolic blood pressure^LN||160|'))).toBe(true);
+      const names = segments.map((s: string) => s.split('|')[0]);
+      expect(names.indexOf('AL1')).toBeLessThan(names.indexOf('DG1'));
     });
   });
 });

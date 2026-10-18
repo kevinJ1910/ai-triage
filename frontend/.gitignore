@@ -21,8 +21,7 @@ coverage/
 .env.*.local
 !.env.example
 
-# Package managers
-pnpm-lock.yaml
+# Package managers (pnpm-lock.yaml se versiona)
 package-lock.json
 yarn.lock
 

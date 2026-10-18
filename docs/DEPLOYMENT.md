@@ -6,13 +6,15 @@ Este documento detalla los requerimientos, consideraciones arquitectónicas y co
 
 ## 1. Topología del Despliegue (Docker Compose)
 
-El sistema se distribuye en 6 componentes interconectados mediante una red *bridge* aislada de Docker (`ai_triage_network`):
+El sistema se distribuye en 8 componentes interconectados mediante una red *bridge* aislada de Docker (`ai_triage_network`):
 
-*   **`nginx` (Proxy Inverso):** Puerta de enlace unificada que expone el puerto 80 (y 443 en despliegues con terminación SSL/TLS). Dirige el tráfico a Next.js o Django según el prefijo de la ruta.
+*   **`nginx` (Proxy Inverso):** Termina TLS en el puerto 443 y redirige el 80 a HTTPS (solo `/health` responde por HTTP para el healthcheck). Añade las cabeceras de seguridad (CSP, HSTS, `X-Frame-Options`, `Permissions-Policy`) y dirige el tráfico a Next.js o Django según el prefijo de la ruta.
 *   **`frontend` (Next.js 15 Standalone):** Servidor Node.js 20 Alpine ejecutado con usuario sin privilegios `nextjs` (UID 1001), sirviendo la interfaz reactiva optimizada.
-*   **`backend` (Django 5.2.8 / DRF):** Procesamiento clínico central ejecutado bajo usuario no-root `appuser` (UID 10001). Contiene la inferencia acústica de *faster-whisper* (ASR), análisis semántico con LLM (Gemini), validación Pydantic v2 y bóveda de claves AES-256.
+*   **`backend` (Django 5.2.8 / DRF, Gunicorn):** API web bajo usuario no-root `appuser`. Valida, persiste y aplica RBAC; **no** carga Whisper ni llama a Gemini: encola la inferencia en los workers y espera el resultado con un tiempo máximo (`ASR_TASK_TIMEOUT`, `LLM_TASK_TIMEOUT`).
+*   **`worker-asr` (Celery, cola `asr`):** Un único proceso (`--pool solo`) que carga *faster-whisper* una sola vez al arrancar y es el único que reserva la GPU.
+*   **`worker-llm` (Celery, cola `llm`):** Llamadas a Gemini para el triaje y la normalización clínica, con un pool de hilos (trabajo de E/S). Si no responde a tiempo, el triaje se resuelve con el motor de reglas en el propio backend.
 *   **`postgres` (PostgreSQL 16 Alpine):** Persistencia ACID relacional con esquemas optimizados e índices compuestos.
-*   **`redis` (Redis 7 Alpine):** Gestión de caché, colas y control de estado volátil.
+*   **`redis` (Redis 7 Alpine):** Broker y resultados de Celery (db 0) y caché compartida (db 1): caché clínica de consultas, contexto de transcripción por sesión y contadores de *throttling*, comunes a todos los procesos.
 *   **`mailpit` (Servidor SMTP Transaccional):** Servidor SMTP (puerto 1025) y panel web de inspección de correos (puerto 8025) para captura local de OTPs y alertas; reemplazable en producción por relé SMTP corporativo o SendGrid/SES.
 
 ---
@@ -28,7 +30,24 @@ Dado que el procesamiento acústico de transcripción requiere inferencias neuro
 | **Almacenamiento** | 50 GB SSD | 100 GB NVMe (logs y audios) |
 | **GPU (NVIDIA)** | No requerida (Fallback CPU) | NVIDIA RTX 3060 (12GB VRAM) o superior |
 
-> **Passthrough de GPU:** Si se cuenta con una GPU NVIDIA, el host debe tener instalados los controladores oficiales y el **NVIDIA Container Toolkit** para que Docker pueda delegar el acelerador al contenedor del backend. La configuración de reserva de GPU se encuentra parametrizada en el bloque `deploy.resources.reservations.devices` de `docker-compose.yml`.
+### 2.1. Modo CPU (por defecto) y modo GPU NVIDIA
+
+`docker-compose.yml` funciona en cualquier equipo: `worker-asr` usa CPU con `int8`, el modelo `small` y la imagen se construye **sin** las librerías CUDA (varios GB menos). Es el modo para equipos sin GPU o con GPU AMD (faster-whisper/CTranslate2 no soporta AMD dentro de Docker).
+
+`docker-compose.gpu.yml` añade, solo para hosts con NVIDIA y **NVIDIA Container Toolkit**:
+- reserva de la GPU para `worker-asr`, `WHISPER_DEVICE=cuda`, `float16` y modelo `large-v3-turbo`;
+- construcción de la imagen con `WITH_CUDA=true` (instala `nvidia-cublas`/`nvidia-cudnn`).
+
+```bash
+docker compose up --build -d                                                   # CPU
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d   # GPU NVIDIA
+```
+
+En el equipo con GPU se puede fijar de forma permanente en su `.env` (separador `;` en Windows, `:` en Linux/macOS) para usar `docker compose up` sin más:
+```env
+COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml
+```
+Al cambiar de modo hay que reconstruir (`--build`), porque la imagen difiere. El modelo puede ajustarse en cada equipo con `WHISPER_MODEL_SIZE`; en el Panel de Configuración, la opción **"Según entorno"** (por defecto) respeta ese valor, y elegir un modelo concreto lo impone en esa instalación (se aplica al reiniciar `worker-asr`).
 
 ---
 
@@ -54,8 +73,27 @@ ENVIRONMENT=production # Opciones: production, development, staging
 
 # Dominios y orígenes autorizados
 ALLOWED_HOSTS=nginx,localhost,127.0.0.1,hospital.triage.salud.gov.co
-CORS_ALLOWED_ORIGINS=http://localhost,https://hospital.triage.salud.gov.co
+CORS_ALLOWED_ORIGINS=https://hospital.triage.salud.gov.co
+CSRF_TRUSTED_ORIGINS=https://hospital.triage.salud.gov.co
+
+# HTTPS (nginx). Sin certificado montado se genera uno autofirmado para TLS_SERVER_NAME.
+TLS_SERVER_NAME=hospital.triage.salud.gov.co
+HSTS_MAX_AGE=31536000   # 0 en desarrollo para no fijar HTTPS en localhost
+# Con DEBUG=False las cookies de sesión, CSRF y refresh JWT son 'Secure' (SECURE_COOKIES)
 ```
+
+### 3.2.1. Certificados TLS
+nginx busca `fullchain.pem` y `privkey.pem` en el volumen `nginx_certs` (`/etc/nginx/certs`). Si no existen, genera un certificado autofirmado al arrancar (el navegador mostrará una advertencia). En producción, montar los certificados emitidos por la CA institucional o Let's Encrypt en esa ruta, por ejemplo con un *bind mount* `./certs:/etc/nginx/certs:ro`.
+
+HTTPS también es necesario para capturar audio desde otros equipos de la red: los navegadores solo permiten el micrófono (`getUserMedia`) en contextos seguros (HTTPS o `localhost`).
+
+### 3.2.2. Workers de inferencia
+```env
+ASR_TASK_TIMEOUT=90    # segundos que la API espera una transcripción antes de responder 503
+LLM_TASK_TIMEOUT=100   # segundos que espera el triaje antes de aplicar el motor de reglas
+ASR_SESSION_TTL=1800   # vida del contexto de transcripción por sesión en Redis
+```
+Sin `REDIS_HOST` (por ejemplo `manage.py runserver` sin Docker), las tareas se ejecutan dentro del proceso web y la caché es local al proceso.
 
 ### 3.3. Configuración de Correo Transaccional (OTP y Recuperación)
 ```env
@@ -100,7 +138,7 @@ WHISPER_COMPUTE_TYPE=float16      # 'int8' (menor VRAM) o 'float16' (mayor fidel
 ### 3.6. Configuración del Frontend
 ```env
 # URL pública donde el frontend encuentra el backend (a través de Nginx)
-NEXT_PUBLIC_API_URL=http://localhost/api
+NEXT_PUBLIC_API_URL=https://localhost/api
 # URL del servidor FHIR externo (si aplica)
 NEXT_PUBLIC_FHIR_URL=http://servidor_fhir_hospital/fhir
 ```
@@ -135,13 +173,17 @@ NEXT_PUBLIC_FHIR_URL=http://servidor_fhir_hospital/fhir
    ```bash
    docker compose ps
    docker compose logs backend --tail 50
+   docker compose logs worker-asr --tail 50   # debe mostrar "Worker ASR listo" con el dispositivo usado
+   curl -k https://localhost/api/health_check/
    ```
+   El health check informa `inference_mode: "worker"` y el estado del motor ASR publicado por `worker-asr`. `status: "degraded"` indica que el modelo Whisper no está cargado (worker caído o aún arrancando).
 
 ---
 
 ## 5. Consideraciones Finales de Seguridad
 
-*   **Certificados SSL/TLS:** En producción hospitalaria, es mandatario terminar el tráfico HTTPS con certificados válidos (vía Certbot, proxy perimetral o balanceador de carga institucional).
+*   **Certificados SSL/TLS:** nginx sirve todo por HTTPS (TLS 1.2/1.3) y redirige el puerto 80. En producción hospitalaria es mandatario sustituir el certificado autofirmado por uno válido y activar HSTS (`HSTS_MAX_AGE=31536000`).
+*   **Política de contenido (CSP):** Solo se cargan scripts, estilos y conexiones del propio origen; `connect-src 'self'` impide enviar datos clínicos a dominios externos desde el navegador. `script-src` incluye `'unsafe-inline'` porque Next.js inyecta scripts de hidratación sin *nonce*.
 *   **Usuarios No-Root:** Tanto el frontend (`nextjs:nodejs`, UID 1001) como el backend (`appuser:appgroup`, UID 10001) corren bajo cuentas de sistema aisladas sin permisos de root dentro de los contenedores.
 *   **Aislamiento de PostgreSQL:** El puerto 5432 de la base de datos no se expone al host en `docker-compose.yml`, garantizando que únicamente los contenedores internos de `ai_triage_network` puedan conectarse.
-*   **Depuración de Audios:** Las grabaciones de audio cargadas se procesan en streaming y buffer de memoria con algoritmo de poda automática por TTL (1800s); los archivos temporales en disco deben ser depurados periódicamente mediante políticas institucionales de cumplimiento HIPAA/RGPD.
+*   **Depuración de Audios:** Los fragmentos de audio viajan al worker ASR a través de Redis, se transcriben en un archivo temporal que se elimina al terminar y el resultado expira del backend de resultados en una hora (`CELERY_RESULT_EXPIRES`). El contexto de texto por sesión expira con `ASR_SESSION_TTL`. Redis no se expone fuera de `ai_triage_network`.

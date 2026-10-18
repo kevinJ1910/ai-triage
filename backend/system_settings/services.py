@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def sync_environment_api_keys():
     """
     Sincroniza automaticamente las variables de entorno relacionadas con llaves API
-    (GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY o cualquier *_API_KEY)
+    (GEMINI_API_KEY o cualquier *_API_KEY, que se registra como servidor local)
     hacia el modelo cifrado APIKeyCredential para que sean inmediatamente visibles
     y referenciables en el panel de administracion y componentes de IA.
     """
@@ -27,9 +27,6 @@ def sync_environment_api_keys():
 
         known_keys = {
             'GEMINI_API_KEY': ('Google Gemini (Entorno .env)', 'gemini'),
-            'OPENAI_API_KEY': ('OpenAI (Entorno .env)', 'openai'),
-            'ANTHROPIC_API_KEY': ('Anthropic Claude (Entorno .env)', 'anthropic'),
-            'DEEPSEEK_API_KEY': ('DeepSeek (Entorno .env)', 'deepseek'),
         }
 
         # 1. Sincronizar llaves estandar definidas en .env
@@ -54,7 +51,8 @@ def sync_environment_api_keys():
 def _upsert_env_key(name: str, provider: str, secret_key: str):
     try:
         cred = APIKeyCredential.objects.filter(name=name).first()
-        if not cred:
+        if not cred and provider == 'gemini':
+            # Solo hay una clave de Gemini del .env; las de servidor local pueden ser varias y se buscan por nombre.
             cred = APIKeyCredential.objects.filter(provider=provider, name__contains='(Entorno .env)').first()
 
         if cred:

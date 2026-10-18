@@ -110,11 +110,19 @@ class TestPydanticValidationLayer:
 
         # Proveedor especifico valido
         res_valid = validate_payload(APIKeyCreateSchema, {
-            "name": "OpenAI Key",
+            "name": "Servidor local",
             "api_key": "sk-proj-DummyTestingKey123456",
-            "provider": "openai"
+            "provider": "custom"
         })
-        assert res_valid.provider == "openai"
+        assert res_valid.provider == "custom"
+
+        # Proveedores que el triaje no usa
+        with pytest.raises(serializers.ValidationError):
+            validate_payload(APIKeyCreateSchema, {
+                "name": "OpenAI Key",
+                "api_key": "sk-proj-DummyTestingKey123456",
+                "provider": "openai"
+            })
 
     def test_fhir_sync_flexible_payload(self):
         # Valid bundle with flexible dynamic entry items

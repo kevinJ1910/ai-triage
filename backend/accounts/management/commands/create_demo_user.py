@@ -29,6 +29,14 @@ class Command(BaseCommand):
         ))
         return generated
 
+    def _missing_password(self, env_var_name: str, user_label: str) -> bool:
+        if (os.getenv(env_var_name) or '').strip():
+            return False
+        self.stdout.write(self.style.WARNING(
+            f"Usuario demo {user_label} no creado: defina {env_var_name} en .env y reinicie el backend."
+        ))
+        return True
+
     def handle(self, *args, **kwargs):
         User = get_user_model()
         reset_requested = (
@@ -72,9 +80,10 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Creacion de usuarios demo omitida en entorno no-dev (opt-in requerido)."))
             return
 
-        # Si no existian, crearlos con credenciales resueltas
-        if not existing_admin:
-            admin_pass = self._resolve_password('DEMO_ADMIN_PASSWORD', admin_email)
+        # Si no existian, crearlos con la contrasena configurada. Sin ella no se crea la cuenta:
+        # una contrasena aleatoria que nadie conoce dejaria un usuario imposible de usar.
+        if not existing_admin and not self._missing_password('DEMO_ADMIN_PASSWORD', admin_email):
+            admin_pass = os.getenv('DEMO_ADMIN_PASSWORD').strip()
             admin_user = User.objects.create(
                 email=admin_email,
                 first_name='Dr. Carlos',
@@ -91,8 +100,8 @@ class Command(BaseCommand):
             UserPermission.create_defaults_for_role(admin_user)
             self.stdout.write(self.style.SUCCESS(f"Usuario admin creado exitosamente: {admin_email}"))
 
-        if not existing_nurse:
-            nurse_pass = self._resolve_password('DEMO_NURSE_PASSWORD', nurse_email)
+        if not existing_nurse and not self._missing_password('DEMO_NURSE_PASSWORD', nurse_email):
+            nurse_pass = os.getenv('DEMO_NURSE_PASSWORD').strip()
             nurse_user = User.objects.create(
                 email=nurse_email,
                 first_name='Enf. Laura',

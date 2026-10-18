@@ -1,10 +1,13 @@
+import gc
 import os
+import re
 import sys
 import tempfile
 import logging
 import threading
 import time
-from typing import Dict, Any, Optional
+import zlib
+from typing import Dict, Any, Tuple
 
 # --- Dynamic Path Resolution for CUDA/cuDNN DLLs on Windows ---
 if sys.platform == 'win32':
@@ -28,9 +31,85 @@ except ImportError:
     WhisperModel = None
 
 from django.conf import settings
+from django.core.cache import cache
 from .medical_prompts import CLINICAL_INITIAL_PROMPT
 
 logger = logging.getLogger(__name__)
+
+# El contexto de cada sesion vive en la cache compartida (Redis en Docker): cualquier proceso
+# del worker puede continuar una sesion y la expiracion por TTL la gestiona la propia cache.
+_CONTEXT_KEY = "asr:ctx:{}"
+# Solo se usan los ultimos 400 caracteres en el prompt; se guarda algo mas de margen.
+_MAX_CONTEXT_CHARS = 2000
+
+
+def _context_key(session_id: str) -> str:
+    return _CONTEXT_KEY.format(session_id)
+
+
+def get_session_context(session_id: str) -> str:
+    return cache.get(_context_key(session_id), "")
+
+
+def append_session_context(session_id: str, text: str) -> None:
+    previous = get_session_context(session_id)
+    combined = f"{previous} {text}".strip() if previous else text
+    cache.set(_context_key(session_id), combined[-_MAX_CONTEXT_CHARS:], timeout=settings.ASR_SESSION_TTL)
+
+
+# Opciones de decodificacion, compartidas con evaluate_asr para que el WER mida lo mismo que la aplicacion.
+# Con una sola temperatura (0.0), Whisper no puede reintentar: si la salida entra en bucle («me ha dado que me
+# ha dado que...»), la devuelve tal cual. Con la escala de temperaturas, una salida demasiado repetitiva
+# (compression_ratio > 2.4) o poco probable (avg_logprob < -1) se vuelve a decodificar con mas temperatura.
+DECODE_OPTIONS = dict(
+    language="es",
+    temperature=(0.0, 0.2, 0.4, 0.6),
+    compression_ratio_threshold=2.4,
+    log_prob_threshold=-1.0,
+    no_speech_threshold=0.6,
+    condition_on_previous_text=False,
+    vad_filter=True,
+    vad_parameters=dict(min_silence_duration_ms=500),
+)
+# Una frase de 2 a 8 palabras repetida al menos 3 veces seguidas, o una palabra al menos 4 veces.
+_REPEATED_PHRASE = re.compile(r"\b((?:\w+[\s,.;]+){1,7}?\w+)(?:[\s,.;]+\1\b){2,}", re.IGNORECASE)
+_REPEATED_WORD = re.compile(r"\b(\w+)(?:[\s,.;]+\1\b){3,}", re.IGNORECASE)
+# Frases que Whisper inventa sobre silencio o ruido, aprendidas de subtitulos de videos.
+_STOCK_PHRASES = re.compile(
+    r"subt[ií]tulos (?:realizados |hechos )?por (?:la comunidad de )?amara\.org|"
+    r"gracias por ver(?: el video)?|suscr[ií]bete(?: al canal)?|no olvides suscribirte",
+    re.IGNORECASE)
+# Como el umbral de Whisper: un texto que se comprime mas de 2.4 veces es casi seguro un bucle.
+MAX_COMPRESSION_RATIO = 2.4
+
+
+def _compression_ratio(text: str) -> float:
+    data = text.encode("utf-8")
+    return len(data) / len(zlib.compress(data)) if data else 0.0
+
+
+def clean_transcript(text: str) -> Tuple[str, bool]:
+    """
+    Quita las alucinaciones de Whisper. Devuelve (texto, hubo_alucinacion). Las repeticiones de una frase se
+    reducen a una sola aparicion; si aun asi el texto es demasiado repetitivo, se descarta entero. Tambien se
+    quitan las frases de subtitulos que inventa sobre silencio («Subtitulos por la comunidad de Amara.org»).
+    Repeticiones naturales y cortas («me duele, me duele») se conservan.
+    """
+    cleaned = _STOCK_PHRASES.sub("", text)
+    cleaned = _REPEATED_PHRASE.sub(r"\1", cleaned)
+    cleaned = _REPEATED_WORD.sub(r"\1", cleaned)
+    cleaned = " ".join(cleaned.split())
+    if cleaned != " ".join(text.split()):
+        cleaned = cleaned.strip(" .,;")
+    repeated = cleaned != " ".join(text.split())
+    if len(cleaned) > 60 and _compression_ratio(cleaned) > MAX_COMPRESSION_RATIO:
+        return "", True
+    return cleaned, repeated
+
+
+def reset_session_context(session_id: str) -> None:
+    """Borra el contexto de una sesion sin necesidad de cargar el modelo Whisper."""
+    cache.delete(_context_key(session_id))
 
 # FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual duplicado.
 
@@ -38,7 +117,7 @@ logger = logging.getLogger(__name__)
 class WhisperEngine:
     """
     Motor ASR de alta eficiencia basado en Faster-Whisper.
-    Implementa patron Singleton con Thread Lock, limpieza automatica de buffers con TTL,
+    Implementa patron Singleton con Thread Lock, contexto por sesion en cache compartida con TTL,
     filtro de actividad de voz (VAD) de baja latencia y fallback seguro para host local.
     """
     _instance = None
@@ -51,15 +130,35 @@ class WhisperEngine:
                 cls._instance._initialize()
             return cls._instance
 
-    def _initialize(self) -> None:
-        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')
+    @staticmethod
+    def configured_model_size() -> str:
+        """Modelo que pide la configuracion: 'auto' respeta WHISPER_MODEL_SIZE del equipo; otro valor lo impone el admin."""
+        model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'small')
         try:
             from system_settings.models import SystemConfiguration
             cfg = SystemConfiguration.get_solo()
-            if cfg.active_asr_model:
+            if cfg.active_asr_model and cfg.active_asr_model != 'auto':
                 model_size = cfg.active_asr_model
         except Exception:
             pass
+        return model_size
+
+    def reload(self) -> Dict[str, Any]:
+        """
+        Vuelve a cargar Whisper con el modelo configurado, sin reiniciar el worker. Se libera el modelo anterior
+        antes de cargar el nuevo para no tener dos en memoria; si el nuevo falla, se aplican los mismos respaldos
+        que al arrancar (CPU int8 y luego 'small').
+        """
+        with self._lock:
+            self.model = None
+            gc.collect()
+            self._initialize()
+        return self.get_status()
+
+    def _initialize(self) -> None:
+        model_size = self.configured_model_size()
+        # Lo que se pidio, aunque luego se cargue un respaldo: asi se distingue "cargando" de "no se pudo cargar".
+        self.requested_model_size = model_size
         device = getattr(settings, 'WHISPER_DEVICE', 'auto')
         compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
         cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)
@@ -94,36 +193,30 @@ class WhisperEngine:
                 self.compute_type_used = 'int8'
                 logger.info(f"Modelo fallback CPU (int8) cargado en {time.perf_counter() - start_time:.2f}s")
             except Exception as cpu_err:
-                logger.error(f"Fallo inicializacion de WhisperEngine: {cpu_err}")
-                self.model = None
-                self.device_used = 'unavailable'
-                self.compute_type_used = 'unavailable'
-
-        # Gestion de sesiones en memoria con control de expiracion TTL
-        self._session_contexts: Dict[str, str] = {}
-        self._session_timestamps: Dict[str, float] = {}
-        self._session_lock = threading.Lock()
-
-    def _prune_inactive_sessions(self, max_age_seconds: int = 1800, max_sessions: int = 50) -> None:
-        """
-        Elimina sesiones inactivas (por defecto > 30 minutos) o las mas antiguas si se supera el tope.
-        Previene fugas de memoria en buffers de streaming.
-        """
-        now = time.time()
-        with self._session_lock:
-            # 1. Purgar expiradas por tiempo
-            expired = [sid for sid, ts in self._session_timestamps.items() if (now - ts) > max_age_seconds]
-            for sid in expired:
-                self._session_contexts.pop(sid, None)
-                self._session_timestamps.pop(sid, None)
-
-            # 2. Purgar LRU si se supera el maximo de sesiones activas
-            if len(self._session_timestamps) > max_sessions:
-                sorted_sessions = sorted(self._session_timestamps.items(), key=lambda x: x[1])
-                excess = len(self._session_timestamps) - max_sessions
-                for sid, _ in sorted_sessions[:excess]:
-                    self._session_contexts.pop(sid, None)
-                    self._session_timestamps.pop(sid, None)
+                if model_size != 'small':
+                    logger.warning(f"Fallo fallback con '{model_size}' ({cpu_err}). Intentando con modelo liviano 'small'.")
+                    try:
+                        self.model = WhisperModel(
+                            'small', 
+                            device='cpu', 
+                            compute_type='int8',
+                            cpu_threads=cpu_threads
+                        )
+                        self.device_used = 'cpu'
+                        self.compute_type_used = 'int8'
+                        model_size = 'small'
+                        logger.info("Modelo de rescate 'small' cargado exitosamente")
+                    except Exception as rescue_err:
+                        logger.error(f"Fallo inicializacion de WhisperEngine: {rescue_err}")
+                        self.model = None
+                        self.device_used = 'unavailable'
+                        self.compute_type_used = 'unavailable'
+                else:
+                    logger.error(f"Fallo inicializacion de WhisperEngine: {cpu_err}")
+                    self.model = None
+                    self.device_used = 'unavailable'
+                    self.compute_type_used = 'unavailable'
+        self.model_size_used = model_size
 
     def transcribe_chunk(self, audio_bytes: bytes, session_id: str) -> Dict[str, Any]:
         """
@@ -132,8 +225,6 @@ class WhisperEngine:
         """
         if self.model is None:
             raise RuntimeError("Whisper Engine no disponible en entorno actual")
-
-        self._prune_inactive_sessions()
 
         logger.info(f"Procesando chunk de audio para sesion {session_id} ({len(audio_bytes)} bytes)")
         start_time = time.perf_counter()
@@ -145,10 +236,7 @@ class WhisperEngine:
                 temp_file_path = temp_file.name
 
             # Construir prompt con historial clinico reciente (ultimos 400 caracteres)
-            with self._session_lock:
-                previous_context = self._session_contexts.get(session_id, "")
-                self._session_timestamps[session_id] = time.time()
-            
+            previous_context = get_session_context(session_id)
             history_slice = previous_context[-400:] if len(previous_context) > 400 else previous_context
             full_prompt = CLINICAL_INITIAL_PROMPT
             if history_slice:
@@ -157,29 +245,23 @@ class WhisperEngine:
             # beam_size=1 para velocidad ultra-rapida en chunks; configurable via settings
             beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 1)
 
-            # Transcripcion con VAD Silero optimizado
+            # Transcripcion con VAD Silero optimizado y reintento por temperatura ante bucles
             segments, info = self.model.transcribe(
                 temp_file_path,
-                language="es",
                 initial_prompt=full_prompt,
                 beam_size=beam_size,
-                temperature=0.0,
-                condition_on_previous_text=False,
-                vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=500)
+                **DECODE_OPTIONS,
             )
 
             text_segments = [segment.text for segment in segments]
-            transcribed_text = " ".join(text_segments).strip()
+            transcribed_text, repetition_filtered = clean_transcript(" ".join(text_segments).strip())
+            if repetition_filtered:
+                logger.warning(f"Repeticion de Whisper filtrada en la sesion {session_id}")
 
-            # Actualizar buffer de contexto de la sesion
-            if transcribed_text:
-                with self._session_lock:
-                    if session_id in self._session_contexts:
-                        self._session_contexts[session_id] += " " + transcribed_text
-                    else:
-                        self._session_contexts[session_id] = transcribed_text
-                    self._session_timestamps[session_id] = time.time()
+            # El texto con repeticiones no entra en el contexto: si entrara en el prompt del siguiente
+            # fragmento, Whisper tenderia a continuar el mismo bucle.
+            if transcribed_text and not repetition_filtered:
+                append_session_context(session_id, transcribed_text)
 
             elapsed_time_ms = int((time.perf_counter() - start_time) * 1000)
             logger.info(f"Chunk transcrito para sesion {session_id} en {elapsed_time_ms}ms: '{transcribed_text}'")
@@ -189,7 +271,8 @@ class WhisperEngine:
                 "session_id": session_id,
                 "language": info.language,
                 "language_probability": info.language_probability,
-                "processing_time_ms": elapsed_time_ms
+                "processing_time_ms": elapsed_time_ms,
+                "repetition_filtered": repetition_filtered,
             }
 
         except Exception as e:
@@ -203,19 +286,15 @@ class WhisperEngine:
                     logger.error(f"Fallo al eliminar archivo temporal {temp_file_path}: {cleanup_err}")
 
     def reset_session(self, session_id: str) -> None:
-        with self._session_lock:
-            self._session_contexts.pop(session_id, None)
-            self._session_timestamps.pop(session_id, None)
-            logger.info(f"Contexto reseteado para sesion {session_id}")
+        reset_session_context(session_id)
+        logger.info(f"Contexto reseteado para sesion {session_id}")
 
     def get_status(self) -> Dict[str, Any]:
-        with self._session_lock:
-            active_sessions = list(self._session_contexts.keys())
-        
+        # No se exponen identificadores de sesion: el health check es publico.
         return {
-            "model_size": getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo'),
+            "model_size": getattr(self, 'model_size_used', getattr(settings, 'WHISPER_MODEL_SIZE', 'large-v3-turbo')),
             "device": getattr(self, 'device_used', 'unknown'),
             "compute_type": getattr(self, 'compute_type_used', 'unknown'),
-            "active_sessions_count": len(active_sessions),
-            "active_session_ids": active_sessions
+            "model_loaded": getattr(self, 'model', None) is not None,
+            "requested": getattr(self, 'requested_model_size', None),
         }

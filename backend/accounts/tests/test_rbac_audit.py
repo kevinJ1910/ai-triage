@@ -41,6 +41,16 @@ class TestRBACAndAudit:
         emails = [u["email"] for u in response.data]
         assert "doctor.junior@hospital.com" in emails
 
+    def test_non_admin_cannot_list_users_or_audit_logs(self):
+        self.client.force_authenticate(user=self.doctor)
+        assert self.client.get("/api/security/users/").status_code == status.HTTP_403_FORBIDDEN
+        assert self.client.get("/api/security/audit-logs/").status_code == status.HTTP_403_FORBIDDEN
+
+    def test_audit_logs_invalid_limit_does_not_crash(self):
+        self.client.force_authenticate(user=self.admin)
+        assert self.client.get("/api/security/audit-logs/?limit=abc").status_code == status.HTTP_200_OK
+        assert self.client.get("/api/security/audit-logs/?limit=-5").status_code == status.HTTP_200_OK
+
     def test_admin_can_update_permissions(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.patch(f"/api/security/users/{self.doctor.id}/permissions/", {

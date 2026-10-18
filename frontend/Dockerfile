@@ -1,16 +1,16 @@
-﻿FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 ENV DOCKER_BUILD=true
 
-COPY package.json ./
-RUN npm install -g pnpm@9 && pnpm install
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm@9 && pnpm install --frozen-lockfile
 
 COPY . .
 
 RUN pnpm build
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
