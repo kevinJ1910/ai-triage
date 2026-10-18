@@ -91,14 +91,17 @@ Al día siguiente se repite el mismo comando. Con este plan, una pasada de *dev*
 
 **Plan de pago.** Las tarifas son de 0,30 USD por millón de tokens de entrada y 2,50 USD por millón de salida, razonamiento incluido, tanto en 2.5 Flash como en 3.5 Flash-Lite ([precios oficiales](https://ai.google.dev/gemini-api/docs/pricing), consultados el 18-10-2026 y guardados en `evaluation_runner.PRICES`).
 
-| Concepto | Estimación |
-| :--- | :--- |
-| Tokens por caso | ≈ 1,5 k de entrada, ≈ 0,5 k de salida y hasta ≈ 1,5 k de razonamiento |
-| Costo por caso | ≈ 0,005 USD |
-| Programa completo (3 versiones × 150 de *dev* + ablación + repetibilidad + 100 de *test*) | ≈ 700 llamadas, **≈ 3–4 USD** |
-| Corrida adicional con Flash-Lite | + ≈ 1 USD |
+Piloto medido el 18-10-2026: 10 casos de *dev*, motor `gemini` (sin NER), prompt `v1`, plan gratuito.
 
-El piloto (paso 1) confirma la cifra. `performance.cost_usd` la calcula con los tokens reales.
+| Concepto | Medido en el piloto |
+| :--- | :--- |
+| Tokens por caso | 476 de entrada, 282 de salida y 815 de razonamiento, de media |
+| Costo por caso | ≈ 0,0029 USD (2,89 USD por 1.000 triajes). El razonamiento supone el 70 % del costo. |
+| Latencia | p50 de 6,0 s y p95 de 9,8 s |
+| Programa completo (3 versiones × 150 de *dev* + ablación + repetibilidad + 100 de *test*, ≈ 700 llamadas) | **≈ 2 USD** |
+| Corrida adicional con Flash-Lite | + ≈ 0,5 USD |
+
+En el piloto hubo un 503 por alta demanda, que el corredor reintentó: hubo 11 llamadas para 10 casos. `performance.cost_usd` recalcula el costo con los tokens reales de cada corrida.
 
 **Recomendación: activar la facturación para estas corridas.** El costo es despreciable, se elimina el riesgo de plazo y, con el plan de pago, Google no usa el contenido para mejorar sus productos. Eso es relevante para la sección de privacidad aunque el corpus sea sintético. La Batch API cuesta la mitad y no tiene límite por minuto, pero tarda hasta 24 h y no está integrada.
 
