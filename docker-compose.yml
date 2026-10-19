@@ -188,7 +188,7 @@ services:
   # Sin puertos al host: solo lo alcanzan backend y worker-llm por la red interna. Con GPU NVIDIA,
   # docker-compose.gpu.yml le reserva la GPU.
   llm-local:
-    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.12.6}
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.34.4}
     container_name: ai_triage_llm_local
     profiles: ["llm-local"]
     restart: unless-stopped

@@ -325,7 +325,8 @@ def run_metadata(spec: RunSpec, records: List[Dict[str, Any]], *, corpus: Path, 
         'policy': policy,
         'temperature': temperature,
         # No se fija thinking_config: cada modelo usa su configuracion por defecto, que se registra asi.
-        'thinking': 'por defecto del modelo' if spec.model and not is_local_model(spec.model) else None,
+        # Gemini 2.5 Flash y Gemma 4 razonan por defecto; Qwen2.5 no tiene modo de razonamiento.
+        'thinking': 'por defecto del modelo' if spec.model else None,
         'tier': tier,
         'privacy': privacy_label(spec.engine, spec.model),
         'corpus': Path(corpus).name,
