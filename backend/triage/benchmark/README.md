@@ -47,6 +47,13 @@ La carga y la validación están en `triage/entity_corpus.py` (`load_entity_corp
 
 Todos los casos tienen `estado: "borrador"`. Las entidades de los 250 casos, y el nivel y el criterio de los 185 que no vienen de `casos_sinteticos.json`, se redactaron con asistencia de IA. **Antes de usar el corpus para reportar resultados**, el equipo debe revisar cada caso y cambiar `estado` a `"revisado"`. Si el corpus que evalúa a un LLM lo anotó otro LLM sin revisión humana, la evaluación no es defendible. Los cambios de la revisión se registran en el historial de git.
 
+**Cómo se revisa.**
+1. `python manage.py export_corpus_review --split test` genera `revision/revision_test.csv`, una planilla para Excel o Google Sheets que no incluye predicciones.
+2. El revisor la llena siguiendo [`revision/GUIA_REVISION_ETIQUETAS.md`](revision/GUIA_REVISION_ETIQUETAS.md).
+3. `python manage.py apply_corpus_review revision/revision_test.csv` la aplica al corpus.
+
+Si la revisión cambia un nivel, el original se guarda en `nivel_particion`, para que ningún caso cambie de partición. El clínico que hará la validación ciega no debe revisar *test*.
+
 **Códigos CIE-10 (`cie10`).** El 15-10-2026 se rellenaron de forma automática 176 entidades del lote 1 (119 de 208 en `dev` y 57 de 136 en `test`) y otras 176 del lote 2. El código se tomó del catálogo `transcription/terminology/` cuando la forma `normalized` de la entidad coincide con un término o una variante del catálogo. Las demás entidades, los signos vitales y los medicamentos (que se codifican con ATC, no con CIE-10) quedan en `null`. Hay tres cosas que tener en cuenta:
 
 - **Son propuestas, no anotaciones.** El revisor debe confirmar o corregir cada código al pasar el caso a `revisado`, consultando la tabla CIE-10 oficial y no el catálogo.
