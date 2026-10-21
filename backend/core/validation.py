@@ -118,6 +118,14 @@ class TriageOverrideSchema(BaseModel):
     justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
 
+class TriageReferenceSchema(BaseModel):
+    reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")
+
+class JustificationRatingSchema(BaseModel):
+    clarity: int = Field(ge=1, le=5, description="Claridad de la justificacion (1-5)")
+    relevance: int = Field(ge=1, le=5, description="Pertinencia clinica (1-5)")
+    fidelity: int = Field(ge=1, le=5, description="Fidelidad al protocolo (1-5)")
+
 class EMRBoxAssignSchema(BaseModel):
     assigned_box: Optional[str] = Field(default=None, max_length=50)
     box_name: Optional[str] = Field(default=None, max_length=50)
@@ -152,7 +160,7 @@ class SystemConfigUpdateSchema(BaseModel):
 
 class APIKeyCreateSchema(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    provider: Optional[Literal['gemini', 'openai', 'anthropic', 'deepseek', 'custom']] = None
+    provider: Optional[Literal['gemini', 'custom']] = None
     api_key: str = Field(min_length=4, max_length=500)
     description: Optional[str] = Field(default="", max_length=500)
 

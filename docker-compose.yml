@@ -1,3 +1,28 @@
+x-backend-env: &backend-env
+  DATABASE_URL: postgres://${POSTGRES_USER:-triage_user}:${POSTGRES_PASSWORD:-change-me-in-production}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ai_triage}
+  DATABASE_HOST: ${POSTGRES_HOST:-postgres}
+  DATABASE_PORT: ${POSTGRES_PORT:-5432}
+  DATABASE_NAME: ${POSTGRES_DB:-ai_triage}
+  DATABASE_USER: ${POSTGRES_USER:-triage_user}
+  DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+  # Redis: broker de Celery (db 0) y cache compartida (db 1)
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  # Sin valor por defecto: compose falla si SECRET_KEY no esta definida en .env
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY debe definirse en .env}
+  FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:-}
+  DEBUG: ${DEBUG:-False}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-nginx,localhost,127.0.0.1}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost,http://localhost:3000}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://localhost}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+  EMAIL_HOST: mailpit
+  EMAIL_PORT: "1025"
+  EMAIL_USE_TLS: "False"
+  DEFAULT_FROM_EMAIL: AI-Triage <no-reply@hospital.com>
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -53,30 +78,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # El proceso web ya no carga Whisper ni llama a Gemini: encola en los workers y espera el resultado.
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-triage_user}:${POSTGRES_PASSWORD:-change-me-in-production}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ai_triage}
-      - DATABASE_HOST=${POSTGRES_HOST:-postgres}
-      - DATABASE_PORT=${POSTGRES_PORT:-5432}
-      - DATABASE_NAME=${POSTGRES_DB:-ai_triage}
-      - DATABASE_USER=${POSTGRES_USER:-triage_user}
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-change-me-in-production}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me}
-      - DEBUG=${DEBUG:-False}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-nginx,localhost,127.0.0.1}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost}
-      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-large-v3-turbo}
-      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
-      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-      - EMAIL_HOST=mailpit
-      - EMAIL_PORT=1025
-      - EMAIL_USE_TLS=False
-      - DEFAULT_FROM_EMAIL=AI-Triage <no-reply@hospital.com>
+      <<: *backend-env
     volumes:
+      - ./backend:/app
       - audio_uploads:/app/media
     networks:
       - ai_triage_network
@@ -90,13 +96,87 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8G
-        reservations:
-          memory: 4G
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+          memory: 2G
+
+  # Worker ASR: un unico proceso (pool solo) con el modelo Whisper cargado una sola vez.
+  # Por defecto corre en CPU (int8), valido en cualquier equipo; con GPU NVIDIA se activa
+  # docker-compose.gpu.yml, que cambia a CUDA, un modelo mayor y reserva la GPU.
+  worker-asr:
+    image: cantor11/ai-triage-backend:latest
+    container_name: ai_triage_worker_asr
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *backend-env
+      RUN_STARTUP_TASKS: "False"
+      WHISPER_PRELOAD: "True"
+      # 'small' mantiene la latencia por fragmento de 4 s asumible en CPU; ajustable en .env.
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-4}
+    command: ["celery", "-A", "config", "worker", "-Q", "asr", "--pool", "solo", "-n", "asr@%h", "--loglevel", "INFO"]
+    volumes:
+      # Modelos Whisper descargados: se conservan entre reinicios y reconstrucciones.
+      - asr_model_cache:/home/appuser/.cache/huggingface
+    networks:
+      - ai_triage_network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      # Con pool solo el ping no responde mientras transcribe: intervalo amplio y varios reintentos.
+      test: ["CMD-SHELL", "celery -A config inspect ping -d asr@$$HOSTNAME --timeout 10"]
+      interval: 60s
+      timeout: 20s
+      retries: 5
+      start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+
+  # Worker LLM: llamadas a Gemini (triaje y normalizacion) y NER clinico (RoBERTa en CPU).
+  # Pool de hilos: Gemini es I/O y el modelo NER se carga una sola vez y se comparte entre hilos.
+  worker-llm:
+    image: cantor11/ai-triage-backend:latest
+    container_name: ai_triage_worker_llm
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *backend-env
+      RUN_STARTUP_TASKS: "False"
+      # Carpeta del modelo exportado por ml/ner (o id de un repo privado de Hugging Face con HF_TOKEN).
+      # Si la carpeta no existe, el triaje sigue con el catalogo y las reglas.
+      NER_MODEL_PATH: ${NER_MODEL_PATH:-/models/ner/ai_triage_ner_roberta}
+      NER_MODEL_REVISION: ${NER_MODEL_REVISION:-}
+      NER_PRELOAD: "True"
+      NER_CPU_THREADS: ${NER_CPU_THREADS:-2}
+      HF_TOKEN: ${HF_TOKEN:-}
+    command: ["celery", "-A", "config", "worker", "-Q", "llm", "--pool", "threads", "--concurrency", "4", "-n", "llm@%h", "--loglevel", "INFO"]
+    volumes:
+      # Descomprimir ai_triage_ner_roberta.zip del notebook en ml/ner/output/ (fuera de git).
+      - ./ml/ner/output:/models/ner:ro
+      # Modelo descargado del Hub, si NER_MODEL_PATH es un repositorio.
+      - ner_model_cache:/home/appuser/.cache/huggingface
+    networks:
+      - ai_triage_network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d llm@$$HOSTNAME --timeout 10"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          # RoBERTa-base en float32 (~0,5 GB) mas torch y el pool de hilos de Gemini.
+          memory: 2G
 
   frontend:
     build:
@@ -105,12 +185,10 @@ services:
     image: cantor11/ai-triage-frontend:latest
     container_name: ai_triage_frontend
     restart: unless-stopped
-    env_file:
-      - .env
+    # Sin env_file: el frontend no necesita SECRET_KEY ni las API keys del backend.
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL=https://localhost/api
       - NEXT_PUBLIC_FHIR_URL=${FHIR_SERVER_URL:-}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     networks:
       - ai_triage_network
     depends_on:
@@ -123,8 +201,16 @@ services:
     image: cantor11/ai-triage-nginx:latest
     container_name: ai_triage_nginx
     restart: unless-stopped
+    environment:
+      # Nombre del certificado autofirmado y duracion de HSTS (0 en desarrollo; 31536000 en produccion).
+      - TLS_SERVER_NAME=${TLS_SERVER_NAME:-localhost}
+      - HSTS_MAX_AGE=${HSTS_MAX_AGE:-0}
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # Certificados persistentes; para produccion montar aqui fullchain.pem y privkey.pem reales.
+      - nginx_certs:/etc/nginx/certs
     networks:
       - ai_triage_network
     depends_on:
@@ -145,3 +231,6 @@ volumes:
   postgres_data:
   redis_data:
   audio_uploads:
+  nginx_certs:
+  asr_model_cache:
+  ner_model_cache:

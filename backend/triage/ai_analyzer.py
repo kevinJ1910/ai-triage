@@ -3,19 +3,73 @@ import re
 import json
 import logging
 from typing import List, Optional, Literal, Dict, Any
+from django.conf import settings
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
+
+from transcription.normalizer import concept_mappings
 
 from .clinical_protocol import evaluate_christus_sinergia_triage
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
+from .entity_fusion import entities_from_terms, fuse_entities
+from . import ner_model
 
 logger = logging.getLogger(__name__)
 
 # Timeout configurable para llamadas a la API de Gemini
 GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_TIMEOUT_SECONDS', '30'))
+
+# Modelos de respaldo si falla el modelo activo (configurable, separados por coma).
+GEMINI_FALLBACK_MODELS = [
+    m.strip() for m in os.getenv('GEMINI_FALLBACK_MODELS', 'gemini-2.5-flash,gemini-3.5-flash-lite').split(',') if m.strip()
+]
+
+# Seudonimizacion de identificadores antes de enviar texto a un LLM externo (Ley 1581 de 2012).
+_PHONE_RE = re.compile(r'\b3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b')
+_DOCUMENT_RE = re.compile(r'\b\d{6,11}\b')
+_NAME_RE = re.compile(
+    r'(?i:\b(?:me llamo|mi nombre es|se llama|su nombre es)\s+)'
+    r'((?:[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s?){1,4})'
+)
+_PLACEHOLDERS = ("[NOMBRE]", "[DOCUMENTO]", "[TELEFONO]")
+
+
+def _pseudonymize(text: str) -> Dict[str, Any]:
+    """
+    Reemplaza nombre, telefono y documento por marcadores y devuelve los valores originales,
+    que se reinyectan localmente en patientInfo sin salir del servidor.
+    """
+    found: Dict[str, Optional[str]] = {"name": None, "phone": None, "documentId": None}
+
+    name_match = _NAME_RE.search(text)
+    if name_match:
+        found["name"] = name_match.group(1).strip()
+        text = text[:name_match.start(1)] + "[NOMBRE] " + text[name_match.end(1):]
+
+    phone_match = _PHONE_RE.search(text)
+    if phone_match:
+        found["phone"] = re.sub(r'\D', '', phone_match.group(0))
+    text = _PHONE_RE.sub("[TELEFONO]", text)
+
+    doc_match = _DOCUMENT_RE.search(text)
+    if doc_match:
+        found["documentId"] = doc_match.group(0)
+    text = _DOCUMENT_RE.sub("[DOCUMENTO]", text)
+
+    return {"text": text, "identifiers": found}
+
+
+def _restore_identifiers(patient_info: Dict[str, Any], identifiers: Dict[str, Optional[str]], raw_transcript: str) -> Dict[str, Any]:
+    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente."""
+    local = _extract_patient_info_rules(raw_transcript)
+    for field in ("name", "documentId", "phone"):
+        value = patient_info.get(field)
+        if not value or any(ph in str(value) for ph in _PLACEHOLDERS):
+            patient_info[field] = identifiers.get(field) or (local.get(field) if field != "phone" else None)
+    return patient_info
 
 
 # --- Esquemas Pydantic v2 para Decodificacion Estructurada Estricta ---
@@ -30,10 +84,19 @@ class PatientInfoSchema(BaseModel):
 
 
 class EntitiesSchema(BaseModel):
-    symptoms: List[str] = Field(default_factory=list, description="Lista de sintomas clinicos expresados")
+    symptoms: List[str] = Field(default_factory=list, description="Sintomas y signos presentes (nunca los negados)")
+    diagnoses: List[str] = Field(
+        default_factory=list,
+        description="Enfermedades, lesiones o estados del episodio actual nombrados como tales (fractura, quemadura, gripa, gestacion)",
+    )
     medications: List[str] = Field(default_factory=list, description="Medicamentos de uso habitual o prescritos")
+    allergies: List[str] = Field(default_factory=list, description="Sustancias a las que el paciente refiere alergia")
     vitals: List[str] = Field(default_factory=list, description="Constantes vitales detectadas en consulta")
     history: List[str] = Field(default_factory=list, description="Antecedentes patologicos o quirurgicos")
+    negated_findings: List[str] = Field(
+        default_factory=list,
+        description="Hallazgos negados explicitamente ('niega dolor toracico', 'sin fiebre'); no van en symptoms",
+    )
 
 
 class TriageDetailsSchema(BaseModel):
@@ -105,15 +168,28 @@ def _resolve_gemini_api_key() -> str:
     return api_key
 
 
-def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[str, Any]:
+def analyze_triage_transcript(
+    transcript: str, use_cache: bool = True, allow_llm: bool = True, model: Optional[str] = None,
+    use_ner: Optional[bool] = None,
+) -> Dict[str, Any]:
     """
     Analiza una conversacion clinica utilizando un pipeline optimizado:
     1. Evaluacion determinista previa de Christus Sinergia Salud como pauta prioritaria.
-    2. Compresion y desruidado fonetico de la entrada (ClinicalTranscriptCompressor).
+    2. Compresion y desruidado fonetico de la entrada (ClinicalTranscriptCompressor) y normalizacion
+       terminologica determinista (catalogo de transcription/terminology), previa a la extraccion.
     3. Cache semantico canonico para cuadros clinicos recurrentes (ClinicalQueryCache).
     4. Recuperacion semantica de criterios relevantes mediante RAG (ClinicalKnowledgeRAG).
     5. Invocacion a Gemini con System Instruction y decodificacion estructurada sanitizada.
     6. Fallback automatico garantizado con el Motor de Reglas Christus Sinergia Salud.
+
+    allow_llm=False omite Gemini y aplica directamente el motor de reglas (lo usa la vista
+    cuando el worker de inferencia no responde, para no dejar al clinico sin clasificacion).
+
+    model fija un unico modelo, sin modelos de respaldo: lo usan los comandos de evaluacion para
+    que las metricas de un modelo no mezclen respuestas de otro. Si falla, aplica el motor de reglas.
+
+    use_ner: None usa el NER (RoBERTa) si NER_MODEL_PATH esta configurado; False lo desactiva (lo usan los
+    evaluadores para medir cada motor por separado). Sin modelo, las entidades salen del catalogo y del LLM.
     """
     raw_transcript = (transcript or "").strip()
     if not raw_transcript:
@@ -129,14 +205,22 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
     structured_vitals = compressed_input["structured_vitals"]
     red_flags = compressed_input["red_flags"]
     compression_ratio = compressed_input["reduction_percentage"]
+    # Capas deterministas de la normalizacion (sin LLM): pistas para Gemini y entidades del respaldo.
+    normalized_terms = concept_mappings(cleaned_transcript)
+    ner_spans, ner_engine = _run_ner(cleaned_transcript, use_ner)
 
     # 3. Consulta al Cache Semantico Canonico (0 tokens, < 3ms)
-    fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals)
+    # El motor NER forma parte de la huella: un resultado sin NER no se sirve cuando el modelo ya esta activo.
+    fingerprint = ClinicalQueryCache.generate_fingerprint(cleaned_transcript, structured_vitals,
+                                                          variant=ner_engine or "")
     if use_cache:
         cached_result = ClinicalQueryCache.get(fingerprint)
         if cached_result:
             logger.info("Consulta resuelta mediante Cache Semántico de Consultas (0 tokens)")
+            # La cache no guarda datos del paciente: se extraen de ESTA transcripcion.
+            cached_result["patientInfo"] = _extract_patient_info_rules(raw_transcript)
             cached_result["compression_ratio"] = compression_ratio
+            cached_result["normalized_terms"] = normalized_terms
             return cached_result
 
     # 4. RAG Clinico: Recuperacion de Criterios Institucionales Top-K Relevantes
@@ -149,9 +233,16 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
     rag_criterion_ids = [c["id"] for c in retrieved_criteria]
 
     # 5. Resolucion de Credenciales y Cliente Gemini
-    api_key = _resolve_gemini_api_key()
+    api_key = _resolve_gemini_api_key() if allow_llm else ""
     if not api_key:
-        logger.error("No GEMINI_API_KEY found in database or environment variables.")
+        if allow_llm:
+            logger.error("No GEMINI_API_KEY found in database or environment variables.")
+            warning = "No se encontró una clave de Gemini configurada. Se aplicó el Motor Clínico determinista de respaldo Christus Sinergia Salud."
+        else:
+            warning = (
+                "El servicio de inferencia no respondió a tiempo. Se aplicó el Motor Clínico determinista "
+                "de respaldo Christus Sinergia Salud para garantizar la continuidad asistencial."
+            )
         fallback_res = _fallback_rule_triage(
             raw_transcript,
             cleaned_transcript,
@@ -159,34 +250,40 @@ def analyze_triage_transcript(transcript: str, use_cache: bool = True) -> Dict[s
             red_flags,
             compression_ratio,
             rag_criterion_ids,
-            warning="No se encontró una clave de Gemini configurada. Se aplicó el Motor Clínico determinista de respaldo Christus Sinergia Salud."
+            normalized_terms,
+            ner_spans,
+            ner_engine,
+            warning=warning
         )
-        if use_cache:
+        # Solo se cachea la falta de clave; un worker caido es transitorio y debe reintentarse.
+        if use_cache and allow_llm:
             ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
         return fallback_res
 
     # 6. Construccion de Prompt Optimizado con Prioridad Christus Sinergia Salud
     system_instruction = (
-        "Eres un Especialista Médico de Triaje de Urgencias del sistema CHRISTUS SINERGIA Salud "
-        "(Resolución 5596 Ministerio de Salud de Colombia). Tu labor es clasificar rigurosamente la "
-        "gravedad del paciente y extraer entidades clínicas clave dando máxima prioridad a los criterios "
-        "institucionales de Christus Sinergia Salud proporcionados."
+        "Especialista de Triaje de Urgencias CHRISTUS SINERGIA (Res. 5596 Minsalud Colombia). "
+        "Clasifica rigurosamente el nivel de gravedad y extrae entidades clínicas con máxima fidelidad a los criterios institucionales. "
+        "Los hallazgos negados van en negated_findings y nunca en symptoms; 'no respira' o 'no responde' son hallazgos presentes."
     )
+
+    pseudonymized = _pseudonymize(cleaned_transcript)
+    vitals_str = ", ".join(compact_vitals) if compact_vitals else "Sin reporte"
+    alerts_str = ", ".join(red_flags) if red_flags else "Sin banderas rojas"
+    terms_str = _format_terms_for_prompt(normalized_terms)
+    ner_str = "; ".join(f"[{span['label']}] {span['text']}" for span in ner_spans) if ner_spans else "Sin modelo NER"
 
     user_prompt = f"""{rag_context_text}
 
-PAUTA CLÍNICA INSTITUCIONAL PREVIA (CHRISTUS SINERGIA SALUD / RESOLUCIÓN 5596):
-- Nivel Base por Reglas: Nivel {rule_baseline['level']} ({rule_baseline['name']})
-- Ventana de Atención: {rule_baseline['attention_time']}
-- Criterio Base: {rule_baseline['justification']}
+PAUTA CLÍNICA BASE (CHRISTUS SINERGIA / RES. 5596):
+Nivel {rule_baseline['level']} ({rule_baseline['name']}) | Ventana: {rule_baseline['attention_time']}
+Criterio: {rule_baseline['justification']}
 
-INSTRUCCIÓN DE PRIORIDAD: Debes tomar la pauta de Christus Sinergia Salud como referencia institucional prioritaria. A menos que identifiques signos adicionales de gravedad o estabilidad en la conversación, confirma o refina esta clasificación conforme a la escala Christus Sinergia Salud (Niveles 1 a 5).
-
-SIGNOS VITALES IDENTIFICADOS: {", ".join(compact_vitals) if compact_vitals else "Ninguno reportado"}
-ALERTAS CLÍNICAS: {", ".join(red_flags) if red_flags else "Ninguna bandera roja inmediata"}
-
-CONSULTA MÉDICA COMPRIMIDA:
-"{cleaned_transcript}"
+SIGNOS VITALES: {vitals_str} | ALERTAS: {alerts_str}
+TÉRMINOS NORMALIZADOS (catálogo local): {terms_str}
+MENCIONES NER (RoBERTa clínico): {ner_str}
+CONSULTA COMPRIMIDA:
+"{pseudonymized['text']}"
 """
 
     active_model = 'gemini-2.5-flash'
@@ -198,15 +295,17 @@ CONSULTA MÉDICA COMPRIMIDA:
     except Exception as cfg_err:
         logger.debug(f"Could not read active_llm_engine from DB: {cfg_err}")
 
-    candidate_models = [active_model]
-    if 'gemini' in active_model:
-        for backup in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']:
-            if backup not in candidate_models:
-                candidate_models.append(backup)
+    if model:
+        candidate_models = [model]
+    else:
+        candidate_models = [active_model]
+        if 'gemini' in active_model:
+            candidate_models += [m for m in GEMINI_FALLBACK_MODELS if m not in candidate_models]
 
     client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
     gemini_schema = _sanitize_schema_for_gemini(TriageOutputSchema)
 
+    last_error: Optional[Exception] = None
     for model_name in candidate_models:
         try:
             logger.info(f"Invocando LLM '{model_name}' con entrada optimizada y schema sanitizado...")
@@ -226,6 +325,9 @@ CONSULTA MÉDICA COMPRIMIDA:
             # Validar con Pydantic para garantia estructural total
             validated_model = TriageOutputSchema.model_validate(parsed)
             result = validated_model.model_dump()
+            result["patientInfo"] = _restore_identifiers(
+                result.get("patientInfo") or {}, pseudonymized["identifiers"], raw_transcript
+            )
 
             # Fusionar signos vitales extraidos por regex si el LLM no los capturo todos
             if compact_vitals:
@@ -248,6 +350,16 @@ CONSULTA MÉDICA COMPRIMIDA:
             result["total_tokens"] = t_tokens
             result["compression_ratio"] = compression_ratio
             result["rag_context"] = rag_criterion_ids
+            result["normalized_terms"] = normalized_terms
+            result["ner_spans"] = []
+            if ner_engine:
+                # Hibrido: las menciones del NER y la negacion determinista mandan; Gemini desempata.
+                llm_entities = result["entities"]
+                fused, details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms, llm_entities,
+                                               min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
+                result["entities"] = {**fused, "vitals": llm_entities.get("vitals", [])}
+                result["ner_spans"] = details
+            result["ner_engine"] = ner_engine
 
             # Guardar en Cache Semantico para proximas consultas
             if use_cache:
@@ -256,6 +368,7 @@ CONSULTA MÉDICA COMPRIMIDA:
             return result
 
         except Exception as err:
+            last_error = err
             logger.warning(f"Fallo en llamada a {model_name} con schema Pydantic: {err}")
 
     # 7. Fallback Asistencial Garantizado (Motor Determinista)
@@ -267,15 +380,81 @@ CONSULTA MÉDICA COMPRIMIDA:
         red_flags,
         compression_ratio,
         rag_criterion_ids,
+        normalized_terms,
+        ner_spans,
+        ner_engine,
         warning=(
-            "El servicio LLM en la nube presentó alta demanda temporal (código 503). "
+            f"{_describe_llm_failure(last_error)} "
             "Se aplicó el Motor Clínico de Reglas Christus Sinergia Salud para garantizar "
             "la clasificación y la continuidad asistencial sin demoras."
         )
     )
-    if use_cache:
-        ClinicalQueryCache.set(fingerprint, fallback_res, estimated_tokens=0)
+    # No se cachea: es un fallo transitorio y la proxima consulta debe reintentar el LLM.
     return fallback_res
+
+
+def _describe_llm_failure(err: Optional[Exception]) -> str:
+    """Mensaje para el usuario segun el tipo real de fallo del LLM (sin detalles internos)."""
+    text = str(err or "").lower()
+    if "503" in text or "unavailable" in text or "overloaded" in text:
+        return "El servicio LLM en la nube presentó alta demanda temporal (código 503)."
+    if "429" in text or "resource_exhausted" in text or "quota" in text:
+        return "Se alcanzó el límite de cuota del servicio LLM (código 429)."
+    if "401" in text or "403" in text or "api key" in text or "permission" in text:
+        return "La clave del servicio LLM fue rechazada o no tiene permisos."
+    if "timeout" in text or "timed out" in text or "deadline" in text:
+        return "El servicio LLM no respondió dentro del tiempo límite."
+    if isinstance(err, (json.JSONDecodeError, ValueError)):
+        return "El servicio LLM devolvió una respuesta que no cumple el esquema clínico."
+    return "El servicio LLM no respondió correctamente."
+
+
+def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
+    """Extrae documento y nombre del paciente por regex, sin LLM."""
+    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
+    doc_id = doc_match.group(1) if doc_match else None
+
+    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
+    patient_name = name_match.group(1).strip() if name_match else None
+
+    return {
+        "name": patient_name,
+        "documentId": doc_id,
+        "birthDate": None,
+        "gender": "unknown",
+        "phone": None,
+        "insurance": "Christus Sinergia / EPS"
+    }
+
+
+def _run_ner(cleaned_transcript: str, use_ner: Optional[bool]) -> tuple:
+    """(menciones, etiqueta del motor) o ([], None) sin modelo. Un fallo del NER nunca interrumpe el triaje."""
+    if use_ner is False:
+        return [], None
+    if use_ner is None:
+        try:
+            from system_settings.models import SystemConfiguration
+            if SystemConfiguration.get_solo().active_ner_model == 'catalogo':
+                return [], None
+        except Exception:
+            pass
+    engine = ner_model.get_engine()
+    if engine is None:
+        return [], None
+    try:
+        return engine.extract(cleaned_transcript), ner_model.engine_label()
+    except Exception as err:
+        logger.warning(f"Fallo del NER: {err}. Se usan el catalogo y el LLM.")
+        return [], None
+
+
+def _format_terms_for_prompt(normalized_terms: List[Dict[str, Any]]) -> str:
+    parts = []
+    for item in normalized_terms:
+        code = f" [{item['code']}]" if item["code"] else ""
+        prefix = "NEGADO " if item["negated"] else ("ALERGIA " if item["allergy"] else "")
+        parts.append(f"{prefix}\"{item['raw_term']}\" -> {item['medical_term']}{code}")
+    return "; ".join(parts) if parts else "Ninguno"
 
 
 def _fallback_rule_triage(
@@ -285,40 +464,30 @@ def _fallback_rule_triage(
     red_flags: List[str],
     compression_ratio: float,
     rag_criterion_ids: List[str],
+    normalized_terms: List[Dict[str, Any]],
+    ner_spans: List[Dict[str, Any]],
+    ner_engine: Optional[str],
     warning: str
 ) -> Dict[str, Any]:
     """Genera la respuesta estandarizada mediante el motor determinista Christus Sinergia."""
     rule_triage = evaluate_christus_sinergia_triage(raw_transcript)
-
-    symptoms = []
-    norm_tr = cleaned_transcript.lower()
-    for s_kw in [
-        "dolor de cabeza", "dolor toracico", "dolor en el pecho", "dificultad respiratoria",
-        "fiebre", "tos", "vomito", "diarrea", "mareo", "vertigo", "fatiga", "ardor al orinar"
-    ]:
-        if s_kw in norm_tr:
-            symptoms.append(s_kw)
-
-    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
-    doc_id = doc_match.group(1) if doc_match else None
-
-    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
-    patient_name = name_match.group(1).strip() if name_match else None
+    ner_details: List[Dict[str, Any]] = []
+    if ner_engine:
+        entities, ner_details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms,
+                                              min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
+    else:
+        entities = entities_from_terms(normalized_terms)
 
     return {
-        "patientInfo": {
-            "name": patient_name,
-            "documentId": doc_id,
-            "birthDate": None,
-            "gender": "unknown",
-            "phone": None,
-            "insurance": "Christus Sinergia / EPS"
-        },
+        "patientInfo": _extract_patient_info_rules(raw_transcript),
         "entities": {
-            "symptoms": symptoms or ["Síntomas referidos en consulta"],
-            "medications": [],
+            "symptoms": entities["symptoms"] or ["Síntomas referidos en consulta"],
+            "diagnoses": entities["diagnoses"],
+            "medications": entities["medications"],
+            "allergies": entities["allergies"],
             "vitals": compact_vitals,
-            "history": []
+            "history": entities["history"],
+            "negated_findings": entities["negated_findings"],
         },
         "triage": {
             "level": rule_triage["level"],
@@ -335,5 +504,8 @@ def _fallback_rule_triage(
         "total_tokens": 0,
         "compression_ratio": compression_ratio,
         "rag_context": rag_criterion_ids,
+        "normalized_terms": normalized_terms,
+        "ner_engine": ner_engine,
+        "ner_spans": ner_details,
         "warning": warning
     }

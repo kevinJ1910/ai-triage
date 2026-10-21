@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { setAccessToken } from '@/lib/api';
+import ThemeToggle from '@/components/ThemeToggle';
 import { 
   Lock, 
   Mail, 
@@ -17,7 +19,9 @@ import {
   CheckCircle2, 
   RefreshCw,
   KeyRound,
-  X
+  X,
+  Stethoscope,
+  Check
 } from 'lucide-react';
 import { 
   validateEmail, 
@@ -120,9 +124,8 @@ export default function LoginPage() {
         throw new Error(data.detail || data.error || 'Credenciales invalidas o error de servidor.');
       }
 
-      // Guardar tokens y perfil
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
+      // El access token queda en memoria; el refresh lo fija el backend en una cookie httpOnly
+      setAccessToken(data.access);
       localStorage.setItem('user_profile', JSON.stringify(data.user));
 
       router.push('/');
@@ -351,49 +354,63 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-blue-600 selection:text-white relative overflow-hidden">
-      {/* Background glowing effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Main card */}
-      <div className="w-full max-w-lg bg-slate-900/90 border border-slate-800 backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8 z-10">
-        {/* Header / Logo */}
-        <div className="flex flex-col items-center mb-6 text-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 mb-3 border border-blue-400/20">
-            <Activity className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 md:p-8 selection:bg-slate-700 selection:text-slate-100">
+      {/* Hospital Institutional Header */}
+      <header className="w-full max-w-4xl flex items-center justify-between py-4 border-b border-slate-800 text-xs text-slate-400">
+        <div className="flex items-center gap-2.5 font-medium text-slate-200">
+          <div className="w-6 h-6 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-semibold text-xs">
+            +
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            AI-Triage Hospitalario
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Sistema de Clasificacion Clinica y Soporte a la Decision Medica
-          </p>
+          <span>Christus Sinergia Salud</span>
+          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="text-slate-400 hidden sm:inline">Servicio de Urgencias y Admision</span>
         </div>
+        <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+          <span className="hidden sm:inline">Estacion Asistencial Conectada</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <ThemeToggle showLabel={false} className="p-1.5" />
+        </div>
+      </header>
+
+      {/* Main Authentication Box */}
+      <main className="w-full max-w-md my-auto py-8 z-10">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 sm:p-8">
+          {/* Header / Logo */}
+          <div className="flex flex-col items-center mb-6 text-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-sky-400 mb-3 shadow-sm">
+              <Activity className="w-5 h-5" />
+            </div>
+            <h1 className="text-lg md:text-xl font-semibold tracking-tight text-slate-100 flex items-center gap-2">
+              AI-Triage Hospitalario
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Sistema de Clasificacion Clinica y Soporte a la Decision Medica
+            </p>
+          </div>
 
         {/* Global Notifications */}
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2 animate-in fade-in duration-200">
+          <div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs text-red-400 flex items-start gap-2.5 animate-in fade-in duration-200">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {infoMessage && (
-          <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-start gap-2 animate-in fade-in duration-200">
+          <div className="mb-4 p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-xs text-emerald-400 flex items-start gap-2.5 animate-in fade-in duration-200">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{infoMessage}</span>
           </div>
         )}
 
         {/* Tabs Switcher */}
-        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-6">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-[var(--surface-card)] rounded-2xl border border-[var(--surface-border)] mb-6">
           <button
             type="button"
             onClick={() => { setActiveTab('login'); setError(''); setInfoMessage(''); }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`py-2 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'login'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-sky-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -402,9 +419,9 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { setActiveTab('register'); setError(''); setInfoMessage(''); }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`py-2 text-xs font-semibold rounded-xl transition-all ${
               activeTab === 'register'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-sky-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -427,7 +444,7 @@ export default function LoginPage() {
                   placeholder="usuario@hospital.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-colors"
                 />
               </div>
               <InputWarning warning={loginEmailWarning} id="login-email-warning" />
@@ -444,7 +461,7 @@ export default function LoginPage() {
                     setForgotEmail(loginEmail);
                     setIsForgotModalOpen(true);
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                  className="text-xs text-sky-400 hover:text-sky-300 hover:underline"
                 >
                   Olvidaste tu contrasena?
                 </button>
@@ -457,7 +474,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-colors"
                 />
                 <button
                   type="button"
@@ -473,7 +490,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -506,7 +523,7 @@ export default function LoginPage() {
                     placeholder="Carlos"
                     value={regFirstName}
                     onChange={(e) => setRegFirstName(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-9 pr-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                 </div>
               </div>
@@ -520,7 +537,7 @@ export default function LoginPage() {
                   placeholder="Gomez"
                   value={regLastName}
                   onChange={(e) => setRegLastName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -533,7 +550,7 @@ export default function LoginPage() {
                 <select
                   value={regDocType}
                   onChange={(e) => setRegDocType(e.target.value)}
-                  className="w-full px-2 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-2 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="CC">CC</option>
                   <option value="CE">CE</option>
@@ -553,7 +570,7 @@ export default function LoginPage() {
                     placeholder="1098765432"
                     value={regDocNumber}
                     onChange={(e) => setRegDocNumber(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-9 pr-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
                   />
                 </div>
                 <InputWarning warning={regDocWarning} id="reg-doc-warning" />
@@ -572,7 +589,7 @@ export default function LoginPage() {
                     placeholder="3001234567"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-9 pr-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
                   />
                 </div>
                 <InputWarning warning={regPhoneWarning} id="reg-phone-warning" />
@@ -584,7 +601,7 @@ export default function LoginPage() {
                 <select
                   value={regRole}
                   onChange={(e) => setRegRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   <option value="doctor">Medico de Urgencias</option>
                   <option value="nurse">Enfermero(a) Jefe</option>
@@ -606,7 +623,7 @@ export default function LoginPage() {
                   placeholder="doctor@hospital.com"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full pl-9 pr-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
               </div>
               <InputWarning warning={regEmailWarning} id="reg-email-warning" />
@@ -625,14 +642,14 @@ export default function LoginPage() {
                     placeholder="Min. 8 car."
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-9 pr-8 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                   >
-                    {showRegPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <InputWarning warning={regPasswordWarning} id="reg-pass-warning" />
@@ -647,7 +664,7 @@ export default function LoginPage() {
                   placeholder="Repetir clave"
                   value={regConfirmPassword}
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
                 <InputWarning warning={regConfirmPasswordWarning} id="reg-confirm-warning" />
               </div>
@@ -656,7 +673,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-3 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-3 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -672,18 +689,32 @@ export default function LoginPage() {
             </button>
           </form>
         )}
-      </div>
+
+          {/* Institutional Compliance Disclaimer */}
+          <div className="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-500 leading-relaxed">
+            <p>
+              Acceso restringido a personal de salud autorizado. La informacion clinica esta protegida por secreto profesional y la normatividad vigente de historia clinica.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Hospital Footer */}
+      <footer className="w-full max-w-4xl py-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+        <span>AI-Triage v2.4 — Sistema Hospitalario de Urgencias</span>
+        <span>Soporte Tecnico: ext. 4100 | soporte@hospital.com</span>
+      </footer>
 
       {/* Modal: OTP Verification */}
       {isVerifyModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                <div className="p-2 bg-slate-800 rounded-lg text-sky-400 border border-slate-700">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-100 text-sm">Verificacion de Seguridad OTP</h3>
+                <h3 className="font-semibold text-slate-100 text-sm">Verificacion de Seguridad OTP</h3>
               </div>
               <button
                 onClick={() => setIsVerifyModalOpen(false)}
@@ -694,7 +725,7 @@ export default function LoginPage() {
             </div>
 
             <p className="text-xs text-slate-400">
-              Se ha enviado un codigo de 6 digitos a <span className="text-blue-400 font-semibold">{verifyEmail}</span>.
+              Se ha enviado un codigo de 6 digitos a <span className="text-sky-400 font-semibold">{verifyEmail}</span>.
               (Revise en Mailpit en el puerto 8025 si esta en desarrollo local).
             </p>
 
@@ -710,24 +741,24 @@ export default function LoginPage() {
                   placeholder="000000"
                   value={verifyCode}
                   onChange={(e) => setVerifyCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full py-3 text-center text-2xl font-mono tracking-widest bg-slate-950 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                  className="w-full py-3 text-center text-2xl font-mono tracking-widest bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-2xl text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 />
                 <InputWarning warning={verifyCodeWarning} id="verify-code-warning" />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2.5">
                 <button
                   type="button"
                   onClick={handleResendCode}
                   disabled={resendLoading}
-                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors"
+                  className="flex-1 py-2.5 bg-[var(--surface-card)] hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-medium transition-colors border border-[var(--surface-border)]"
                 >
                   {resendLoading ? 'Reenviando...' : 'Reenviar Codigo'}
                 </button>
                 <button
                   type="submit"
                   disabled={verifyLoading || verifyCode.length < 6}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {verifyLoading ? 'Validando...' : 'Validar Cuenta'}
                 </button>
@@ -740,13 +771,13 @@ export default function LoginPage() {
       {/* Modal: Forgot Password */}
       {isForgotModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                <div className="p-2 bg-slate-800 rounded-lg text-sky-400 border border-slate-700">
                   <KeyRound className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-100 text-sm">Recuperacion de Contrasena</h3>
+                <h3 className="font-semibold text-slate-100 text-sm">Recuperacion de Contrasena</h3>
               </div>
               <button
                 onClick={() => { setIsForgotModalOpen(false); setForgotStep(1); }}
@@ -771,14 +802,14 @@ export default function LoginPage() {
                     placeholder="usuario@hospital.com"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                   <InputWarning warning={forgotEmailWarning} id="forgot-email-warning" />
                 </div>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  className="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {forgotLoading ? 'Enviando codigo...' : 'Enviar Codigo OTP'}
                 </button>
@@ -799,7 +830,7 @@ export default function LoginPage() {
                     placeholder="000000"
                     value={forgotCode}
                     onChange={(e) => setForgotCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full py-2 text-center text-xl font-mono tracking-widest bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-blue-500"
+                    className="w-full py-2 text-center text-xl font-mono tracking-widest bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                   <InputWarning warning={forgotCodeWarning} id="forgot-code-warning" />
                 </div>
@@ -813,14 +844,14 @@ export default function LoginPage() {
                     placeholder="Minimo 8 caracteres"
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                   <InputWarning warning={forgotNewPasswordWarning} id="forgot-pass-warning" />
                 </div>
                 <button
                   type="submit"
                   disabled={forgotLoading || forgotCode.length < 6}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  className="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {forgotLoading ? 'Actualizando...' : 'Restablecer Contrasena'}
                 </button>

@@ -1,0 +1,5224 @@
+{
+  "engine": "reglas",
+  "model": null,
+  "split": "dev",
+  "match": "relaxed",
+  "corpus": "C:\\Users\\kevin\\OneDrive\\Escritorio\\Proyectos\\TESIS\\ultimate-ai-triage\\ai-triage\\backend\\triage\\benchmark\\corpus_entidades.json",
+  "entities": {
+    "by_type": {
+      "symptoms": {
+        "tp": 24,
+        "fp": 54,
+        "fn": 95,
+        "negated_gold": 29,
+        "negation_errors": 7,
+        "negated_detected": 0,
+        "precision": 0.308,
+        "recall": 0.202,
+        "f1": 0.244
+      },
+      "diagnoses": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 24,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "medications": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 16,
+        "negated_gold": 1,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "allergies": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 7,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "vitals": {
+        "tp": 9,
+        "fp": 0,
+        "fn": 5,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": 1.0,
+        "recall": 0.643,
+        "f1": 0.783
+      },
+      "history": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 12,
+        "negated_gold": 0,
+        "negation_errors": 0,
+        "negated_detected": 0,
+        "precision": null,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    },
+    "micro": {
+      "tp": 33,
+      "fp": 54,
+      "fn": 159,
+      "precision": 0.379,
+      "recall": 0.172,
+      "f1": 0.237
+    },
+    "macro_f1": 0.171,
+    "negation": {
+      "negated_gold": 30,
+      "negation_accuracy": 0.767,
+      "negation_errors": 7,
+      "negated_detection_recall": 0.0
+    },
+    "micro_f1_ci95": [
+      0.162,
+      0.31
+    ]
+  },
+  "triage": {
+    "n": 70,
+    "exact_agreement": 38.6,
+    "cohen_kappa": 0.107,
+    "kappa_interpretation": "Concordancia debil",
+    "undertriage_rate": 54.3,
+    "overtriage_rate": 7.1,
+    "critical_cases": 28,
+    "critical_sensitivity": 21.4,
+    "critical_undertriage_count": 22,
+    "confusion_matrix": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        3,
+        1,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        4,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        4,
+        7,
+        3
+      ],
+      [
+        11,
+        8,
+        5,
+        6,
+        11
+      ]
+    ],
+    "cohen_kappa_ci95": [
+      -0.033,
+      0.288
+    ],
+    "critical_sensitivity_ci95": [
+      6.7,
+      37.9
+    ]
+  },
+  "performance": {
+    "latency_ms_mean": 2,
+    "latency_ms_p95": 3,
+    "tokens_mean": 0,
+    "tokens_total": 0,
+    "llm_failures": 0
+  },
+  "cases": [
+    {
+      "id": "B002",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 1,
+      "predicted_level": 1,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 7,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B004",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 5,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B005",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B006",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B007",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B009",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "T: 27°C"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B014",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 2,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor en el pecho"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B015",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B017",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "GLU: 520 mg/dL"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B020",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B023",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B024",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B026",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B029",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 3,
+      "predicted_entities": {
+        "symptoms": [
+          "vomito",
+          "diarrea"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B030",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "mareo"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B031",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 3,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B033",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B034",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B035",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 3,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B037",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre",
+          "vomito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B038",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 3,
+      "predicted_level": 3,
+      "predicted_entities": {
+        "symptoms": [
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B041",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre",
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 1,
+          "negation_errors": 1,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B043",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "ardor al orinar"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B044",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "diarrea"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B046",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B049",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "vomito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B050",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B052",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B054",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 4,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B055",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B056",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor de cabeza"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B057",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B058",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B060",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre",
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 1,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B062",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B063",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "B065",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "mareo"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N001",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "GCS: 7/15"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N002",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N004",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "vomito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "PA: 75/45 mmHg",
+          "FC: 135 lpm"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N006",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 1,
+      "predicted_level": 1,
+      "predicted_entities": {
+        "symptoms": [
+          "dificultad respiratoria"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "SpO2: 82%",
+          "FR: 38 rpm"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N007",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N008",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 1,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N009",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "PA: 85/50 mmHg",
+          "T: 41°C"
+        ],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N011",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 1,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N012",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor en el pecho",
+          "tos"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N013",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N014",
+      "split": "dev",
+      "tipo": "signos_vitales",
+      "reference_level": 2,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor de cabeza",
+          "vomito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N015",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N017",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N018",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 2,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor de cabeza"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N019",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 2,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N021",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 4,
+          "negated_gold": 1,
+          "negation_errors": 1,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N026",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor de cabeza",
+          "fiebre",
+          "vomito"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 1,
+          "negated_gold": 2,
+          "negation_errors": 2,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N028",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N029",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N030",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 3,
+      "predicted_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor en el pecho"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 3,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N031",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 3,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N033",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 3,
+          "negated_gold": 2,
+          "negation_errors": 1,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N035",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "fiebre"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 1,
+          "negation_errors": 1,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N038",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N039",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N040",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N042",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 4,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "diarrea"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N045",
+      "split": "dev",
+      "tipo": "tipico",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N047",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 2,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N048",
+      "split": "dev",
+      "tipo": "negacion",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N052",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 1,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N054",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 2,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    },
+    {
+      "id": "N055",
+      "split": "dev",
+      "tipo": "coloquial",
+      "reference_level": 5,
+      "predicted_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "Síntomas referidos en consulta"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
+      "llm_failed": false,
+      "latency_ms": 3,
+      "total_tokens": 0,
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      }
+    }
+  ]
+}

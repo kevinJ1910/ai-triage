@@ -34,7 +34,8 @@ class TestOTPAndVerification:
         }, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
-        assert "refresh" in response.data
+        assert "refresh" not in response.data
+        assert response.cookies["ai_triage_refresh"]["httponly"]
 
         self.user.refresh_from_db()
         assert self.user.is_verified is True

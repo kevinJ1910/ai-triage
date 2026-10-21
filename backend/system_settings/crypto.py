@@ -1,11 +1,24 @@
 import base64
 import hashlib
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 
-def get_fernet_cipher():
+def _legacy_secret_key_fernet() -> Fernet:
+    """Clave historica derivada de SECRET_KEY."""
     key = base64.urlsafe_b64encode(hashlib.sha256(settings.SECRET_KEY.encode()).digest())
     return Fernet(key)
+
+def get_fernet_cipher() -> MultiFernet:
+    """
+    Cifra con FIELD_ENCRYPTION_KEY si esta definida; descifra con ella o con la clave
+    historica derivada de SECRET_KEY, para que las llaves ya guardadas sigan siendo legibles.
+    """
+    ciphers = []
+    dedicated = getattr(settings, 'FIELD_ENCRYPTION_KEY', '')
+    if dedicated:
+        ciphers.append(Fernet(dedicated.encode()))
+    ciphers.append(_legacy_secret_key_fernet())
+    return MultiFernet(ciphers)
 
 def encrypt_secret(plain_text: str) -> str:
     if not plain_text:
@@ -29,12 +42,7 @@ def mask_api_key(key: str) -> str:
 
 def detect_key_provider(key: str) -> str:
     cleaned = key.strip()
+    # El triaje solo llama a Gemini; cualquier otra clave se registra como servidor local.
     if cleaned.startswith("AIza") or "AQ." in cleaned:
         return "gemini"
-    elif cleaned.startswith("sk-ant-"):
-        return "anthropic"
-    elif cleaned.startswith("sk-proj-") or (cleaned.startswith("sk-") and len(cleaned) > 35):
-        return "openai"
-    elif "deepseek" in cleaned.lower():
-        return "deepseek"
     return "custom"

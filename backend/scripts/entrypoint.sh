@@ -24,14 +24,18 @@ until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping | grep -q PONG; do
 done
 echo "Redis está disponible"
 
-echo "Ejecutando migraciones de Django..."
-python manage.py migrate --noinput
+# Los workers Celery comparten imagen pero no deben migrar ni recolectar estaticos en paralelo
+# con el backend: arrancan cuando el backend ya esta sano (RUN_STARTUP_TASKS=False).
+if [ "${RUN_STARTUP_TASKS:-True}" = "True" ]; then
+    echo "Ejecutando migraciones de Django..."
+    python manage.py migrate --noinput
 
-echo "Creando usuario demo si no existe..."
-python manage.py create_demo_user
+    echo "Creando usuario demo si no existe..."
+    python manage.py create_demo_user
 
-echo "Recolectando archivos estáticos..."
-python manage.py collectstatic --noinput --clear
+    echo "Recolectando archivos estáticos..."
+    python manage.py collectstatic --noinput --clear
+fi
 echo "Inicio completado"
 
 exec "$@"

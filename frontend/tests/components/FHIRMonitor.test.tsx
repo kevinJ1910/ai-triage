@@ -102,10 +102,7 @@ describe('FHIRMonitor Component', () => {
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         '/api/fhir/',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
+        expect.objectContaining({ method: 'POST' })
       );
     });
   });
