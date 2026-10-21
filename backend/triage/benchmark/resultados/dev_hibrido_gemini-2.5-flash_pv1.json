@@ -38,31 +38,31 @@
         "output": 2.5
       }
     },
-    "generated_at": "2026-10-18T21:11:20+00:00"
+    "generated_at": "2026-10-19T00:23:02+00:00"
   },
   "entities": {
     "by_type": {
       "symptoms": {
-        "tp": 15,
+        "tp": 18,
         "fp": 3,
         "fn": 0,
-        "negated_gold": 0,
+        "negated_gold": 1,
         "negation_errors": 0,
-        "negated_detected": 0,
-        "precision": 0.833,
+        "negated_detected": 1,
+        "precision": 0.857,
         "recall": 1.0,
-        "f1": 0.909
+        "f1": 0.923
       },
       "diagnoses": {
-        "tp": 6,
+        "tp": 8,
         "fp": 5,
         "fn": 0,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
-        "precision": 0.545,
+        "precision": 0.615,
         "recall": 1.0,
-        "f1": 0.706
+        "f1": 0.762
       },
       "medications": {
         "tp": 0,
@@ -110,50 +110,50 @@
       }
     },
     "micro": {
-      "tp": 24,
+      "tp": 29,
       "fp": 9,
       "fn": 0,
-      "precision": 0.727,
+      "precision": 0.763,
       "recall": 1.0,
-      "f1": 0.842
+      "f1": 0.866
     },
-    "macro_f1": 0.854,
+    "macro_f1": 0.871,
     "negation": {
-      "negated_gold": 0,
-      "negation_accuracy": null,
+      "negated_gold": 1,
+      "negation_accuracy": 1.0,
       "negation_errors": 0,
-      "negated_detection_recall": null
+      "negated_detection_recall": 1.0
     },
     "micro_f1_ci95": [
-      0.756,
-      0.914
+      0.788,
+      0.935
     ],
     "normalization": {
-      "coded_gold": 12,
-      "code_hits": 12,
+      "coded_gold": 15,
+      "code_hits": 15,
       "cie10_accuracy": 1.0
     },
     "by_lote": {
       "1": {
-        "tp": 24,
+        "tp": 29,
         "fp": 9,
         "fn": 0,
-        "precision": 0.727,
+        "precision": 0.763,
         "recall": 1.0,
-        "f1": 0.842
+        "f1": 0.866
       }
     }
   },
   "triage": {
-    "n": 10,
-    "exact_agreement": 100.0,
-    "cohen_kappa": 1.0,
-    "kappa_interpretation": "Concordancia casi perfecta",
-    "undertriage_rate": 0.0,
+    "n": 13,
+    "exact_agreement": 92.3,
+    "cohen_kappa": 0.506,
+    "kappa_interpretation": "Concordancia moderada",
+    "undertriage_rate": 7.7,
     "overtriage_rate": 0.0,
-    "critical_cases": 10,
-    "critical_sensitivity": 100.0,
-    "critical_undertriage_count": 0,
+    "critical_cases": 13,
+    "critical_sensitivity": 92.3,
+    "critical_undertriage_count": 1,
     "confusion_matrix": [
       [
         6,
@@ -164,7 +164,7 @@
       ],
       [
         0,
-        4,
+        6,
         0,
         0,
         0
@@ -185,27 +185,27 @@
       ],
       [
         0,
-        0,
+        1,
         0,
         0,
         0
       ]
     ],
     "exact_agreement_ci95": [
-      100.0,
+      76.9,
       100.0
     ],
     "cohen_kappa_ci95": [
-      1.0,
+      0.264,
       1.0
     ],
     "critical_sensitivity_ci95": [
-      100.0,
+      76.9,
       100.0
     ],
     "undertriage_rate_ci95": [
       0.0,
-      0.0
+      23.1
     ],
     "overtriage_rate_ci95": [
       0.0,
@@ -213,10 +213,10 @@
     ],
     "by_tipo": {
       "coloquial": {
-        "n": 6,
+        "n": 8,
         "exact_agreement": 100.0,
         "cohen_kappa": 1.0,
-        "critical_cases": 6,
+        "critical_cases": 8,
         "critical_sensitivity": 100.0,
         "undertriage_rate": 0.0,
         "overtriage_rate": 0.0
@@ -231,41 +231,41 @@
         "overtriage_rate": 0.0
       },
       "tipico": {
-        "n": 2,
-        "exact_agreement": 100.0,
-        "cohen_kappa": 1.0,
-        "critical_cases": 2,
-        "critical_sensitivity": 100.0,
-        "undertriage_rate": 0.0,
+        "n": 3,
+        "exact_agreement": 66.7,
+        "cohen_kappa": 0.27,
+        "critical_cases": 3,
+        "critical_sensitivity": 66.7,
+        "undertriage_rate": 33.3,
         "overtriage_rate": 0.0
       }
     },
     "by_lote": {
       "1": {
-        "n": 10,
-        "exact_agreement": 100.0,
-        "cohen_kappa": 1.0,
-        "critical_cases": 10,
-        "critical_sensitivity": 100.0,
-        "undertriage_rate": 0.0,
+        "n": 13,
+        "exact_agreement": 92.3,
+        "cohen_kappa": 0.506,
+        "critical_cases": 13,
+        "critical_sensitivity": 92.3,
+        "undertriage_rate": 7.7,
         "overtriage_rate": 0.0
       }
     },
     "by_sexo": {
       "desconocido": {
-        "n": 6,
-        "exact_agreement": 100.0,
-        "cohen_kappa": 1.0,
-        "critical_cases": 6,
-        "critical_sensitivity": 100.0,
-        "undertriage_rate": 0.0,
+        "n": 8,
+        "exact_agreement": 87.5,
+        "cohen_kappa": 0.455,
+        "critical_cases": 8,
+        "critical_sensitivity": 87.5,
+        "undertriage_rate": 12.5,
         "overtriage_rate": 0.0
       },
       "femenino": {
-        "n": 2,
+        "n": 3,
         "exact_agreement": 100.0,
         "cohen_kappa": 1.0,
-        "critical_cases": 2,
+        "critical_cases": 3,
         "critical_sensitivity": 100.0,
         "undertriage_rate": 0.0,
         "overtriage_rate": 0.0
@@ -291,10 +291,19 @@
         "overtriage_rate": 0.0
       },
       "desconocido": {
-        "n": 8,
+        "n": 10,
+        "exact_agreement": 90.0,
+        "cohen_kappa": 0.471,
+        "critical_cases": 10,
+        "critical_sensitivity": 90.0,
+        "undertriage_rate": 10.0,
+        "overtriage_rate": 0.0
+      },
+      "mayor": {
+        "n": 1,
         "exact_agreement": 100.0,
         "cohen_kappa": 1.0,
-        "critical_cases": 8,
+        "critical_cases": 1,
         "critical_sensitivity": 100.0,
         "undertriage_rate": 0.0,
         "overtriage_rate": 0.0
@@ -309,23 +318,36 @@
         "overtriage_rate": 0.0
       }
     },
-    "critical_undertriage": []
+    "critical_undertriage": [
+      {
+        "id": "B026",
+        "tipo": "tipico",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": 5,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Paciente víctima de abuso sexual con evento ocurrido hace una semana (más de 72 horas), por lo que no cumple criterio de Triage 1 para profilaxis PEP inmediata. No se reportan signos de compromiso de estado general."
+      }
+    ]
   },
   "performance": {
-    "latency_ms_mean": 6283,
-    "latency_ms_p50": 5485,
+    "latency_ms_mean": 6786,
+    "latency_ms_p50": 6435,
     "latency_ms_p95": 9029,
-    "prompt_tokens_mean": 495.3,
-    "completion_tokens_mean": 282.9,
-    "thoughts_tokens_mean": 853.7,
-    "total_tokens_mean": 1631.9,
-    "tokens_mean": 1631.9,
-    "tokens_total": 16319,
-    "cost_usd": 0.0299,
-    "cost_usd_per_1000": 2.99,
+    "prompt_tokens_mean": 492.8,
+    "completion_tokens_mean": 275,
+    "thoughts_tokens_mean": 929.4,
+    "total_tokens_mean": 1697.2,
+    "tokens_mean": 1697.2,
+    "tokens_total": 22063,
+    "cost_usd": 0.0411,
+    "cost_usd_per_1000": 3.16,
     "llm_failures": 0,
-    "retried_cases": 0,
-    "pending_cases": 140
+    "retried_cases": 1,
+    "coerced_cases": 0,
+    "pending_cases": 137
   },
   "cases": [
     {
@@ -1294,6 +1316,294 @@
       "code_hits": {
         "coded_gold": 2,
         "code_hits": 2
+      }
+    },
+    {
+      "id": "B023",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "paresia de miembro superior",
+          "disartria"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6265,
+      "llm_latency_ms": 5797,
+      "prompt_tokens": 497,
+      "completion_tokens": 191,
+      "thoughts_tokens": 879,
+      "total_tokens": 1567,
+      "justification": "Paciente de 70 años con inicio súbito de paresia de miembro superior derecho y disartria, compatible con sospecha de Accidente Cerebrovascular agudo en ventana terapéutica.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R47.1"
+      ],
+      "attempts": 2,
+      "timestamp": "2026-10-19T00:22:27+00:00",
+      "llm_level": 2,
+      "sexo": "femenino",
+      "grupo_edad": "mayor",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "B024",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "la piel se ve blanca"
+        ],
+        "diagnoses": [
+          "Quemadura con aceite hirviendo en toda la pierna"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "dolor"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 10795,
+      "llm_latency_ms": 10393,
+      "prompt_tokens": 502,
+      "completion_tokens": 302,
+      "thoughts_tokens": 1542,
+      "total_tokens": 2346,
+      "justification": "Paciente con quemadura de gran extensión (toda la pierna) y profundidad (piel blanca), lo que sugiere una quemadura de segundo o tercer grado que excede los criterios de quemadura localizada de segundo grado para Triage 3 y requiere atención médica urgente para evaluación y manejo de complicaciones.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "T30.0",
+        "R52.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-19T00:22:45+00:00",
+      "llm_level": 2,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 1
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "B026",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [],
+        "diagnoses": [
+          "abuso sexual"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 8330,
+      "llm_latency_ms": 7907,
+      "prompt_tokens": 454,
+      "completion_tokens": 253,
+      "thoughts_tokens": 1124,
+      "total_tokens": 1831,
+      "justification": "Paciente víctima de abuso sexual con evento ocurrido hace una semana (más de 72 horas), por lo que no cumple criterio de Triage 1 para profilaxis PEP inmediata. No se reportan signos de compromiso de estado general.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "T74.2"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-19T00:22:55+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
       }
     }
   ]
