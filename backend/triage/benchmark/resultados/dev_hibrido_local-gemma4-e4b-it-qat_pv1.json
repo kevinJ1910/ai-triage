@@ -5,7 +5,7 @@
   "split": "dev",
   "match": "relaxed",
   "corpus": "corpus_entidades.json",
-  "complete": false,
+  "complete": true,
   "cases_expected": 150,
   "run": {
     "run_id": "dev_hibrido_local-gemma4-e4b-it-qat_pv1",
@@ -31,20 +31,20 @@
     "python": "3.12.15",
     "hardware": "CPU AMD Ryzen (12 hilos, Docker 8 GB), Ollama 0.34.4, razonamiento activado; solo por lotes",
     "prices": null,
-    "generated_at": "2026-10-21T11:03:10+00:00"
+    "generated_at": "2026-10-22T03:13:39+00:00"
   },
   "entities": {
     "by_type": {
       "symptoms": {
-        "tp": 233,
+        "tp": 239,
         "fp": 48,
         "fn": 4,
-        "negated_gold": 51,
+        "negated_gold": 52,
         "negation_errors": 8,
-        "negated_detected": 45,
-        "precision": 0.829,
-        "recall": 0.983,
-        "f1": 0.9
+        "negated_detected": 46,
+        "precision": 0.833,
+        "recall": 0.984,
+        "f1": 0.902
       },
       "diagnoses": {
         "tp": 49,
@@ -69,15 +69,15 @@
         "f1": 0.926
       },
       "allergies": {
-        "tp": 5,
+        "tp": 6,
         "fp": 0,
         "fn": 4,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
         "precision": 1.0,
-        "recall": 0.556,
-        "f1": 0.714
+        "recall": 0.6,
+        "f1": 0.75
       },
       "vitals": {
         "tp": 31,
@@ -91,70 +91,70 @@
         "f1": 0.765
       },
       "history": {
-        "tp": 19,
+        "tp": 20,
         "fp": 1,
         "fn": 2,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
-        "precision": 0.95,
-        "recall": 0.905,
-        "f1": 0.927
+        "precision": 0.952,
+        "recall": 0.909,
+        "f1": 0.93
       }
     },
     "micro": {
-      "tp": 362,
+      "tp": 370,
       "fp": 77,
       "fn": 16,
-      "precision": 0.825,
-      "recall": 0.958,
-      "f1": 0.886
+      "precision": 0.828,
+      "recall": 0.959,
+      "f1": 0.888
     },
-    "macro_f1": 0.855,
+    "macro_f1": 0.862,
     "negation": {
-      "negated_gold": 55,
-      "negation_accuracy": 0.836,
+      "negated_gold": 56,
+      "negation_accuracy": 0.839,
       "negation_errors": 9,
-      "negated_detection_recall": 0.873
+      "negated_detection_recall": 0.875
     },
     "micro_f1_ci95": [
-      0.861,
-      0.91
+      0.863,
+      0.914
     ],
     "normalization": {
-      "coded_gold": 213,
-      "code_hits": 178,
-      "cie10_accuracy": 0.836
+      "coded_gold": 218,
+      "code_hits": 183,
+      "cie10_accuracy": 0.839
     },
     "by_lote": {
       "1": {
-        "tp": 181,
+        "tp": 184,
         "fp": 35,
         "fn": 8,
-        "precision": 0.838,
+        "precision": 0.84,
         "recall": 0.958,
-        "f1": 0.894
+        "f1": 0.895
       },
       "2": {
-        "tp": 181,
+        "tp": 186,
         "fp": 42,
         "fn": 8,
-        "precision": 0.812,
-        "recall": 0.958,
-        "f1": 0.879
+        "precision": 0.816,
+        "recall": 0.959,
+        "f1": 0.882
       }
     }
   },
   "triage": {
-    "n": 147,
+    "n": 150,
     "exact_agreement": 65.3,
-    "cohen_kappa": 0.764,
+    "cohen_kappa": 0.766,
     "kappa_interpretation": "Concordancia sustancial",
-    "undertriage_rate": 29.9,
-    "overtriage_rate": 4.8,
-    "critical_cases": 59,
-    "critical_sensitivity": 76.3,
-    "critical_undertriage_count": 14,
+    "undertriage_rate": 30.0,
+    "overtriage_rate": 4.7,
+    "critical_cases": 60,
+    "critical_sensitivity": 75.0,
+    "critical_undertriage_count": 15,
     "confusion_matrix": [
       [
         22,
@@ -172,7 +172,7 @@
       ],
       [
         2,
-        4,
+        5,
         10,
         1,
         0
@@ -181,7 +181,7 @@
         0,
         2,
         8,
-        20,
+        21,
         1
       ],
       [
@@ -189,86 +189,86 @@
         4,
         10,
         8,
-        28
+        29
       ]
     ],
     "exact_agreement_ci95": [
-      57.8,
-      72.8
+      57.3,
+      72.7
     ],
     "cohen_kappa_ci95": [
-      0.67,
-      0.844
+      0.667,
+      0.846
     ],
     "critical_sensitivity_ci95": [
-      66.1,
-      86.0
+      62.9,
+      85.9
     ],
     "undertriage_rate_ci95": [
-      22.4,
-      37.4
+      23.3,
+      38.0
     ],
     "overtriage_rate_ci95": [
-      2.0,
-      8.2
+      1.3,
+      8.7
     ],
     "by_tipo": {
       "coloquial": {
-        "n": 82,
-        "exact_agreement": 64.6,
-        "cohen_kappa": 0.76,
+        "n": 83,
+        "exact_agreement": 65.1,
+        "cohen_kappa": 0.764,
         "critical_cases": 28,
         "critical_sensitivity": 75.0,
-        "undertriage_rate": 29.3,
-        "overtriage_rate": 6.1,
+        "undertriage_rate": 28.9,
+        "overtriage_rate": 6.0,
         "exact_agreement_ci95": [
-          54.9,
-          75.6
+          55.4,
+          74.7
         ],
         "cohen_kappa_ci95": [
           0.617,
-          0.872
+          0.874
         ],
         "critical_sensitivity_ci95": [
-          58.3,
-          90.9
+          57.1,
+          89.7
         ],
         "undertriage_rate_ci95": [
-          19.5,
-          39.0
+          19.3,
+          38.6
         ],
         "overtriage_rate_ci95": [
           1.2,
-          12.2
+          12.0
         ]
       },
       "negacion": {
-        "n": 21,
-        "exact_agreement": 57.1,
-        "cohen_kappa": 0.575,
-        "critical_cases": 7,
-        "critical_sensitivity": 57.1,
-        "undertriage_rate": 38.1,
-        "overtriage_rate": 4.8,
+        "n": 22,
+        "exact_agreement": 54.5,
+        "cohen_kappa": 0.579,
+        "critical_cases": 8,
+        "critical_sensitivity": 50.0,
+        "undertriage_rate": 40.9,
+        "overtriage_rate": 4.5,
         "exact_agreement_ci95": [
-          33.3,
-          76.2
+          36.4,
+          72.7
         ],
         "cohen_kappa_ci95": [
-          0.16,
-          0.889
+          0.196,
+          0.885
         ],
         "critical_sensitivity_ci95": [
           16.7,
-          100.0
+          85.7
         ],
         "undertriage_rate_ci95": [
-          19.0,
-          57.1
+          22.7,
+          59.1
         ],
         "overtriage_rate_ci95": [
           0.0,
-          14.3
+          13.6
         ]
       },
       "signos_vitales": {
@@ -301,28 +301,28 @@
         ]
       },
       "tipico": {
-        "n": 24,
-        "exact_agreement": 70.8,
-        "cohen_kappa": 0.783,
+        "n": 25,
+        "exact_agreement": 72.0,
+        "cohen_kappa": 0.784,
         "critical_cases": 9,
         "critical_sensitivity": 66.7,
-        "undertriage_rate": 29.2,
+        "undertriage_rate": 28.0,
         "overtriage_rate": 0.0,
         "exact_agreement_ci95": [
-          54.2,
-          87.5
+          56.0,
+          88.0
         ],
         "cohen_kappa_ci95": [
-          0.532,
-          0.945
+          0.548,
+          0.944
         ],
         "critical_sensitivity_ci95": [
           33.3,
           100.0
         ],
         "undertriage_rate_ci95": [
-          12.5,
-          45.8
+          12.0,
+          44.0
         ],
         "overtriage_rate_ci95": [
           0.0,
@@ -332,92 +332,92 @@
     },
     "by_lote": {
       "1": {
-        "n": 69,
-        "exact_agreement": 69.6,
-        "cohen_kappa": 0.859,
+        "n": 70,
+        "exact_agreement": 70.0,
+        "cohen_kappa": 0.862,
         "critical_cases": 28,
         "critical_sensitivity": 85.7,
-        "undertriage_rate": 23.2,
-        "overtriage_rate": 7.2,
+        "undertriage_rate": 22.9,
+        "overtriage_rate": 7.1,
         "exact_agreement_ci95": [
-          59.4,
-          79.7
+          58.6,
+          80.0
         ],
         "cohen_kappa_ci95": [
-          0.763,
-          0.925
+          0.766,
+          0.929
         ],
         "critical_sensitivity_ci95": [
-          71.4,
+          72.0,
           96.6
         ],
         "undertriage_rate_ci95": [
-          13.0,
-          33.3
+          14.3,
+          32.9
         ],
         "overtriage_rate_ci95": [
           1.4,
-          13.0
+          14.3
         ]
       },
       "2": {
-        "n": 78,
-        "exact_agreement": 61.5,
-        "cohen_kappa": 0.689,
-        "critical_cases": 31,
-        "critical_sensitivity": 67.7,
-        "undertriage_rate": 35.9,
-        "overtriage_rate": 2.6,
+        "n": 80,
+        "exact_agreement": 61.3,
+        "cohen_kappa": 0.688,
+        "critical_cases": 32,
+        "critical_sensitivity": 65.6,
+        "undertriage_rate": 36.2,
+        "overtriage_rate": 2.5,
         "exact_agreement_ci95": [
-          51.3,
-          71.8
+          51.2,
+          71.2
         ],
         "cohen_kappa_ci95": [
-          0.532,
-          0.812
+          0.533,
+          0.807
         ],
         "critical_sensitivity_ci95": [
-          51.6,
-          82.9
+          48.4,
+          81.5
         ],
         "undertriage_rate_ci95": [
-          25.6,
+          26.2,
           46.2
         ],
         "overtriage_rate_ci95": [
           0.0,
-          6.4
+          6.2
         ]
       }
     },
     "by_sexo": {
       "desconocido": {
-        "n": 123,
-        "exact_agreement": 64.2,
-        "cohen_kappa": 0.738,
-        "critical_cases": 44,
-        "critical_sensitivity": 75.0,
-        "undertriage_rate": 30.9,
-        "overtriage_rate": 4.9,
+        "n": 126,
+        "exact_agreement": 64.3,
+        "cohen_kappa": 0.74,
+        "critical_cases": 45,
+        "critical_sensitivity": 73.3,
+        "undertriage_rate": 31.0,
+        "overtriage_rate": 4.8,
         "exact_agreement_ci95": [
-          55.3,
-          71.5
+          54.8,
+          73.0
         ],
         "cohen_kappa_ci95": [
-          0.618,
-          0.838
+          0.621,
+          0.839
         ],
         "critical_sensitivity_ci95": [
-          60.9,
-          87.2
+          59.6,
+          85.7
         ],
         "undertriage_rate_ci95": [
-          23.6,
-          39.8
+          22.2,
+          39.7
         ],
         "overtriage_rate_ci95": [
           1.6,
-          8.9
+          8.7
         ]
       },
       "femenino": {
@@ -450,32 +450,32 @@
         "overtriage_rate": 0.0
       },
       "desconocido": {
-        "n": 130,
-        "exact_agreement": 64.6,
-        "cohen_kappa": 0.77,
-        "critical_cases": 48,
-        "critical_sensitivity": 77.1,
-        "undertriage_rate": 30.0,
-        "overtriage_rate": 5.4,
+        "n": 133,
+        "exact_agreement": 64.7,
+        "cohen_kappa": 0.772,
+        "critical_cases": 49,
+        "critical_sensitivity": 75.5,
+        "undertriage_rate": 30.1,
+        "overtriage_rate": 5.3,
         "exact_agreement_ci95": [
-          55.4,
-          73.1
+          56.4,
+          72.9
         ],
         "cohen_kappa_ci95": [
-          0.662,
-          0.848
+          0.672,
+          0.852
         ],
         "critical_sensitivity_ci95": [
-          64.3,
-          88.4
+          63.8,
+          87.5
         ],
         "undertriage_rate_ci95": [
-          22.3,
-          37.7
+          22.6,
+          37.6
         ],
         "overtriage_rate_ci95": [
           2.3,
-          9.2
+          9.0
         ]
       },
       "mayor": {
@@ -651,25 +651,36 @@
         "rule_level": 5,
         "distance": 1,
         "justification": "Presentación de síntomas neurológicos agudos (déficit motor unilateral y alteración del estado mental) que sugieren una emergencia neurológica (ej. accidente cerebrovascular) y requieren evaluación inmediata."
+      },
+      {
+        "id": "N102",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 3,
+        "llm_level": 3,
+        "rule_level": 4,
+        "distance": 1,
+        "justification": "El paciente presenta dolor abdominal severamente incapacitante que impide la bipedestación y la marcha, lo cual requiere evaluación urgente, aunque no se cumplen los criterios específicos de vértigo o deshidratación moderada definidos en el nivel 3."
       }
     ]
   },
   "performance": {
-    "latency_ms_mean": 133471,
-    "latency_ms_p50": 114409,
-    "latency_ms_p95": 173036,
-    "prompt_tokens_mean": 514.0,
-    "completion_tokens_mean": 1065.4,
+    "latency_ms_mean": 134978,
+    "latency_ms_p50": 114941,
+    "latency_ms_p95": 178835,
+    "prompt_tokens_mean": 514.4,
+    "completion_tokens_mean": 1066.4,
     "thoughts_tokens_mean": 0,
-    "total_tokens_mean": 1579.4,
-    "tokens_mean": 1579.4,
-    "tokens_total": 232176,
+    "total_tokens_mean": 1580.8,
+    "tokens_mean": 1580.8,
+    "tokens_total": 237121,
     "cost_usd": 0.0,
     "cost_usd_per_1000": 0.0,
     "llm_failures": 0,
     "retried_cases": 2,
     "coerced_cases": 0,
-    "pending_cases": 3
+    "pending_cases": 0
   },
   "cases": [
     {
@@ -7477,6 +7488,105 @@
       }
     },
     {
+      "id": "N055",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 5,
+      "predicted_level": 5,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "gonalgia"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [
+          "metamizol"
+        ],
+        "vitals": [],
+        "history": [
+          "artrosis"
+        ],
+        "negated_findings": []
+      },
+      "engine_used": "LLM local (gemma4:e4b-it-qat) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemma4:e4b-it-qat",
+      "prompt_version": "v1",
+      "latency_ms": 202285,
+      "llm_latency_ms": 201280,
+      "prompt_tokens": 518,
+      "completion_tokens": 1002,
+      "thoughts_tokens": 0,
+      "total_tokens": 1520,
+      "justification": "El paciente presenta dolor osteoarticular crónico (gonalgia) de meses de evolución asociado a artrosis, sin signos de trauma agudo ni flogosis, cumpliendo con los criterios de Consulta Externa.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "M25.5",
+        "M19.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-22T03:06:33+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
       "id": "N057",
       "split": "dev",
       "tipo": "coloquial",
@@ -10015,6 +10125,103 @@
       "code_hits": {
         "coded_gold": 0,
         "code_hits": 0
+      }
+    },
+    {
+      "id": "N102",
+      "split": "dev",
+      "tipo": "negacion",
+      "lote": 2,
+      "reference_level": 2,
+      "predicted_level": 3,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor abdominal",
+          "no puedo ni caminar derecho del dolor",
+          "no he podido hacer popó ni echar gases"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM local (gemma4:e4b-it-qat) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemma4:e4b-it-qat",
+      "prompt_version": "v1",
+      "latency_ms": 292558,
+      "llm_latency_ms": 291549,
+      "prompt_tokens": 537,
+      "completion_tokens": 1332,
+      "thoughts_tokens": 0,
+      "total_tokens": 1869,
+      "justification": "El paciente presenta dolor abdominal severamente incapacitante que impide la bipedestación y la marcha, lo cual requiere evaluación urgente, aunque no se cumplen los criterios específicos de vértigo o deshidratación moderada definidos en el nivel 3.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R10.4",
+        "R52.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-22T03:11:26+00:00",
+      "llm_level": 3,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
       }
     },
     {
@@ -12662,6 +12869,104 @@
       "code_hits": {
         "coded_gold": 1,
         "code_hits": 0
+      }
+    },
+    {
+      "id": "N146",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 2,
+      "reference_level": 4,
+      "predicted_level": 4,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "odinofagia",
+          "febrícula"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "disfagia"
+        ]
+      },
+      "engine_used": "LLM local (gemma4:e4b-it-qat) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemma4:e4b-it-qat",
+      "prompt_version": "v1",
+      "latency_ms": 131640,
+      "llm_latency_ms": 128698,
+      "prompt_tokens": 544,
+      "completion_tokens": 1012,
+      "thoughts_tokens": 0,
+      "total_tokens": 1556,
+      "justification": "Los síntomas (odinofagia y febrícula) son consistentes con un cuadro de faringitis o amigdalitis aguda, el cual no compromete el estado general del paciente y es direccionable a consulta prioritaria de EPS según el protocolo Christus Sinergia Salud.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R07.0",
+        "R13"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-22T03:13:38+00:00",
+      "llm_level": 4,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 1
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
       }
     },
     {

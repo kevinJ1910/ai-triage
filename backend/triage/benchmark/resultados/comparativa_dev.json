@@ -4,6 +4,84 @@
     "baseline": "dev_reglas_lotes",
     "rows": [
       {
+        "name": "dev_hibrido_local-gemma4-e4b-it-qat_pv1",
+        "label": "LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, NER)",
+        "engine": "hibrido",
+        "model": "local:gemma4:e4b-it-qat",
+        "model_versions": [
+          "gemma4:e4b-it-qat"
+        ],
+        "prompt_version": "v1",
+        "policy": "llm",
+        "n": 150,
+        "exact_agreement": 65.3,
+        "exact_agreement_ci95": [
+          57.3,
+          72.7
+        ],
+        "cohen_kappa": 0.766,
+        "cohen_kappa_ci95": [
+          0.667,
+          0.846
+        ],
+        "critical_sensitivity": 75.0,
+        "critical_sensitivity_ci95": [
+          62.9,
+          85.9
+        ],
+        "undertriage_rate": 30.0,
+        "undertriage_rate_ci95": [
+          23.3,
+          38.0
+        ],
+        "overtriage_rate": 4.7,
+        "critical_undertriage_count": 15,
+        "latency_ms_p50": 114941,
+        "latency_ms_p95": 178835,
+        "hardware": "CPU AMD Ryzen (12 hilos, Docker 8 GB), Ollama 0.34.4, razonamiento activado; solo por lotes",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      },
+      {
+        "name": "dev_hibrido_local-gemma4-e4b-it-qat_pv1_min-critico",
+        "label": "LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, política min_critico, NER)",
+        "engine": "hibrido",
+        "model": "local:gemma4:e4b-it-qat",
+        "model_versions": [
+          "gemma4:e4b-it-qat"
+        ],
+        "prompt_version": "v1",
+        "policy": "min_critico",
+        "n": 150,
+        "exact_agreement": 65.3,
+        "exact_agreement_ci95": [
+          57.3,
+          72.7
+        ],
+        "cohen_kappa": 0.766,
+        "cohen_kappa_ci95": [
+          0.667,
+          0.846
+        ],
+        "critical_sensitivity": 75.0,
+        "critical_sensitivity_ci95": [
+          62.9,
+          85.9
+        ],
+        "undertriage_rate": 30.0,
+        "undertriage_rate_ci95": [
+          23.3,
+          38.0
+        ],
+        "overtriage_rate": 4.7,
+        "critical_undertriage_count": 15,
+        "latency_ms_p50": 114941,
+        "latency_ms_p95": 178835,
+        "hardware": "CPU AMD Ryzen (12 hilos, Docker 8 GB), Ollama 0.34.4, razonamiento activado; solo por lotes",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      },
+      {
         "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1",
         "label": "LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER)",
         "engine": "hibrido",
@@ -121,6 +199,92 @@
     ],
     "paired": [
       {
+        "name": "dev_hibrido_local-gemma4-e4b-it-qat_pv1",
+        "baseline": "dev_reglas_lotes",
+        "n": 150,
+        "metrics": {
+          "exact_agreement": {
+            "metric": "exact_agreement",
+            "n": 150,
+            "diff": 22.0,
+            "ci95": [
+              16.0,
+              28.7
+            ]
+          },
+          "cohen_kappa": {
+            "metric": "cohen_kappa",
+            "n": 150,
+            "diff": 0.511,
+            "ci95": [
+              0.395,
+              0.63
+            ]
+          },
+          "critical_sensitivity": {
+            "metric": "critical_sensitivity",
+            "n": 150,
+            "diff": 45.0,
+            "ci95": [
+              32.4,
+              58.2
+            ]
+          },
+          "undertriage_rate": {
+            "metric": "undertriage_rate",
+            "n": 150,
+            "diff": -24.0,
+            "ci95": [
+              -30.7,
+              -17.3
+            ]
+          }
+        }
+      },
+      {
+        "name": "dev_hibrido_local-gemma4-e4b-it-qat_pv1_min-critico",
+        "baseline": "dev_reglas_lotes",
+        "n": 150,
+        "metrics": {
+          "exact_agreement": {
+            "metric": "exact_agreement",
+            "n": 150,
+            "diff": 22.0,
+            "ci95": [
+              16.0,
+              28.7
+            ]
+          },
+          "cohen_kappa": {
+            "metric": "cohen_kappa",
+            "n": 150,
+            "diff": 0.511,
+            "ci95": [
+              0.395,
+              0.63
+            ]
+          },
+          "critical_sensitivity": {
+            "metric": "critical_sensitivity",
+            "n": 150,
+            "diff": 45.0,
+            "ci95": [
+              32.4,
+              58.2
+            ]
+          },
+          "undertriage_rate": {
+            "metric": "undertriage_rate",
+            "n": 150,
+            "diff": -24.0,
+            "ci95": [
+              -30.7,
+              -17.3
+            ]
+          }
+        }
+      },
+      {
         "name": "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1",
         "baseline": "dev_reglas_lotes",
         "n": 150,
@@ -208,6 +372,250 @@
       }
     ],
     "critical_misses": {
+      "dev_hibrido_local-gemma4-e4b-it-qat_pv1": [
+        {
+          "id": "N061",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N076",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B026",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N087",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N101",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N107",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B006",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 2
+        },
+        {
+          "id": "N017",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N071",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 3,
+          "distance": 2
+        },
+        {
+          "id": "N093",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "B024",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N085",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N095",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        },
+        {
+          "id": "N100",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N102",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        }
+      ],
+      "dev_hibrido_local-gemma4-e4b-it-qat_pv1_min-critico": [
+        {
+          "id": "N061",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N076",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B026",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N087",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N101",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N107",
+          "tipo": "signos_vitales",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B006",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 2
+        },
+        {
+          "id": "N017",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N071",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 3,
+          "rule_level": 3,
+          "distance": 2
+        },
+        {
+          "id": "N093",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "B024",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N085",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N095",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        },
+        {
+          "id": "N100",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 5,
+          "distance": 1
+        },
+        {
+          "id": "N102",
+          "tipo": "negacion",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        }
+      ],
       "dev_hibrido_local-qwen2.5-7b-instruct-q4_K_M_pv1": [
         {
           "id": "B005",
@@ -1023,6 +1431,6 @@
         }
       ]
     },
-    "generated_at": "2026-10-18T23:21:16+00:00"
+    "generated_at": "2026-10-22T03:14:18+00:00"
   }
 }
