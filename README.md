@@ -10,6 +10,7 @@
 * **CPU por defecto, GPU NVIDIA opcional:** El stack corre en cualquier equipo con Whisper en CPU (`int8`, modelo `small`). Con GPU NVIDIA, un override activa CUDA (`float16`, modelo `large-v3-turbo`). Ver [Ejecución con GPU NVIDIA](#ejecución-con-gpu-nvidia).
 * **Inferencia en workers dedicados (Celery + Redis):** Whisper corre en `worker-asr` y Gemini en `worker-llm`; el proceso web solo valida, persiste y encola. Si el worker LLM no responde, el triaje se resuelve con el motor de reglas: el clínico nunca recibe un error por un fallo de la IA.
 * **Motor de triaje con prioridad Christus Sinergia Salud:** Motor determinista de reglas (niveles 1 a 5) que se pasa como pauta prioritaria a Google Gemini y actúa como respaldo garantizado.
+* **LLM local opcional (Ollama):** Gemma 4 o Qwen2.5 en el propio servidor, con el mismo prompt y el mismo esquema que Gemini, para que los datos no salgan del hospital. El modelo se elige en Configuración. Ver [Ejecución con modelos locales](#ejecución-con-modelos-locales-ollama).
 * **Pipeline de compresión, RAG y caché clínica:** Limpieza de la transcripción y extracción de signos vitales (`ClinicalTranscriptCompressor`), recuperación léxica top-K de criterios del protocolo (`ClinicalKnowledgeRAG`) y caché canónica SHA-256 compartida entre procesos (`ClinicalQueryCache`) con 0 tokens en consultas recurrentes.
 * **Decodificación estructurada y gobernanza de tokens:** Salida guiada por esquema JSON y validada con Pydantic v2; telemetría de tokens persistida por sesión.
 * **Seudonimización antes del LLM:** Nombre, documento y teléfono se reemplazan por marcadores antes de enviar el texto a Gemini y se restauran localmente.
@@ -46,7 +47,8 @@ ai-triage/
 │   ├── triage/
 │   │   ├── views.py                      # Analyze, historial, override, box, métricas, validación ciega, FHIR
 │   │   ├── tasks.py                      # Tarea Celery de triaje (cola 'llm') y respaldo por reglas
-│   │   ├── ai_analyzer.py                # Pipeline: reglas → compresión → caché → RAG → Gemini → respaldo
+│   │   ├── ai_analyzer.py                # Pipeline: reglas → compresión → caché → RAG → LLM → respaldo
+│   │   ├── local_llm.py                  # Cliente del LLM local (Ollama u otro servidor compatible con OpenAI)
 │   │   ├── clinical_protocol.py          # Motor determinista Christus Sinergia / Resolución 5596
 │   │   ├── clinical_cache.py             # Caché clínica sobre Redis
 │   │   ├── metrics.py                    # Kappa, infratriaje, sensibilidad, referencia ciega
@@ -77,7 +79,7 @@ ai-triage/
 ├── docs/                                 # Despliegue, modelo de datos, auditoría e informe de brechas
 ├── .github/workflows/ci.yml              # Tests, lint, build y migraciones en cada push / PR
 ├── docker-compose.yml                    # Stack completo en modo CPU (funciona en cualquier equipo)
-├── docker-compose.gpu.yml                # Override para GPU NVIDIA (worker-asr con CUDA)
+├── docker-compose.gpu.yml                # Override para GPU NVIDIA (worker-asr con CUDA y GPU para llm-local)
 └── .env.example                          # Plantilla documentada de variables
 ```
 
@@ -139,12 +141,13 @@ ai-triage/
 | `frontend` | `ai_triage_frontend` | `3000` (interno) | Interfaz Next.js 15 en modo standalone |
 | `backend` | `ai_triage_backend` | `8000` (interno) | Gunicorn + Django REST: API, RBAC, persistencia; encola la inferencia |
 | `worker-asr` | `ai_triage_worker_asr` | — | Celery, cola `asr`: Faster-Whisper cargado una sola vez (CPU o GPU) |
-| `worker-llm` | `ai_triage_worker_llm` | — | Celery, cola `llm`: llamadas a Gemini (triaje y normalización) |
+| `worker-llm` | `ai_triage_worker_llm` | — | Celery, cola `llm`: triaje con Gemini o con el LLM local, normalización y NER RoBERTa |
+| `llm-local` | `ai_triage_llm_local` | `11434` (interno) | Opcional, perfil `llm-local`: Ollama con Gemma 4 / Qwen2.5 (CPU o GPU NVIDIA) |
 | `postgres` | `ai_triage_postgres` | `5432` (interno) | PostgreSQL 16 |
 | `redis` | `ai_triage_redis` | `6379` (interno) | Broker de Celery, caché clínica, contexto ASR y throttling |
 | `mailpit` | `ai_triage_mailpit` | `1025`, `8025` | SMTP local y visor web de correos OTP |
 
-Volúmenes persistentes: `postgres_data`, `redis_data`, `nginx_certs` (certificados TLS), `asr_model_cache` (modelos Whisper descargados) y `audio_uploads`.
+Volúmenes persistentes: `postgres_data`, `redis_data`, `nginx_certs` (certificados TLS), `asr_model_cache` (modelos Whisper descargados), `ner_model_cache` (modelo NER), `ollama_models` (modelos del LLM local) y `audio_uploads`.
 
 ---
 
@@ -267,6 +270,97 @@ El modelo se decide por equipo con `WHISPER_MODEL_SIZE` (`tiny`, `base`, `small`
 
 ---
 
+## Ejecución con modelos locales (Ollama)
+
+El triaje puede usar un LLM que corre **en el propio servidor** en vez de Gemini. Así ningún dato del paciente sale del hospital y no hace falta clave de API. El servicio `llm-local` (Ollama) está en `docker-compose.yml` bajo un perfil, así que no arranca salvo que se pida.
+
+- El modelo local recibe **el mismo prompt, la misma pauta de reglas y el mismo esquema** que Gemini.
+- Si no responde a tiempo, clasifica el motor de reglas. **Nunca se recurre a Gemini**: quien elige el motor local lo hace por privacidad.
+
+| Modelo | Descarga | Razonamiento | Resultado en *dev* (exactitud / Kappa) | Latencia en CPU (portátil) | Memoria |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `gemma4:e4b-it-qat` (Gemma 4 E4B) | 6,1 GB | Sí | 65,3 % / 0,766 | 2–3 min por triaje | ~7 GB de RAM o VRAM |
+| `qwen2.5:7b-instruct-q4_K_M` (Qwen2.5-7B) | 4,7 GB | No | 50,0 % / 0,487 | 45–55 s por triaje | ~5 GB de RAM o VRAM |
+
+Las cifras completas están en [`docs/RESULTADOS_DEV_TRIAJE.md`](docs/RESULTADOS_DEV_TRIAJE.md). Con GPU NVIDIA, los dos modelos responden en segundos.
+
+### 1. Requisitos
+
+* **Con GPU NVIDIA (recomendado):** los mismos requisitos que en [Ejecución con GPU NVIDIA](#ejecución-con-gpu-nvidia). El override `docker-compose.gpu.yml` le reserva la GPU también a `llm-local`.
+* **Solo con CPU:** funciona, pero solo es práctico para pruebas o evaluaciones por lotes. Docker necesita **12 GB de memoria o más**. Con 8 GB, Gemma y el resto del stack agotan la memoria y Docker Desktop puede dejar de responder. En Windows se asigna creando `%UserProfile%\.wslconfig` y reiniciando Docker Desktop:
+
+  ```ini
+  [wsl2]
+  memory=12GB
+  ```
+
+### 2. Variables en `.env`
+
+```env
+# Modelo NER de las evaluaciones (Hugging Face, versión v1)
+NER_MODEL_PATH=HoraYMedia/ai-triage-ner-roberta
+NER_MODEL_REVISION=v1
+
+# LLM local. El modelo se puede cambiar después en Configuración; este es el valor por defecto.
+LOCAL_LLM_BASE_URL=http://llm-local:11434
+LOCAL_LLM_MODEL=gemma4:e4b-it-qat
+
+# Solo en CPU: tiempo máximo de espera del LLM (por debajo de los 300 s de nginx).
+# Con GPU no hace falta tocarlos.
+LOCAL_LLM_TIMEOUT_SECONDS=240
+LLM_TASK_TIMEOUT=280
+
+# Con GPU NVIDIA (Windows ';' — Linux/macOS ':')
+# COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml
+```
+
+`GEMINI_API_KEY` es opcional en este modo: solo hace falta si también se quiere poder elegir Gemini.
+
+### 3. Levantar el stack con el perfil `llm-local`
+
+```bash
+docker compose --profile llm-local up --build -d
+```
+
+`--build` es necesario la primera vez y tras actualizar el código, porque `worker-llm` y `frontend` no montan el código fuente. La migración de la base de datos se aplica sola al arrancar el backend.
+
+### 4. Descargar los modelos (una sola vez)
+
+```bash
+docker compose exec llm-local ollama pull gemma4:e4b-it-qat
+```
+
+```bash
+docker compose exec llm-local ollama pull qwen2.5:7b-instruct-q4_K_M
+```
+
+Quedan guardados en el volumen `ollama_models` y sobreviven a reinicios y reconstrucciones.
+
+### 5. Elegir el motor en la aplicación
+
+1. Entrar en `https://localhost/` con un usuario administrador → **Configuración**.
+2. En «Motor de Explicabilidad y Triaje (LLM)», elegir **LLM local (Ollama / servidor propio)**.
+3. En **Modelo local**, elegir `gemma4:e4b-it-qat` o `qwen2.5:7b-instruct-q4_K_M`. La lista muestra los modelos descargados en Ollama.
+4. Guardar.
+
+### 6. Verificar
+
+* El estado de los motores (barra lateral) debe decir **«LLM: Local · gemma4:e4b-it-qat»**. Si dice «Local no disponible: reglas», Ollama no responde o el modelo no está descargado.
+* Al hacer un triaje, «En qué se basa este resultado» debe mostrar **«LLM local (gemma4:e4b-it-qat) + Christus Sinergia»**.
+* Con GPU, después del primer triaje, este comando debe mostrar `100% GPU` en la columna `PROCESSOR`:
+
+  ```bash
+  docker compose exec llm-local ollama ps
+  ```
+
+**Equipos con poca memoria.** Si no se va a usar la voz, se puede liberar memoria parando el ASR con `docker compose stop worker-asr`. Para volver a activarlo: `docker compose up -d worker-asr`.
+
+**Ollama instalado fuera de Docker.** Basta con definir `LOCAL_LLM_BASE_URL=http://host.docker.internal:11434` y no activar el perfil `llm-local`. Funciona tal cual en Windows y macOS; en Linux hay que añadir `extra_hosts` a `backend` y `worker-llm`. También sirve cualquier servidor compatible con la API de OpenAI, como llama.cpp server o LM Studio.
+
+Para evaluar los modelos locales contra el corpus (`evaluate_extraction --model local:<modelo>`), ver [`docs/EVALUACION_TRIAJE.md`](docs/EVALUACION_TRIAJE.md#5-llm-local).
+
+---
+
 ## Solución de Problemas
 
 | Síntoma | Causa y solución |
@@ -276,6 +370,10 @@ El modelo se decide por equipo con `WHISPER_MODEL_SIZE` (`tiny`, `base`, `small`
 | No se puede iniciar sesión con los usuarios demo | Si no existen, definir `CREATE_DEMO_USERS=True`, `DEMO_ADMIN_PASSWORD` y `DEMO_NURSE_PASSWORD` en `.env`; si ya existen con otra contraseña, añadir también `RESET_DEMO_PASSWORDS=True`. Luego `docker compose up -d backend`. |
 | El navegador no permite el micrófono desde otro equipo de la red | Los navegadores solo permiten el micrófono en HTTPS o `localhost`: acceder por `https://` y aceptar el certificado. |
 | `health_check` devuelve `"status": "degraded"` | `worker-asr` no ha terminado de cargar el modelo o está caído: `docker compose logs worker-asr`. |
+| En Configuración no aparece «LLM local» o la lista «Modelo local» está vacía | El stack no se levantó con `--profile llm-local`, o no se descargó ningún modelo (`docker compose exec llm-local ollama list`). Tras actualizar el código hay que reconstruir con `--build`. |
+| Con el LLM local, el triaje sale del «Motor de Reglas» | El modelo tardó más que `LLM_TASK_TIMEOUT`, cosa habitual en CPU. Subir `LOCAL_LLM_TIMEOUT_SECONDS` y `LLM_TASK_TIMEOUT` (por ejemplo 240 y 280) y reiniciar con `docker compose up -d backend worker-llm`, o usar GPU o Qwen. |
+| `request returned 500 Internal Server Error ... dockerDesktopLinuxEngine` mientras corre Gemma | Docker Desktop se quedó sin memoria. Asignar 12 GB o más a WSL (`.wslconfig`), reiniciar Docker Desktop y parar los servicios que no se usen (`docker compose stop worker-asr`). |
+| `ollama pull gemma4...` falla o el modelo no carga | La imagen de Ollama debe ser `0.34.4` o posterior (variable `OLLAMA_IMAGE_TAG`). Gemma 4 no funciona con versiones anteriores. |
 
 ---
 
