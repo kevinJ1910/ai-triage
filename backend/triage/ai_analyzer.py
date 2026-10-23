@@ -278,11 +278,11 @@ def _llm_candidates(model: Optional[str], active_model: str) -> List[tuple]:
     from . import local_llm
     if model:
         if model == 'local' or model.startswith('local:'):
-            return [('local', model.partition(':')[2] or local_llm.default_model())]
+            return [('local', model.partition(':')[2] or local_llm.active_model())]
         return [('gemini', model)]
     if active_model == 'local':
         # Quien elige el motor local lo hace por privacidad: nunca se cae a Gemini.
-        return [('local', local_llm.default_model())]
+        return [('local', local_llm.active_model())]
     candidates = [('gemini', active_model)]
     if 'gemini' in active_model:
         candidates += [('gemini', m) for m in GEMINI_FALLBACK_MODELS if m != active_model]

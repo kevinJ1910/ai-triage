@@ -155,6 +155,8 @@ class SystemConfigUpdateSchema(BaseModel):
     active_asr_model: Optional[str] = None
     active_llm_engine: Optional[str] = None
     active_ner_model: Optional[str] = None
+    # Nombre de modelo de Ollama/llama.cpp (familia:etiqueta); vacio vuelve a LOCAL_LLM_MODEL.
+    local_llm_model: Optional[str] = Field(default=None, max_length=100, pattern=r'^[A-Za-z0-9._:/-]*$')
     snomed_version: Optional[str] = None
     icd10_version: Optional[str] = None
 

@@ -60,8 +60,7 @@ def _llm_status(config, resolve_gemini_key, local):
 
 
 def _local_llm_option():
-    from triage import local_llm
-    return {"id": "local", "name": f"LLM local ({local_llm.default_model()})", "recommended": False,
+    return {"id": "local", "name": "LLM local (Ollama / servidor propio)", "recommended": False,
             "provider": "Servidor local",
             "description": "Ollama o llama.cpp en el propio servidor: los datos no salen del hospital. Si no responde, "
                            "clasifica el motor de reglas (nunca se recurre a Gemini)."}
@@ -135,6 +134,7 @@ class SystemConfigView(APIView):
         from triage import local_llm
         from transcription.terminology import catalog_summary
         catalog = catalog_summary()
+        local_status = local_llm.get_status()
 
         return Response({
             "config": SystemConfigurationSerializer(config).data,
@@ -147,7 +147,7 @@ class SystemConfigView(APIView):
                 "active_keys_count": keys.count(),
                 "system_timezone": str(timezone.get_current_timezone()),
                 "ner_status": get_ner_status(),
-                "local_llm": local_llm.get_status(),
+                "local_llm": local_status,
             },
             "vocabularies": _vocabularies(config, catalog),
             "catalog": catalog,
@@ -167,6 +167,8 @@ class SystemConfigView(APIView):
                     {"id": "gemini-3.8-flash", "name": "Google Gemini 3.8 Flash", "recommended": False, "provider": "Google Gemini", "description": "Generacion actual, balance precision/latencia"},
                     _local_llm_option(),
                 ],
+                # Modelos instalados en el servidor local, para elegir cual usa la opcion 'local'.
+                "local_llm_models": local_status["models"] or ([local_status["model"]] if local_status["configured"] else []),
                 "ner_models": [
                     {"id": "auto", "name": "RoBERTa clinico + catalogo", "recommended": True,
                      "description": "PlanTL-GOB-ES/roberta-base-biomedical-clinical-es ajustado (ml/ner); sin modelo cargado se usa el catalogo"},

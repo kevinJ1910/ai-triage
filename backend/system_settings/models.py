@@ -30,6 +30,8 @@ class SystemConfiguration(models.Model):
     active_asr_model = models.CharField(max_length=50, choices=ASR_CHOICES, default='auto')
     active_llm_engine = models.CharField(max_length=50, choices=LLM_CHOICES, default='gemini-2.5-flash')
     active_ner_model = models.CharField(max_length=60, choices=NER_CHOICES, default='auto')
+    # Modelo del servidor LLM local (p. ej. gemma4:e4b-it-qat). Vacio: LOCAL_LLM_MODEL del entorno.
+    local_llm_model = models.CharField(max_length=100, blank=True, default='')
     snomed_version = models.CharField(max_length=100, default='SNOMED CT International Edition')
     snomed_updated_at = models.DateTimeField(default=timezone.now)
     icd10_version = models.CharField(max_length=100, default='CIE-10 (OMS)')

@@ -6,7 +6,8 @@ del servidor. Usa salida estructurada (response_format json_schema) con el mismo
 
 Configuracion (entorno):
     LOCAL_LLM_BASE_URL         p. ej. http://llm-local:11434 (sin /v1). Vacio = motor local no configurado.
-    LOCAL_LLM_MODEL            modelo por defecto (qwen2.5:7b-instruct-q4_K_M).
+    LOCAL_LLM_MODEL            modelo por defecto (qwen2.5:7b-instruct-q4_K_M) si no se elige otro en Configuracion
+                               (SystemConfiguration.local_llm_model).
     LOCAL_LLM_TIMEOUT_SECONDS  tiempo maximo por peticion; en CPU una respuesta tarda minutos.
     LOCAL_LLM_API_KEY          clave opcional; tiene prioridad la del proveedor 'custom' de la boveda.
 """
@@ -21,7 +22,7 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = 'qwen2.5:7b-instruct-q4_K_M'
-STATUS_CACHE_KEY = 'local_llm:status'
+STATUS_CACHE_KEY = 'local_llm:server'
 STATUS_TTL_SECONDS = 30
 
 
@@ -36,6 +37,18 @@ def configured() -> bool:
 
 def default_model() -> str:
     return os.getenv('LOCAL_LLM_MODEL', '').strip() or DEFAULT_MODEL
+
+
+def active_model() -> str:
+    """Modelo elegido en Configuracion; si no hay ninguno, LOCAL_LLM_MODEL."""
+    try:
+        from system_settings.models import SystemConfiguration
+        chosen = (SystemConfiguration.get_solo().local_llm_model or '').strip()
+        if chosen:
+            return chosen
+    except Exception as err:
+        logger.debug(f"No se pudo leer local_llm_model: {err}")
+    return default_model()
 
 
 def timeout_seconds() -> float:
@@ -102,28 +115,38 @@ def chat_json(model: str, system_instruction: str, user_prompt: str, schema: Dic
     }
 
 
-def get_status(refresh: bool = False, client: Optional[httpx.Client] = None) -> Dict[str, Any]:
-    """Estado del servidor local, cacheado unos segundos. Nunca incluye la URL ni la clave."""
-    model = default_model()
-    if not configured():
-        return {'configured': False, 'reachable': False, 'model': model, 'model_available': False}
+def _server_models(refresh: bool, client: Optional[httpx.Client]) -> Dict[str, Any]:
+    """{'reachable', 'models'} del servidor, cacheado unos segundos (no depende del modelo elegido)."""
     if not refresh:
         cached = cache.get(STATUS_CACHE_KEY)
         if cached is not None:
             return cached
-    status = {'configured': True, 'reachable': False, 'model': model, 'model_available': False}
+    server = {'reachable': False, 'models': []}
     owns_client = client is None
     client = client or httpx.Client(timeout=2.0)
     try:
         response = client.get(f"{base_url()}/v1/models", headers=_headers())
         response.raise_for_status()
-        names = {item.get('id') for item in (response.json().get('data') or []) if isinstance(item, dict)}
-        status['reachable'] = True
-        status['model_available'] = model in names
+        server['models'] = sorted({item.get('id') for item in (response.json().get('data') or [])
+                                   if isinstance(item, dict) and item.get('id')})
+        server['reachable'] = True
     except Exception as err:
         logger.info(f"Servidor LLM local no disponible: {err}")
     finally:
         if owns_client:
             client.close()
-    cache.set(STATUS_CACHE_KEY, status, timeout=STATUS_TTL_SECONDS)
-    return status
+    cache.set(STATUS_CACHE_KEY, server, timeout=STATUS_TTL_SECONDS)
+    return server
+
+
+def get_status(refresh: bool = False, client: Optional[httpx.Client] = None) -> Dict[str, Any]:
+    """
+    Estado del servidor local y del modelo elegido, con los modelos instalados (para el selector de
+    Configuracion). Nunca incluye la URL ni la clave.
+    """
+    model = active_model()
+    if not configured():
+        return {'configured': False, 'reachable': False, 'model': model, 'model_available': False, 'models': []}
+    server = _server_models(refresh, client)
+    return {'configured': True, 'reachable': server['reachable'], 'model': model,
+            'model_available': model in server['models'], 'models': server['models']}

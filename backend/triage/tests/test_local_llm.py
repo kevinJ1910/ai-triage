@@ -124,16 +124,18 @@ class TestLocalLLMAdapter:
 @pytest.mark.django_db
 class TestLocalLLMStatus:
     def test_not_configured(self, monkeypatch):
+        # settings.py carga el .env del equipo: la prueba no debe depender de su LOCAL_LLM_MODEL.
         monkeypatch.delenv("LOCAL_LLM_BASE_URL", raising=False)
+        monkeypatch.delenv("LOCAL_LLM_MODEL", raising=False)
         assert local_llm.get_status() == {"configured": False, "reachable": False,
-                                          "model": local_llm.DEFAULT_MODEL, "model_available": False}
+                                          "model": local_llm.DEFAULT_MODEL, "model_available": False, "models": []}
 
     def test_reachable_reports_model_availability_and_is_cached(self, local_server):
         local_server["handler"] = lambda request: httpx.Response(
             200, json={"data": [{"id": local_llm.DEFAULT_MODEL}, {"id": "llama3.1:8b"}]})
         status = local_llm.get_status()
         assert status == {"configured": True, "reachable": True, "model": local_llm.DEFAULT_MODEL,
-                          "model_available": True}
+                          "model_available": True, "models": ["llama3.1:8b", local_llm.DEFAULT_MODEL]}
         local_llm.get_status()
         assert len(local_server["requests"]) == 1
 
@@ -143,3 +145,21 @@ class TestLocalLLMStatus:
         local_server["handler"] = refused
         status = local_llm.get_status(refresh=True)
         assert status["configured"] is True and status["reachable"] is False
+
+    def test_model_chosen_in_configuration_wins_over_environment(self, local_server, mocker):
+        from system_settings.models import SystemConfiguration
+        local_server["handler"] = lambda request: httpx.Response(
+            200, json={"data": [{"id": local_llm.DEFAULT_MODEL}, {"id": "gemma4:e4b-it-qat"}]})
+        config = SystemConfiguration.get_solo()
+        config.local_llm_model = 'gemma4:e4b-it-qat'
+        config.save()
+        status = local_llm.get_status()
+        assert status["model"] == 'gemma4:e4b-it-qat' and status["model_available"] is True
+
+        config.active_llm_engine = 'local'
+        config.save()
+        local_server["handler"] = lambda request: httpx.Response(200, json=_completion(json.dumps(LLM_OUTPUT)))
+        mocker.patch("triage.ai_analyzer.genai.Client")
+        res = analyze_triage_transcript("dolor de cabeza leve", use_cache=False)
+        assert res["engine_used"] == "LLM local (gemma4:e4b-it-qat) + Christus Sinergia"
+        assert json.loads(local_server["requests"][-1].content)["model"] == 'gemma4:e4b-it-qat'

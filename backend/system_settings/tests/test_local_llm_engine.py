@@ -38,8 +38,7 @@ def local_server(monkeypatch, mocker):
 class TestLocalEngineConfig:
     def test_local_engine_is_offered_and_accepted(self, admin_client, local_server):
         options = admin_client.get('/api/config/').json()['available_options']['llm_engines']
-        local = next(o for o in options if o['id'] == 'local')
-        assert 'qwen2.5:7b-instruct-q4_K_M' in local['name']
+        assert any(o['id'] == 'local' for o in options)
         response = admin_client.post('/api/config/', {'active_llm_engine': 'local'}, format='json')
         assert response.status_code == status.HTTP_200_OK
         assert SystemConfiguration.get_solo().active_llm_engine == 'local'
@@ -60,7 +59,7 @@ class TestLocalEngineConfig:
         data = admin_client.get('/api/config/engines/').json()
         assert data['llm']['configured'] is False
         assert data['local_llm'] == {"configured": True, "reachable": False,
-                                     "model": "qwen2.5:7b-instruct-q4_K_M", "model_available": False}
+                                     "model": "qwen2.5:7b-instruct-q4_K_M", "model_available": False, "models": []}
 
     def test_status_never_exposes_url_or_key(self, admin_client, local_server):
         cred = APIKeyCredential(provider='custom', name='Servidor local')
@@ -77,3 +76,18 @@ class TestLocalEngineConfig:
         data = admin_client.get('/api/config/engines/').json()
         assert data['llm']['provider'] == 'gemini'
         assert data['local_llm']['configured'] is False
+
+    def test_installed_models_are_offered_and_the_choice_is_saved(self, admin_client, local_server):
+        data = admin_client.get('/api/config/').json()
+        assert data['available_options']['local_llm_models'] == ['qwen2.5:7b-instruct-q4_K_M']
+        response = admin_client.post('/api/config/', {'active_llm_engine': 'local',
+                                                      'local_llm_model': 'gemma4:e4b-it-qat'}, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert SystemConfiguration.get_solo().local_llm_model == 'gemma4:e4b-it-qat'
+        engines = admin_client.get('/api/config/engines/').json()
+        assert engines['llm']['model'] == 'gemma4:e4b-it-qat'
+        assert engines['local_llm']['model_available'] is False
+
+    def test_invalid_local_model_name_is_rejected(self, admin_client):
+        response = admin_client.post('/api/config/', {'local_llm_model': 'gemma; rm -rf'}, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
