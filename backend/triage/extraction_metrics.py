@@ -8,7 +8,6 @@ Emparejamiento: cada prediccion se empareja como maximo con una entidad anotada.
 Las entidades anotadas como negadas no deben aparecer entre las predichas como presentes: si aparecen,
 cuentan como falso positivo y como error de negacion.
 """
-import random
 import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -16,6 +15,7 @@ from transcription.terminology import canonical_cie10
 
 from .clinical_protocol import _normalize_text
 from .entity_corpus import ENTITY_TYPES
+from .metrics import bootstrap_ci  # noqa: F401  (se reexporta: lo usan los comandos y las pruebas)
 
 MATCH_MODES = ('strict', 'relaxed')
 
@@ -197,26 +197,6 @@ def aggregate(case_counts: Iterable[Dict[str, Dict[str, int]]]) -> Dict[str, Any
             'negated_detection_recall': round(negated_detected / negated_gold, 3) if negated_gold else None,
         },
     }
-
-
-def bootstrap_ci(items: Sequence[Any], statistic: Callable[[Sequence[Any]], Optional[float]],
-                 n_resamples: int = 1000, alpha: float = 0.05, seed: int = 0) -> Optional[Tuple[float, float]]:
-    """Intervalo de confianza percentil (1 - alpha) remuestreando los casos con reemplazo."""
-    if not items:
-        return None
-    rng = random.Random(seed)
-    values = []
-    for _ in range(n_resamples):
-        sample = [items[rng.randrange(len(items))] for _ in items]
-        value = statistic(sample)
-        if value is not None:
-            values.append(value)
-    if not values:
-        return None
-    values.sort()
-    low = values[int((alpha / 2) * (len(values) - 1))]
-    high = values[int((1 - alpha / 2) * (len(values) - 1))]
-    return round(low, 3), round(high, 3)
 
 
 def micro_f1_ci(case_counts: Sequence[Dict[str, Dict[str, int]]], **kwargs) -> Optional[Tuple[float, float]]:

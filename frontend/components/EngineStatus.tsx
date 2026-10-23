@@ -14,7 +14,8 @@ interface EngineStatusData {
     requested?: string | null;
   };
   ner: { model_loaded: boolean; active?: boolean; mode?: string; engine?: string | null; detail?: string };
-  llm: { configured: boolean; model?: string };
+  llm: { configured: boolean; model?: string; provider?: 'gemini' | 'local' };
+  local_llm?: { configured: boolean; reachable: boolean; model: string; model_available: boolean };
 }
 
 type RowState = 'ok' | 'warn' | 'info';
@@ -78,13 +79,23 @@ function rows(data: EngineStatusData): Row[] {
   return [
     asrRow,
     nerRow,
-    {
-      key: 'llm',
-      label: 'LLM',
-      state: data.llm.configured ? 'ok' : 'warn',
-      text: data.llm.configured ? (data.llm.model ?? 'Gemini') : 'Sin clave: reglas',
-      title: data.llm.configured ? 'Clave de Gemini configurada' : 'Sin clave de Gemini: se aplica el motor de reglas',
-    },
+    data.llm.provider === 'local'
+      ? {
+        key: 'llm',
+        label: 'LLM',
+        state: data.llm.configured ? 'ok' : 'warn',
+        text: data.llm.configured ? `Local · ${data.llm.model ?? ''}` : 'Local no disponible: reglas',
+        title: data.llm.configured
+          ? 'Servidor LLM local disponible: los datos no salen del servidor'
+          : 'El servidor LLM local no responde: se aplica el motor de reglas (nunca Gemini)',
+      }
+      : {
+        key: 'llm',
+        label: 'LLM',
+        state: data.llm.configured ? 'ok' : 'warn',
+        text: data.llm.configured ? (data.llm.model ?? 'Gemini') : 'Sin clave: reglas',
+        title: data.llm.configured ? 'Clave de Gemini configurada' : 'Sin clave de Gemini: se aplica el motor de reglas',
+      },
   ];
 }
 

@@ -7,6 +7,8 @@ dj-database-url==2.1.0
 djangorestframework==3.15.1
 djangorestframework-simplejwt==5.3.1
 google-genai==2.28.0
+# Cliente del LLM local compatible con OpenAI (triage/local_llm.py); ya lo trae google-genai.
+httpx==0.28.1
 django-environ==0.11.2
 
 asgiref==3.10.0

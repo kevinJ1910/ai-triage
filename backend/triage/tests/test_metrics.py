@@ -101,3 +101,65 @@ class TestMatrixBasedMetrics:
         empty = confusion_matrix([])
         assert triage_safety_metrics_from_matrix(empty)["undertriage_rate"] is None
         assert reference_agreement_from_matrix(empty)["exact_agreement"] is None
+
+
+class TestEvaluationSummaries:
+    PAIRS = [(1, 1), (2, 1), (2, 2), (3, 3), (4, 3), (4, 4), (5, 5), (5, 4), (3, 2), (1, 1)] * 3
+
+    def test_triage_summary_has_cis_that_contain_the_point_estimate(self):
+        from triage.metrics import CI_METRICS, triage_summary
+        summary = triage_summary(self.PAIRS)
+        for key in CI_METRICS:
+            low, high = summary[f'{key}_ci95']
+            assert low <= summary[key] <= high
+
+    def test_triage_summary_matches_legacy_kappa_ci(self):
+        from triage.metrics import bootstrap_ci, triage_summary
+        legacy = bootstrap_ci(self.PAIRS, lambda sample: reference_agreement(list(sample))['cohen_kappa'])
+        assert triage_summary(self.PAIRS)['cohen_kappa_ci95'] == legacy
+
+    def test_empty_inputs(self):
+        from triage.metrics import mean_ci, triage_summary
+        assert triage_summary([])['cohen_kappa_ci95'] is None
+        assert mean_ci([]) == {'n': 0, 'mean': None, 'ci95': None}
+
+    def test_combine_levels(self):
+        import pytest
+        from triage.metrics import combine_levels
+        assert combine_levels(4, 1, 'min_critico') == 1
+        assert combine_levels(1, 2, 'min_critico') == 1
+        assert combine_levels(4, 3, 'min_critico') == 4   # reglas no criticas: manda el LLM
+        assert combine_levels(4, None, 'min_critico') == 4
+        assert combine_levels(4, 1, 'llm') == 4
+        with pytest.raises(ValueError):
+            combine_levels(4, 1, 'otra')
+
+    def test_breakdown_omits_cis_for_small_groups(self):
+        from triage.metrics import triage_breakdown
+        results = [{'predicted_level': p, 'reference_level': r, 'tipo': 'coloquial' if i < 25 else 'tipico'}
+                   for i, (p, r) in enumerate(self.PAIRS)]
+        out = triage_breakdown(results, 'tipo')
+        assert out['coloquial']['n'] == 25 and 'cohen_kappa_ci95' in out['coloquial']
+        assert out['tipico']['n'] == 5 and 'cohen_kappa_ci95' not in out['tipico']
+
+    def test_critical_undertriage_sorted_by_distance(self):
+        from triage.metrics import critical_undertriage
+        results = [{'id': 'a', 'reference_level': 1, 'predicted_level': 3},
+                   {'id': 'b', 'reference_level': 2, 'predicted_level': 5},
+                   {'id': 'c', 'reference_level': 2, 'predicted_level': 2},
+                   {'id': 'd', 'reference_level': 4, 'predicted_level': 5}]
+        assert [m['id'] for m in critical_undertriage(results)] == ['b', 'a']
+
+    def test_paired_bootstrap_diff(self):
+        from triage.metrics import paired_bootstrap_diff
+        triples = [(r, 5, r) for _, r in self.PAIRS]  # a acierta siempre, b siempre dice 5
+        out = paired_bootstrap_diff(triples, 'exact_agreement')
+        assert out['diff'] > 0 and out['ci95'][0] > 0
+        same = paired_bootstrap_diff([(p, p, r) for p, r in self.PAIRS], 'cohen_kappa')
+        assert same['diff'] == 0 and same['ci95'] == (0, 0)
+
+    def test_mean_ci(self):
+        from triage.metrics import mean_ci
+        out = mean_ci([4, 5, 3, 4, 4])
+        assert out['n'] == 5 and out['mean'] == 4.0
+        assert out['ci95'][0] <= 4.0 <= out['ci95'][1]

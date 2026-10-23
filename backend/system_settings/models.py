@@ -17,6 +17,9 @@ class SystemConfiguration(models.Model):
         ('gemini-2.5-flash', 'Gemini 2.5 Flash'),
         ('gemini-3.5-flash-lite', 'Gemini 3.5 Flash-Lite'),
         ('gemini-3.8-flash', 'Gemini 3.8 Flash'),
+        # Servidor propio compatible con OpenAI (Ollama, llama.cpp): LOCAL_LLM_BASE_URL y LOCAL_LLM_MODEL.
+        # Si falla, se aplica el motor de reglas, nunca Gemini: los datos no salen del servidor.
+        ('local', 'LLM local (servidor compatible con OpenAI)'),
     )
     # 'auto' usa RoBERTa (NER_MODEL_PATH) si el worker lo cargo; 'catalogo' lo desactiva (catalogo + LLM).
     NER_CHOICES = (
@@ -27,6 +30,8 @@ class SystemConfiguration(models.Model):
     active_asr_model = models.CharField(max_length=50, choices=ASR_CHOICES, default='auto')
     active_llm_engine = models.CharField(max_length=50, choices=LLM_CHOICES, default='gemini-2.5-flash')
     active_ner_model = models.CharField(max_length=60, choices=NER_CHOICES, default='auto')
+    # Modelo del servidor LLM local (p. ej. gemma4:e4b-it-qat). Vacio: LOCAL_LLM_MODEL del entorno.
+    local_llm_model = models.CharField(max_length=100, blank=True, default='')
     snomed_version = models.CharField(max_length=100, default='SNOMED CT International Edition')
     snomed_updated_at = models.DateTimeField(default=timezone.now)
     icd10_version = models.CharField(max_length=100, default='CIE-10 (OMS)')

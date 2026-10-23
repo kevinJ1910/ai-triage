@@ -75,6 +75,30 @@ describe('EngineStatus', () => {
   });
 });
 
+describe('EngineStatus con el LLM local', () => {
+  const status = (configured: boolean) => ({
+    ok: true, status: 200,
+    json: async () => ({
+      inference_mode: 'worker',
+      asr: { model_loaded: true, model_size: 'small', device: 'cpu' },
+      ner: { model_loaded: true, active: true },
+      llm: { provider: 'local', configured, model: 'qwen2.5:7b-instruct-q4_K_M' },
+    }),
+  } as Response);
+
+  it('muestra el modelo local cuando el servidor responde', async () => {
+    global.fetch = vi.fn().mockResolvedValue(status(true));
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Local · qwen2.5:7b-instruct-q4_K_M')).toBeInTheDocument());
+  });
+
+  it('avisa del respaldo de reglas cuando el servidor local no responde', async () => {
+    global.fetch = vi.fn().mockResolvedValue(status(false));
+    render(<EngineStatus />);
+    await waitFor(() => expect(screen.getByText('Local no disponible: reglas')).toBeInTheDocument());
+  });
+});
+
 describe('EngineStatus tras cambiar la configuración', () => {
   const status = (asr: object, ner: object) => ({
     ok: true, status: 200,
@@ -137,6 +161,44 @@ describe('EvaluationResults', () => {
     expect(screen.getByText('83.9%')).toBeInTheDocument();
     expect(screen.getByText('resultado_small_cpu')).toBeInTheDocument();
     expect(screen.getByText('ruido: 20.0%')).toBeInTheDocument();
+  });
+
+  it('muestra la comparativa de motores y la validación clínica', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({
+        extraction: [], asr: [],
+        comparison: [{
+          name: 'comparativa_test', split: 'test', baseline: 'test_reglas',
+          rows: [
+            { name: 'test_reglas', label: 'Reglas (Christus Sinergia / Res. 5596)', n: 100, exact_agreement: 43.3,
+              exact_agreement_ci95: [35, 51], cohen_kappa: 0.255, cohen_kappa_ci95: [0.134, 0.373], critical_sensitivity: 30,
+              undertriage_rate: 54, overtriage_rate: 3, latency_ms_p50: 2, latency_ms_p95: 3, cost_usd_per_1000: 0,
+              privacy: 'local (los datos no salen del servidor)' },
+            { name: 'test_hibrido', label: 'Híbrido: reglas + RAG + Gemini 2.5 Flash', n: 100, exact_agreement: 70,
+              cohen_kappa: 0.8, cohen_kappa_ci95: [0.7, 0.88], critical_sensitivity: 90, undertriage_rate: 10,
+              overtriage_rate: 20, latency_ms_p50: 2100, latency_ms_p95: 4000, cost_usd_per_1000: 5.5,
+              privacy: 'nube (texto seudonimizado)' },
+          ],
+          repeatability: { n: 30, cohen_kappa: 0.95, exact_agreement: 93.3 },
+        }],
+        clinical_validation: [{
+          name: 'validacion_clinica_test', split: 'test', n: 50, pending: 0,
+          clinician_vs_ai: { n: 50, exact_agreement: 66, cohen_kappa: 0.71, cohen_kappa_ci95: [0.6, 0.8] },
+          clinician_vs_rules: { n: 50, exact_agreement: 40, cohen_kappa: 0.3 },
+          clinician_vs_team: { n: 50, exact_agreement: 80, cohen_kappa: 0.85 },
+          likert: { clarity: { n: 30, mean: 4.2, ci95: [3.9, 4.5] }, relevance: { n: 30, mean: 4, ci95: null },
+                    fidelity: { n: 30, mean: 3.8, ci95: null } },
+        }],
+      }),
+    } as Response);
+    render(<EvaluationResults />);
+    await waitFor(() => expect(screen.getByTestId('engine-comparison')).toBeInTheDocument());
+    expect(screen.getByText('Híbrido: reglas + RAG + Gemini 2.5 Flash')).toBeInTheDocument();
+    expect(screen.getByText('5.50 USD')).toBeInTheDocument();
+    expect(screen.getByText(/repetibilidad Kappa 0.950/)).toBeInTheDocument();
+    expect(screen.getByText('Clínico vs. etiquetas del equipo (techo humano)')).toBeInTheDocument();
+    expect(screen.getByText(/Claridad 4.20 \[3.90–4.50\]/)).toBeInTheDocument();
   });
 
   it('explica cómo generar resultados cuando no hay', async () => {

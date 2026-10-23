@@ -39,16 +39,42 @@ class TestEvaluateBenchmark:
         call_command('evaluate_benchmark', str(dataset), stdout=out)
         assert "Concordancia exacta: 100.0%" in out.getvalue()
 
-    def test_pipeline_engine_uses_analyzer_without_cache(self, tmp_path, mocker):
+    def test_pipeline_engine_requires_split(self, tmp_path, mocker):
+        analyzer = mocker.patch('triage.ai_analyzer.analyze_triage_transcript')
+        dataset = _write(tmp_path, 'casos.json', json.dumps([{"id": 1, "transcript": "dolor", "reference_level": 3}]))
+        with pytest.raises(CommandError, match='--split'):
+            call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', stdout=StringIO())
+        analyzer.assert_not_called()
+
+    def test_pipeline_engine_uses_analyzer_without_cache(self, tmp_path, mocker, _raw_dir_in_tmp):
         analyzer = mocker.patch(
             'triage.ai_analyzer.analyze_triage_transcript',
-            return_value={"triage": {"level": 3}, "engine_used": "gemini-2.5-flash"},
+            return_value={"triage": {"level": 3}, "engine_used": "gemini-2.5-flash", "rule_level": 4,
+                          "llm_raw": "{}"},
         )
-        dataset = _write(tmp_path, 'casos.json', json.dumps([{"id": 1, "transcript": "dolor", "reference_level": 3}]))
+        dataset = _write(tmp_path, 'casos.json', json.dumps([
+            {"id": 1, "transcript": "dolor", "reference_level": 3, "split": "dev"}]))
         out = StringIO()
-        call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', stdout=out)
-        analyzer.assert_called_once_with("dolor", use_cache=False)
+        call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', '--split', 'dev', stdout=out,
+                     stderr=StringIO())
+        from triage.ai_analyzer import PROMPT_VERSION
+        analyzer.assert_called_once_with("dolor", use_cache=False, strict_llm=True, include_raw=True,
+                                         combine_policy='llm', prompt_version=PROMPT_VERSION)
         assert "gemini-2.5-flash" in out.getvalue()
+        assert list(_raw_dir_in_tmp.glob('*.jsonl'))
+
+        # Reanudar no repite el caso ya evaluado.
+        call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', '--split', 'dev', stdout=StringIO(),
+                     stderr=StringIO())
+        assert analyzer.call_count == 1
+
+    def test_pipeline_failed_case_stays_pending(self, tmp_path, mocker):
+        mocker.patch('triage.ai_analyzer.analyze_triage_transcript', side_effect=RuntimeError("500 INTERNAL"))
+        dataset = _write(tmp_path, 'casos.json', json.dumps([
+            {"id": 1, "transcript": "dolor", "reference_level": 3, "split": "dev"}]))
+        with pytest.raises(CommandError, match='Ningun caso'):
+            call_command('evaluate_benchmark', str(dataset), '--engine', 'pipeline', '--split', 'dev',
+                         '--retries', '0', stdout=StringIO(), stderr=StringIO())
 
     @pytest.mark.parametrize("content", [
         "[]",

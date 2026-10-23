@@ -10,7 +10,7 @@ services:
         # Instala las librerias CUDA/cuDNN (nvidia-*) en la imagen; en CPU se omiten.
         WITH_CUDA: "true"
 
-  # La GPU la usa solo el worker ASR, que es quien carga el modelo Whisper.
+  # La GPU la usan el worker ASR (Whisper) y, si se activa el perfil llm-local, el LLM local.
   worker-asr:
     environment:
       WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
@@ -20,6 +20,16 @@ services:
       resources:
         limits:
           memory: 8G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # LLM local (perfil llm-local): con GPU responde en segundos en vez de minutos.
+  llm-local:
+    deploy:
+      resources:
         reservations:
           devices:
             - driver: nvidia

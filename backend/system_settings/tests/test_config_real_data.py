@@ -28,7 +28,7 @@ class TestRealConfigData:
 
     def test_only_working_engines_are_offered(self, admin_client):
         options = admin_client.get('/api/config/').json()['available_options']
-        assert {o['id'] for o in options['llm_engines']} <= {'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'}
+        assert {o['id'] for o in options['llm_engines']} <= {'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'local'}
         assert {o['id'] for o in options['ner_models']} == {'auto', 'catalogo'}
 
     def test_engines_without_backend_are_rejected(self, admin_client):

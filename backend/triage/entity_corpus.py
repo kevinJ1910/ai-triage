@@ -32,6 +32,14 @@ def case_lote(case: Dict[str, Any]) -> int:
     return case.get('lote', DEFAULT_LOTE)
 
 
+def partition_level(case: Dict[str, Any]) -> int:
+    """
+    Nivel con el que se calcula la particion. Si la revision cambia reference_level, apply_corpus_review guarda el
+    nivel original en nivel_particion: asi la regla por hash no mueve ningun caso entre dev y test.
+    """
+    return case.get('nivel_particion', case.get('reference_level'))
+
+
 def assign_splits(case_ids_by_level: Dict[int, List[str]]) -> Dict[str, str]:
     """Particion estratificada por nivel: ordena los ids por su SHA-256 y envia a test el primer 40 %."""
     splits = {}
@@ -51,7 +59,7 @@ def double_annotation_sample(cases: List[Dict[str, Any]], per_level: int = 6, lo
     by_level = defaultdict(list)
     for case in cases:
         if case_lote(case) == lote:
-            by_level[case['reference_level']].append(case['id'])
+            by_level[partition_level(case)].append(case['id'])
     sample = []
     for level in sorted(by_level):
         ordered = sorted(by_level[level], key=lambda cid: hashlib.sha256(f'doble:{cid}'.encode('utf-8')).hexdigest())
@@ -86,8 +94,10 @@ def validate_entity_corpus(cases: List[Dict[str, Any]]) -> List[str]:
         level = case.get('reference_level')
         if level not in range(1, 6):
             errors.append(f'{cid}: reference_level debe estar entre 1 y 5')
+        elif partition_level(case) not in range(1, 6):
+            errors.append(f'{cid}: nivel_particion debe estar entre 1 y 5')
         else:
-            by_level[(case_lote(case), level)].append(cid)
+            by_level[(case_lote(case), partition_level(case))].append(cid)
         if case.get('tipo') not in TIPOS:
             errors.append(f'{cid}: tipo invalido {case.get("tipo")!r}')
         if not (case.get('criterio') or '').strip():

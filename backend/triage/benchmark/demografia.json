@@ -1,0 +1,1502 @@
+{
+ "B001": {
+  "edad": 60,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "masculino"
+ },
+ "B002": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B003": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "femenino"
+ },
+ "B004": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B005": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B006": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "femenino"
+ },
+ "B007": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B008": {
+  "edad": 8,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "femenino"
+ },
+ "B009": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B010": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B011": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B012": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B013": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B014": {
+  "edad": 58,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "masculino"
+ },
+ "B015": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "B016": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B017": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B018": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B019": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "B020": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "B021": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B022": {
+  "edad": 3,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "B023": {
+  "edad": 70,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "femenino"
+ },
+ "B024": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B025": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "B026": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B027": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B028": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B029": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B030": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B031": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B032": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B033": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B034": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B035": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B036": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B037": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B038": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B039": {
+  "edad": 2,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "B040": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B041": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B042": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B043": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B044": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B045": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B046": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B047": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B048": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B049": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B050": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B051": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B052": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B053": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B054": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B055": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B056": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B057": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B058": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B059": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B060": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B061": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B062": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B063": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B064": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "B065": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N001": {
+  "edad": 45,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "femenino"
+ },
+ "N002": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N003": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N004": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N005": {
+  "edad": 4,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N006": {
+  "edad": 67,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "masculino"
+ },
+ "N007": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N008": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N009": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N010": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N011": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N012": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N013": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N014": {
+  "edad": 30,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "desconocido"
+ },
+ "N015": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N016": {
+  "edad": 50,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "desconocido"
+ },
+ "N017": {
+  "edad": 80,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "masculino"
+ },
+ "N018": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N019": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N020": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N021": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N022": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N023": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N024": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N025": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N026": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N027": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N028": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N029": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N030": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N031": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N032": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "desconocido"
+ },
+ "N033": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N034": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N035": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N036": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N037": {
+  "edad": 6,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N038": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N039": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N040": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N041": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N042": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N043": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N044": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N045": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N046": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N047": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N048": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N049": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N050": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N051": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N052": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N053": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N054": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N055": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N056": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N057": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "femenino"
+ },
+ "N058": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N059": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N060": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N061": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "desconocido"
+ },
+ "N062": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N063": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "femenino"
+ },
+ "N064": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N065": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N066": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N067": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N068": {
+  "edad": 70,
+  "fuente": "regex",
+  "grupo_edad": "mayor",
+  "sexo": "desconocido"
+ },
+ "N069": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N070": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N071": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N072": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N073": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N074": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N075": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N076": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N077": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N078": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N079": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N080": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N081": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N082": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N083": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N084": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N085": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N086": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N087": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N088": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N089": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N090": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N091": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "desconocido"
+ },
+ "N092": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N093": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N094": {
+  "edad": 58,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "masculino"
+ },
+ "N095": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N096": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N097": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N098": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N099": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N100": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N101": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N102": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N103": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N104": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N105": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N106": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N107": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N108": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N109": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N110": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "masculino"
+ },
+ "N111": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N112": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N113": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N114": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N115": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N116": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N117": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N118": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N119": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N120": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N121": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N122": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N123": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N124": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N125": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N126": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N127": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N128": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N129": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N130": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N131": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N132": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N133": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N134": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N135": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N136": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N137": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N138": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N139": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N140": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N141": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N142": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N143": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N144": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N145": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N146": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N147": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N148": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N149": {
+  "edad": 30,
+  "fuente": "regex",
+  "grupo_edad": "adulto",
+  "sexo": "femenino"
+ },
+ "N150": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N151": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N152": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N153": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N154": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N155": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N156": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N157": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N158": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N159": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "masculino"
+ },
+ "N160": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N161": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N162": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N163": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N164": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N165": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N166": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N167": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "pediatrico",
+  "sexo": "femenino"
+ },
+ "N168": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N169": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N170": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N171": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N172": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N173": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N174": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N175": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N176": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N177": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N178": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N179": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N180": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N181": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "femenino"
+ },
+ "N182": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N183": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N184": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ },
+ "N185": {
+  "edad": null,
+  "fuente": "regex",
+  "grupo_edad": "desconocido",
+  "sexo": "desconocido"
+ }
+}

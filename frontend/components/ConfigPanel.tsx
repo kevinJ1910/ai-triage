@@ -36,6 +36,7 @@ interface ConfigData {
   active_asr_model: string;
   active_llm_engine: string;
   active_ner_model: string;
+  local_llm_model?: string;
   snomed_version: string;
   snomed_updated_at: string;
   icd10_version: string;
@@ -55,6 +56,7 @@ interface AvailableOptions {
   asr_models: ModelOption[];
   llm_engines: ModelOption[];
   ner_models: ModelOption[];
+  local_llm_models?: string[];
 }
 
 interface RuntimeStatus {
@@ -64,6 +66,7 @@ interface RuntimeStatus {
   active_keys_count: number;
   system_timezone: string;
   ner_status?: { model_loaded: boolean; source?: string; detail?: string };
+  local_llm?: { configured: boolean; reachable: boolean; model: string; model_available: boolean };
 }
 
 interface VocabItem {
@@ -144,6 +147,7 @@ export default function ConfigPanel() {
           active_asr_model: config.active_asr_model,
           active_llm_engine: config.active_llm_engine,
           active_ner_model: config.active_ner_model,
+          local_llm_model: config.local_llm_model ?? '',
         }),
       });
 
@@ -158,6 +162,8 @@ export default function ConfigPanel() {
       }
       // El estado de los motores de la barra lateral se refresca sin esperar a su sondeo.
       window.dispatchEvent(new Event(ENGINES_CHANGED_EVENT));
+      // Recarga el estado del servidor local (modelo elegido y si esta descargado).
+      loadConfig();
     } catch (err: any) {
       toast.error(err.message || 'Fallo al guardar configuracion');
     } finally {
@@ -385,7 +391,14 @@ export default function ConfigPanel() {
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                   Motor de Explicabilidad y Triaje (LLM)
                 </label>
-                {runtimeStatus?.gemini_configured && (
+                {config.active_llm_engine === 'local' ? (
+                  <span
+                    data-testid="local-llm-status"
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase border ${runtimeStatus?.local_llm?.reachable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                  >
+                    {runtimeStatus?.local_llm?.reachable ? 'Servidor local disponible' : 'Servidor local no disponible'}
+                  </span>
+                ) : runtimeStatus?.gemini_configured && (
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
                     Credencial Activa
                   </span>
@@ -406,8 +419,46 @@ export default function ConfigPanel() {
                   </option>
                 ))}
               </select>
+              {config.active_llm_engine === 'local' && (
+                <div className="mt-2">
+                  <label htmlFor="local-llm-model" className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                    Modelo local
+                  </label>
+                  <select
+                    id="local-llm-model"
+                    value={config.local_llm_model || runtimeStatus?.local_llm?.model || ''}
+                    onChange={(e) => setConfig({ ...config, local_llm_model: e.target.value })}
+                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                  >
+                    {Array.from(new Set([
+                      ...(availableOptions?.local_llm_models || []),
+                      ...(config.local_llm_model ? [config.local_llm_model] : []),
+                      ...(runtimeStatus?.local_llm?.model ? [runtimeStatus.local_llm.model] : []),
+                    ])).map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-slate-500 mt-1 block leading-relaxed">
+                    Modelos descargados en el servidor (ollama pull). Gemma 4 E4B razona antes de responder: más preciso, pero más lento en CPU.
+                  </span>
+                </div>
+              )}
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm && !runtimeStatus.local_llm.reachable && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {runtimeStatus.local_llm.configured
+                    ? 'El servidor LLM local no responde: mientras no esté disponible, clasificará el motor de reglas.'
+                    : 'No hay servidor LLM local configurado (LOCAL_LLM_BASE_URL): clasificará el motor de reglas.'}
+                </span>
+              )}
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm?.reachable && !runtimeStatus.local_llm.model_available && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {`El servidor responde pero no tiene descargado ${runtimeStatus.local_llm.model} (ollama pull).`}
+                </span>
+              )}
               <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
-                Gemini recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas.
+                El LLM recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas. El LLM local nunca recurre a Gemini.
               </span>
             </div>
 
