@@ -133,6 +133,11 @@ def _normalize_text(text: str) -> str:
     return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
 
 
+def is_rule_fallback(rule_result: Dict[str, Any]) -> bool:
+    """True cuando el motor de reglas no hallo patron especifico ni escalado vital y aplico descarte 4/5."""
+    return float(rule_result.get("confidence", 1.0)) <= 0.80
+
+
 def _evaluate_patterns(transcript: str, symptoms: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Clasificacion por patrones lexicos del protocolo Christus Sinergia Salud (niveles 1-5 en cascada).
@@ -149,7 +154,8 @@ def _evaluate_patterns(transcript: str, symptoms: Optional[List[str]] = None) ->
         (r"\b(hemorragia masiva|desangrando|sangrado exanguinante|amputacion|perdida de miembro|perdida de organo)\b", "Hemorragia masiva o pérdida de miembro u órgano"),
         (r"\b(parto expulsivo|coronando|bebe saliendo|naciendo ya)\b", "Trabajo de parto expulsivo"),
         (r"\b(quemadura en todo el cuerpo|gran quemado|hipotermia severa)\b", "Quemaduras corporales extensas o hipotermia severa"),
-        (r"\b(politraumatismo severo|atropellado alta velocidad|caida de gran altura)\b", "Traumatismos severos múltiples")
+        (r"\b(politraumatismo severo|atropellado alta velocidad|caida de gran altura)\b", "Traumatismos severos múltiples"),
+        (r"\b(?:abuso sexual|agresion sexual|violacion)\b.*\b(?:menor a 72|menos de 72|hace (?:unas|pocas|\d+) horas|hoy|anoche|ayer)\b", "Abuso sexual menor a 72 horas"),
     ]
     for pattern, reason in triage1_patterns:
         if find_affirmed(pattern, norm):
@@ -171,6 +177,8 @@ def _evaluate_patterns(transcript: str, symptoms: Optional[List[str]] = None) ->
         (r"\b(dificultad respiratoria moderada|ahogo moderado|tirajes intercostales|saturacion menor|sat < 90)\b", "Dificultad respiratoria moderada"),
         (r"\b(fractura expuesta|hueso afuera|hueso visible)\b", "Fractura expuesta"),
         (r"\b(sangrado vaginal.*embaraz\w*|embarazada.*sangr\w*|metrorragia)\b", "Sangrado vaginal en paciente embarazada"),
+        (r"\b(trabajo de parto|contracciones cada \d+ minutos|rompio fuente)\b", "Trabajo de parto"),
+        (r"\b(?:abuso sexual|agresion sexual|violacion)\b", "Abuso sexual mayor a 72 horas"),
         (r"\b(intoxicacion|envenenamiento|tomo veneno|ingestion de toxicos|sobredosis)\b", "Ingestión de sustancias tóxicas o envenenamiento"),
         (r"\b(agitacion psicomotora|brote psicotico|intento de suicidio|agresivo incontrolable)\b", "Agitación psicomotora aguda"),
         (r"\b(quemadura de tercer grado|quemadura profunda|quemadura de 3er grado)\b", "Quemadura de III grado")

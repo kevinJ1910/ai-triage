@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from triage.clinical_protocol import evaluate_christus_sinergia_triage, CHRISTUS_SINERGIA_LEVELS
+from triage.clinical_protocol import evaluate_christus_sinergia_triage, is_rule_fallback, CHRISTUS_SINERGIA_LEVELS
 from triage.ai_analyzer import analyze_triage_transcript
 
 
@@ -89,6 +89,7 @@ CRITERIA_CASES = [
     ("gran quemado por explosion", 1),
     ("hipotermia severa tras inmersion", 1),
     ("politraumatismo severo por accidente de transito", 1),
+    ("abuso sexual hace unas horas", 1),
     # Nivel 2 - Emergencia
     ("dolor toracico opresivo", 2),
     ("dolor de pecho irradiado a la mandibula", 2),
@@ -100,6 +101,8 @@ CRITERIA_CASES = [
     ("sobredosis de medicamentos", 2),
     ("intento de suicidio con arma corto punzante", 2),
     ("quemadura de tercer grado en el brazo", 2),
+    ("abuso sexual hace una semana", 2),
+    ("embarazada en trabajo de parto con contracciones cada 3 minutos", 2),
     # Nivel 3 - Urgencia
     ("vertigo severo desde la mañana", 3),
     ("disnea leve al caminar", 3),
@@ -167,6 +170,12 @@ class TestRuleFallbacks:
         res = evaluate_christus_sinergia_triage(transcript)
         assert res["level"] == 5
         assert res["confidence"] == 0.78
+
+    def test_is_rule_fallback_distinguishes_matched_from_default(self):
+        assert is_rule_fallback(evaluate_christus_sinergia_triage("vengo a una consulta general")) is True
+        assert is_rule_fallback(evaluate_christus_sinergia_triage("me duele la espalda")) is True
+        assert is_rule_fallback(evaluate_christus_sinergia_triage("fractura expuesta")) is False
+        assert is_rule_fallback(evaluate_christus_sinergia_triage("glucometria salio en 480")) is False
 
 
 class TestRuleOutputContract:

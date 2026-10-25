@@ -535,3 +535,16 @@ class TestPromptVersionAndTelemetry:
         res = analyze_triage_transcript("dolor de cabeza leve", use_cache=True, prompt_version="v2")
         assert res["cached"] is False
         assert generate.call_count == 2
+
+    def test_prompt_v2_marks_unmatched_rule_baseline_without_anchoring_level_5(self, mocker):
+        generate = self._mock_gemini(mocker, level=2)
+        unmatched = "Tengo la barriga durísima desde esta mañana y no me puedo ni mover"
+        analyze_triage_transcript(unmatched, use_cache=False, prompt_version="v1")
+        prompt_v1 = generate.call_args.kwargs["contents"]
+        assert "Motivo de consulta sin compromiso de estado general" in prompt_v1
+
+        analyze_triage_transcript(unmatched, use_cache=False, prompt_version="v2")
+        prompt_v2 = generate.call_args.kwargs["contents"]
+        assert "SUELO DE URGENCIA" in prompt_v2
+        assert "Sin coincidencia léxica directa en el motor de reglas" in prompt_v2
+        assert "Motivo de consulta sin compromiso de estado general" not in prompt_v2

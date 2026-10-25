@@ -15,7 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from transcription.terminology import fold, in_allergy_context
 
-from .negation import is_negated
+from .negation import is_negated, is_preserved_or_privative
 
 ENTITY_KEYS = ("symptoms", "diagnoses", "medications", "allergies", "history", "negated_findings")
 _CATEGORY_TO_ENTITY = {
@@ -81,10 +81,37 @@ def _entity_key(label: str, text: str, start: int, catalog: List[Dict[str, Any]]
     return None
 
 
+def _support_state(term: str, folded_text: str) -> Optional[bool]:
+    """
+    Estado de respaldo literal de un termino del LLM en el relato plegado:
+    - None si ninguna palabra de contenido (4+ letras) aparece en el relato.
+    - False si el termino es privativo/funcion conservada o alguna palabra clave aparece solo negada.
+    - True si sus palabras encontradas en el relato tienen al menos una ocurrencia afirmada.
+    """
+    folded_term = _key(term)
+    if folded_term and is_preserved_or_privative(folded_term, 0, len(folded_term)):
+        return False
+    words = [w for w in folded_term.split() if len(w) >= 4 and w not in _STOPWORDS]
+    matched_groups = []
+    for w in words:
+        stem = re.escape(w[:max(4, len(w) - 2)])
+        matches = list(re.finditer(rf"\b{stem}\w*", folded_text))
+        if matches:
+            matched_groups.append(matches)
+    if not matched_groups:
+        return None
+    for matches in matched_groups:
+        if all(
+            is_negated(folded_text, m.start(), m.end()) or is_preserved_or_privative(folded_text, m.start(), m.end())
+            for m in matches
+        ):
+            return False
+    return True
+
+
 def _supported(term: str, folded_text: str) -> bool:
-    """Un termino del LLM tiene apoyo si alguna palabra de contenido (4+ letras) aparece en el relato."""
-    words = [w for w in _key(term).split() if len(w) >= 4 and w not in _STOPWORDS]
-    return any(re.search(rf"\b{re.escape(w[:max(4, len(w) - 2)])}", folded_text) for w in words)
+    """Un termino del LLM tiene apoyo afirmado si aparece en el relato y no esta negado."""
+    return _support_state(term, folded_text) is True
 
 
 def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: List[Dict[str, Any]],
@@ -110,7 +137,9 @@ def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: 
         raw = text[span["start"]:span["end"]].strip()
         llm_confirms = any(_same(raw, t) or any(_same(c["medical_term"], t) for c in catalog) for t in llm_terms)
         kept = span["score"] >= min_score or bool(catalog) or llm_confirms
-        negated = is_negated(folded, *bounds)
+        negated = is_negated(folded, *bounds) or (
+            span["label"] != "FARMACO" and is_preserved_or_privative(folded, *bounds)
+        )
         term = max(equivalent, key=lambda t: t["end"] - t["start"])["medical_term"] if equivalent else raw
         key = _entity_key(span["label"], text, span["start"], equivalent)
         if negated:
@@ -135,8 +164,11 @@ def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: 
                 continue
             if any(_same(term, existing) for k in ENTITY_KEYS for existing in entities[k]):
                 continue
-            if _supported(term, folded):
+            support = _support_state(term, folded)
+            if support is True:
                 _add(entities, key, term)
+            elif support is False and key not in ("medications", "allergies"):
+                _add(entities, "negated_findings", term)
     for term in llm_entities.get("negated_findings") or []:
         if not any(_same(term, existing) for k in ENTITY_KEYS for existing in entities[k]):
             _add(entities, "negated_findings", term)
