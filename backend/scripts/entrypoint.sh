@@ -30,6 +30,9 @@ if [ "${RUN_STARTUP_TASKS:-True}" = "True" ]; then
     echo "Ejecutando migraciones de Django..."
     python manage.py migrate --noinput
 
+    echo "Indexando criterios clinicos en pgvector..."
+    python manage.py index_clinical_rag --provider hashed_ngram || true
+
     echo "Creando usuario demo si no existe..."
     python manage.py create_demo_user
 
