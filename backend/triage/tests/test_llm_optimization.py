@@ -420,3 +420,118 @@ class TestAIAnalyzerEndToEnd:
         assert structured["glucose"] == 380
         assert structured["eva"] == 9
         assert structured["gcs"] == 14
+
+
+def _llm_payload(level=4):
+    import json as _json
+    names = {1: "Reanimación", 2: "Emergencia", 3: "Urgencia", 4: "Consulta Prioritaria", 5: "Consulta Externa"}
+    times = {1: "Inmediata", 2: "Dentro de los siguientes 30 minutos", 3: "Hasta 120 minutos",
+             4: "Hasta 120 minutos", 5: "Direccionamiento a su EPS"}
+    return _json.dumps({
+        "patientInfo": {"gender": "unknown"},
+        "entities": {"symptoms": ["cefalea"], "medications": [], "vitals": [], "history": []},
+        "triage": {"level": level, "name": names[level], "attention_time": times[level], "justification": "Prueba"},
+        "confidence": 0.9,
+    })
+
+
+def _gemini_response(text, model_version="gemini-2.5-flash-001"):
+    from types import SimpleNamespace
+    usage = SimpleNamespace(prompt_token_count=1200, candidates_token_count=300, thoughts_token_count=500,
+                            total_token_count=2000)
+    return SimpleNamespace(text=text, usage_metadata=usage, model_version=model_version)
+
+
+@pytest.mark.django_db
+class TestPromptVersionAndTelemetry:
+    def _mock_gemini(self, mocker, **kwargs):
+        # La cache L1 vive en memoria del proceso y no la limpia el fixture de la cache de Django.
+        ClinicalQueryCache.clear()
+        mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="test-key")
+        client_cls = mocker.patch("triage.ai_analyzer.genai.Client")
+        generate = client_cls.return_value.models.generate_content
+        generate.return_value = _gemini_response(_llm_payload(**kwargs))
+        return generate
+
+    def test_telemetry_reports_model_version_prompt_and_thinking(self, mocker):
+        from triage.ai_analyzer import PROMPT_VERSION
+        self._mock_gemini(mocker)
+        res = analyze_triage_transcript("dolor de cabeza leve desde ayer", use_cache=False, model="gemini-2.5-flash")
+        assert res["model_version"] == "gemini-2.5-flash-001"
+        assert res["prompt_version"] == PROMPT_VERSION
+        assert res["thoughts_tokens"] == 500
+        assert res["total_tokens"] == 2000
+        assert res["llm_provider"] == "gemini"
+        assert res["llm_level"] == 4 and res["rule_level"] in range(1, 6)
+        assert "llm_raw" not in res
+
+    def test_include_raw_returns_llm_text(self, mocker):
+        self._mock_gemini(mocker)
+        res = analyze_triage_transcript("dolor de cabeza leve", use_cache=False, include_raw=True)
+        assert '"Consulta Prioritaria"' in res["llm_raw"]
+
+    def test_raw_output_is_not_cached(self, mocker):
+        self._mock_gemini(mocker)
+        analyze_triage_transcript("dolor de cabeza leve", use_cache=True, include_raw=True)
+        cached = analyze_triage_transcript("dolor de cabeza leve", use_cache=True)
+        assert cached["cached"] is True
+        assert "llm_raw" not in cached
+
+    def test_strict_llm_raises_instead_of_falling_back(self, mocker):
+        generate = self._mock_gemini(mocker)
+        generate.side_effect = RuntimeError("429 RESOURCE_EXHAUSTED")
+        with pytest.raises(RuntimeError, match="429"):
+            analyze_triage_transcript("dolor abdominal leve", use_cache=False, model="m", strict_llm=True)
+        # Sin strict_llm el comportamiento de produccion no cambia: se aplica el motor de reglas.
+        res = analyze_triage_transcript("dolor abdominal leve", use_cache=False, model="m")
+        assert res["engine_used"].startswith("Motor de Reglas")
+
+    def test_strict_llm_without_key_raises(self, mocker):
+        from triage.ai_analyzer import LLMUnavailableError
+        mocker.patch("triage.ai_analyzer._resolve_gemini_api_key", return_value="")
+        with pytest.raises(LLMUnavailableError):
+            analyze_triage_transcript("dolor abdominal leve", use_cache=False, model="m", strict_llm=True)
+
+    def test_prompt_v1_is_unchanged_and_versions_differ(self, mocker):
+        from triage.ai_analyzer import prompt_sha256
+        generate = self._mock_gemini(mocker)
+        analyze_triage_transcript("dolor de cabeza leve", use_cache=False, prompt_version="v1")
+        prompt_v1 = generate.call_args.kwargs["contents"]
+        assert prompt_v1.index("PAUTA CLÍNICA BASE") < prompt_v1.index("SIGNOS VITALES")
+        assert prompt_v1.endswith('"\n')
+        analyze_triage_transcript("dolor de cabeza leve", use_cache=False, prompt_version="v2")
+        assert "SUELO DE URGENCIA" in generate.call_args.kwargs["contents"]
+        assert "suelo de urgencia" in generate.call_args.kwargs["config"].system_instruction
+        assert prompt_sha256("v1") != prompt_sha256("v2")
+        assert prompt_sha256("v1") != prompt_sha256("v1", rule_hint=False)
+
+    def test_ablation_removes_rule_hint_and_rag(self, mocker):
+        generate = self._mock_gemini(mocker)
+        analyze_triage_transcript("dolor de cabeza leve", use_cache=False, rule_hint=False, rag=False)
+        prompt = generate.call_args.kwargs["contents"]
+        assert "PAUTA CLÍNICA BASE" not in prompt
+        assert prompt.startswith("SIGNOS VITALES")
+
+    def test_unknown_prompt_version_is_rejected(self, mocker):
+        self._mock_gemini(mocker)
+        with pytest.raises(ValueError):
+            analyze_triage_transcript("dolor de cabeza leve", use_cache=False, prompt_version="v99", strict_llm=True)
+
+    def test_min_critico_policy_keeps_critical_rule_level(self, mocker):
+        self._mock_gemini(mocker, level=4)
+        transcript = "paciente inconsciente, no respira"
+        res = analyze_triage_transcript(transcript, use_cache=False, combine_policy="min_critico")
+        assert res["rule_level"] == 1
+        assert res["llm_level"] == 4
+        assert res["triage"]["level"] == 1
+        assert res["triage"]["name"] == "Reanimación"
+        assert "Prevalece el criterio crítico" in res["triage"]["justification"]
+        res_llm = analyze_triage_transcript(transcript, use_cache=False, combine_policy="llm")
+        assert res_llm["triage"]["level"] == 4
+
+    def test_cache_does_not_mix_prompt_versions(self, mocker):
+        generate = self._mock_gemini(mocker)
+        analyze_triage_transcript("dolor de cabeza leve", use_cache=True, prompt_version="v1")
+        res = analyze_triage_transcript("dolor de cabeza leve", use_cache=True, prompt_version="v2")
+        assert res["cached"] is False
+        assert generate.call_count == 2

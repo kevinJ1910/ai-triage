@@ -47,6 +47,13 @@ La carga y la validación están en `triage/entity_corpus.py` (`load_entity_corp
 
 Todos los casos tienen `estado: "borrador"`. Las entidades de los 250 casos, y el nivel y el criterio de los 185 que no vienen de `casos_sinteticos.json`, se redactaron con asistencia de IA. **Antes de usar el corpus para reportar resultados**, el equipo debe revisar cada caso y cambiar `estado` a `"revisado"`. Si el corpus que evalúa a un LLM lo anotó otro LLM sin revisión humana, la evaluación no es defendible. Los cambios de la revisión se registran en el historial de git.
 
+**Cómo se revisa.**
+1. `python manage.py export_corpus_review --split test` genera `revision/revision_test.csv`, una planilla para Excel o Google Sheets que no incluye predicciones.
+2. El revisor la llena siguiendo [`revision/GUIA_REVISION_ETIQUETAS.md`](revision/GUIA_REVISION_ETIQUETAS.md).
+3. `python manage.py apply_corpus_review revision/revision_test.csv` la aplica al corpus.
+
+Si la revisión cambia un nivel, el original se guarda en `nivel_particion`, para que ningún caso cambie de partición. El clínico que hará la validación ciega no debe revisar *test*.
+
 **Códigos CIE-10 (`cie10`).** El 15-10-2026 se rellenaron de forma automática 176 entidades del lote 1 (119 de 208 en `dev` y 57 de 136 en `test`) y otras 176 del lote 2. El código se tomó del catálogo `transcription/terminology/` cuando la forma `normalized` de la entidad coincide con un término o una variante del catálogo. Las demás entidades, los signos vitales y los medicamentos (que se codifican con ATC, no con CIE-10) quedan en `null`. Hay tres cosas que tener en cuenta:
 
 - **Son propuestas, no anotaciones.** El revisor debe confirmar o corregir cada código al pasar el caso a `revisado`, consultando la tabla CIE-10 oficial y no el catálogo.
@@ -127,9 +134,18 @@ python manage.py evaluate_extraction --agreement doble_anotacion/segundo_anotado
 - **Acuerdo entre anotadores** (`--agreement`): F1 por pares entre la primera y la segunda anotación (Hripcsak y Rothschild, 2005), más el acuerdo en la negación de las entidades emparejadas. Se usa F1 y no Kappa porque Kappa no está bien definido para spans: no hay «negativos» que contar.
 - **El split `test` se usa una sola vez**, en la evaluación final. Ajustar reglas o prompts mirando sus resultados invalida la medición.
 
-- **Cuota de la API.** El plan gratuito de Gemini limita las peticiones por minuto (5 en `gemini-2.5-flash`) y por día. Una llamada rechazada (429) cae al motor de reglas, así que ese caso **no mide al modelo**. El comando reintenta (`--retries`, `--retry-wait`), avisa cuántos casos quedaron resueltos por reglas y los cuenta en `llm_failures`. Un resultado con `llm_failures > 0` no se reporta como resultado del modelo. Una evaluación completa (150 casos en `dev` por modelo, más `test` al final) necesita un plan con facturación o repartir las corridas en varios días.
+- **Cuota de la API y reanudación.** Con `gemini` o `hibrido`, cada caso evaluado se guarda en `resultados/crudos/<run_id>.jsonl`, con la salida cruda del modelo, `model_version`, tokens y latencia. Así una corrida cortada se reanuda con el mismo comando, y `--fresh` empieza de cero. Las opciones para no pasarse de la cuota son estas:
+  - `--rpm 5` limita las peticiones por minuto.
+  - `--max-calls N` corta la tanda.
+  - Si Gemini responde con la cuota diaria agotada, el comando se detiene sin perder casos.
 
-Los resultados de la línea base se guardan en `resultados/`. Por ahora solo está la del motor de reglas (`linea_base_dev_reglas.json`). La de Gemini está pendiente de una cuota suficiente.
+  Un caso cuyo LLM falla **queda pendiente**; nunca se resuelve con reglas. Mientras falten casos, el resumen se escribe con `complete: false` y el panel no lo muestra. `--summarize-only` recalcula el resumen desde el checkpoint sin llamar a la API: sirve para probar `--policy min_critico` o para repuntuar tras corregir etiquetas.
+
+El procedimiento completo está en [`docs/EVALUACION_TRIAJE.md`](../../../docs/EVALUACION_TRIAJE.md): el orden de las corridas, el prompt versionado (`--prompt-version`), las ablaciones (`--no-rule-hint`, `--no-rag`), el LLM local (`--model local:<modelo>`), el costo, la comparativa (`compare_engines`) y la validación clínica (`import_blind_review` y `export_blind_review`). `evaluate_benchmark --engine pipeline` exige `--split`, porque `casos_sinteticos.json` comparte casos con el *test* del corpus.
+
+Los resultados se guardan en `resultados/`. La línea base del motor de reglas sobre *dev* (`dev_reglas_lotes.json`, 150 casos) se reproduce exactamente con el comando de arriba. Las corridas con Gemini y con el LLM local siguen el procedimiento de `docs/EVALUACION_TRIAJE.md`.
+
+`demografia.json` guarda el sexo y el grupo de edad derivados de cada transcript (`python manage.py derive_demographics`), para el desglose descriptivo de sesgo. Las entradas revisadas a mano llevan `"fuente": "revisado"`.
 
 ## Doble anotación
 

@@ -135,6 +135,24 @@ WHISPER_DEVICE=auto               # 'auto', 'cuda' o 'cpu'
 WHISPER_COMPUTE_TYPE=float16      # 'int8' (menor VRAM) o 'float16' (mayor fidelidad)
 ```
 
+#### LLM local (opcional)
+El triaje puede usar un LLM propio en lugar de Gemini. Hace falta un servidor compatible con la API de OpenAI, como Ollama o llama.cpp server. Los datos no salen del servidor y, si el servidor no responde, clasifica el motor de reglas; nunca se recurre a Gemini.
+
+El servicio `llm-local` (Ollama) está en `docker-compose.yml` bajo un perfil, así que no arranca por defecto:
+
+```bash
+docker compose --profile llm-local up -d
+docker compose exec llm-local ollama pull qwen2.5:7b-instruct-q4_K_M
+```
+
+Después se elige «LLM local» en Configuración, y el estado aparece en `/api/config/engines/`. Con GPU NVIDIA, `docker-compose.gpu.yml` le reserva la GPU y responde en segundos. En CPU tarda 1–2 minutos por triaje, así que hay que subir `LLM_TASK_TIMEOUT` por encima de `LOCAL_LLM_TIMEOUT_SECONDS`.
+
+```env
+LOCAL_LLM_BASE_URL=http://llm-local:11434   # Ollama nativo: http://localhost:11434
+LOCAL_LLM_MODEL=qwen2.5:7b-instruct-q4_K_M
+LOCAL_LLM_TIMEOUT_SECONDS=300
+```
+
 ### 3.6. Configuración del Frontend
 ```env
 # URL pública donde el frontend encuentra el backend (a través de Nginx)

@@ -163,7 +163,7 @@ class TestSystemSettingsAndEncryption:
         self.client.force_authenticate(user=self.admin)
         response = self.client.get("/api/config/engines/")
         assert response.status_code == status.HTTP_200_OK
-        assert set(response.data) == {"inference_mode", "asr", "ner", "llm"}
+        assert set(response.data) == {"inference_mode", "asr", "ner", "llm", "local_llm"}
         assert response.data["llm"]["configured"] is True
         assert "AIzaSyEngineStatusKey1234567890" not in str(response.data)
 

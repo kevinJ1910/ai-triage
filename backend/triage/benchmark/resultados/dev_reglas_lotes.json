@@ -4,7 +4,33 @@
   "ner_engine": null,
   "split": "dev",
   "match": "relaxed",
-  "corpus": "C:\\Users\\kevin\\OneDrive\\Escritorio\\Proyectos\\TESIS\\ultimate-ai-triage\\ai-triage\\backend\\triage\\benchmark\\corpus_entidades.json",
+  "corpus": "corpus_entidades.json",
+  "complete": true,
+  "cases_expected": 150,
+  "run": {
+    "run_id": "dev_reglas",
+    "engine": "reglas",
+    "model": null,
+    "model_versions": [],
+    "prompt_version": null,
+    "prompt_sha256": null,
+    "rule_hint": true,
+    "rag": true,
+    "policy": null,
+    "temperature": null,
+    "thinking": null,
+    "tier": null,
+    "privacy": "local (los datos no salen del servidor)",
+    "corpus": "corpus_entidades.json",
+    "corpus_sha256": "6b5043b2871c180b23f584beec4fc4629c94eddc05e5ddf888c3fcc4dde223bd",
+    "git_commit": "a0af4e6f3ea378177003325e550d19f4be6a49ba",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+    "python": "3.14.7",
+    "hardware": null,
+    "prices": null,
+    "generated_at": "2026-10-18T20:53:12+00:00"
+  },
   "entities": {
     "by_type": {
       "symptoms": {
@@ -164,6 +190,10 @@
         28
       ]
     ],
+    "exact_agreement_ci95": [
+      35.3,
+      51.3
+    ],
     "cohen_kappa_ci95": [
       0.134,
       0.373
@@ -171,15 +201,780 @@
     "critical_sensitivity_ci95": [
       18.3,
       41.5
+    ],
+    "undertriage_rate_ci95": [
+      46.0,
+      62.0
+    ],
+    "overtriage_rate_ci95": [
+      0.7,
+      5.3
+    ],
+    "by_tipo": {
+      "coloquial": {
+        "n": 83,
+        "exact_agreement": 36.1,
+        "cohen_kappa": 0.029,
+        "critical_cases": 28,
+        "critical_sensitivity": 10.7,
+        "undertriage_rate": 61.4,
+        "overtriage_rate": 2.4,
+        "exact_agreement_ci95": [
+          25.3,
+          47.0
+        ],
+        "cohen_kappa_ci95": [
+          -0.05,
+          0.138
+        ],
+        "critical_sensitivity_ci95": [
+          0.0,
+          23.8
+        ],
+        "undertriage_rate_ci95": [
+          50.6,
+          72.3
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          6.0
+        ]
+      },
+      "negacion": {
+        "n": 22,
+        "exact_agreement": 40.9,
+        "cohen_kappa": 0.133,
+        "critical_cases": 8,
+        "critical_sensitivity": 25.0,
+        "undertriage_rate": 54.5,
+        "overtriage_rate": 4.5,
+        "exact_agreement_ci95": [
+          18.2,
+          63.6
+        ],
+        "cohen_kappa_ci95": [
+          -0.049,
+          0.452
+        ],
+        "critical_sensitivity_ci95": [
+          0.0,
+          57.1
+        ],
+        "undertriage_rate_ci95": [
+          31.8,
+          72.7
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          13.6
+        ]
+      },
+      "signos_vitales": {
+        "n": 20,
+        "exact_agreement": 55.0,
+        "cohen_kappa": 0.675,
+        "critical_cases": 15,
+        "critical_sensitivity": 73.3,
+        "undertriage_rate": 40.0,
+        "overtriage_rate": 5.0,
+        "exact_agreement_ci95": [
+          35.0,
+          75.0
+        ],
+        "cohen_kappa_ci95": [
+          0.435,
+          0.877
+        ],
+        "critical_sensitivity_ci95": [
+          50.0,
+          93.8
+        ],
+        "undertriage_rate_ci95": [
+          20.0,
+          60.0
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          15.0
+        ]
+      },
+      "tipico": {
+        "n": 25,
+        "exact_agreement": 60.0,
+        "cohen_kappa": 0.288,
+        "critical_cases": 9,
+        "critical_sensitivity": 22.2,
+        "undertriage_rate": 40.0,
+        "overtriage_rate": 0.0,
+        "exact_agreement_ci95": [
+          40.0,
+          80.0
+        ],
+        "cohen_kappa_ci95": [
+          0.007,
+          0.663
+        ],
+        "critical_sensitivity_ci95": [
+          0.0,
+          55.6
+        ],
+        "undertriage_rate_ci95": [
+          20.0,
+          60.0
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "by_lote": {
+      "1": {
+        "n": 70,
+        "exact_agreement": 47.1,
+        "cohen_kappa": 0.331,
+        "critical_cases": 28,
+        "critical_sensitivity": 39.3,
+        "undertriage_rate": 48.6,
+        "overtriage_rate": 4.3,
+        "exact_agreement_ci95": [
+          35.7,
+          58.6
+        ],
+        "cohen_kappa_ci95": [
+          0.147,
+          0.532
+        ],
+        "critical_sensitivity_ci95": [
+          20.7,
+          57.7
+        ],
+        "undertriage_rate_ci95": [
+          37.1,
+          58.6
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          10.0
+        ]
+      },
+      "2": {
+        "n": 80,
+        "exact_agreement": 40.0,
+        "cohen_kappa": 0.194,
+        "critical_cases": 32,
+        "critical_sensitivity": 21.9,
+        "undertriage_rate": 58.8,
+        "overtriage_rate": 1.2,
+        "exact_agreement_ci95": [
+          28.7,
+          50.0
+        ],
+        "cohen_kappa_ci95": [
+          0.055,
+          0.351
+        ],
+        "critical_sensitivity_ci95": [
+          8.0,
+          36.7
+        ],
+        "undertriage_rate_ci95": [
+          47.5,
+          68.8
+        ],
+        "overtriage_rate_ci95": [
+          0.0,
+          3.8
+        ]
+      }
+    },
+    "by_sexo": {
+      "desconocido": {
+        "n": 126,
+        "exact_agreement": 45.2,
+        "cohen_kappa": 0.264,
+        "critical_cases": 45,
+        "critical_sensitivity": 28.9,
+        "undertriage_rate": 51.6,
+        "overtriage_rate": 3.2,
+        "exact_agreement_ci95": [
+          37.3,
+          54.0
+        ],
+        "cohen_kappa_ci95": [
+          0.124,
+          0.397
+        ],
+        "critical_sensitivity_ci95": [
+          15.7,
+          41.9
+        ],
+        "undertriage_rate_ci95": [
+          42.9,
+          60.3
+        ],
+        "overtriage_rate_ci95": [
+          0.8,
+          7.1
+        ]
+      },
+      "femenino": {
+        "n": 12,
+        "exact_agreement": 33.3,
+        "cohen_kappa": 0.169,
+        "critical_cases": 8,
+        "critical_sensitivity": 25.0,
+        "undertriage_rate": 66.7,
+        "overtriage_rate": 0.0
+      },
+      "masculino": {
+        "n": 12,
+        "exact_agreement": 33.3,
+        "cohen_kappa": 0.225,
+        "critical_cases": 7,
+        "critical_sensitivity": 42.9,
+        "undertriage_rate": 66.7,
+        "overtriage_rate": 0.0
+      }
+    },
+    "by_grupo_edad": {
+      "adulto": {
+        "n": 4,
+        "exact_agreement": 75.0,
+        "cohen_kappa": 0.68,
+        "critical_cases": 3,
+        "critical_sensitivity": 66.7,
+        "undertriage_rate": 25.0,
+        "overtriage_rate": 0.0
+      },
+      "desconocido": {
+        "n": 133,
+        "exact_agreement": 44.4,
+        "cohen_kappa": 0.271,
+        "critical_cases": 49,
+        "critical_sensitivity": 30.6,
+        "undertriage_rate": 52.6,
+        "overtriage_rate": 3.0,
+        "exact_agreement_ci95": [
+          35.3,
+          52.6
+        ],
+        "cohen_kappa_ci95": [
+          0.128,
+          0.408
+        ],
+        "critical_sensitivity_ci95": [
+          17.0,
+          43.5
+        ],
+        "undertriage_rate_ci95": [
+          44.4,
+          60.9
+        ],
+        "overtriage_rate_ci95": [
+          0.8,
+          6.0
+        ]
+      },
+      "mayor": {
+        "n": 4,
+        "exact_agreement": 25.0,
+        "cohen_kappa": 0.094,
+        "critical_cases": 4,
+        "critical_sensitivity": 25.0,
+        "undertriage_rate": 75.0,
+        "overtriage_rate": 0.0
+      },
+      "pediatrico": {
+        "n": 9,
+        "exact_agreement": 22.2,
+        "cohen_kappa": -0.01,
+        "critical_cases": 4,
+        "critical_sensitivity": 0.0,
+        "undertriage_rate": 77.8,
+        "overtriage_rate": 0.0
+      }
+    },
+    "critical_undertriage": [
+      {
+        "id": "B004",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B005",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B006",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B007",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N002",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N007",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N011",
+        "tipo": "negacion",
+        "lote": 1,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N057",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N059",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N060",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N061",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N065",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N067",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N068",
+        "tipo": "tipico",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N070",
+        "tipo": "tipico",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N072",
+        "tipo": "tipico",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N076",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N077",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 4,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B020",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B023",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B024",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "B026",
+        "tipo": "tipico",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N013",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N015",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N019",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N082",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N085",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N087",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N088",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N090",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N100",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N101",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N106",
+        "tipo": "signos_vitales",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N107",
+        "tipo": "signos_vitales",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 5,
+        "llm_level": null,
+        "rule_level": 5,
+        "distance": 3,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS."
+      },
+      {
+        "id": "N014",
+        "tipo": "signos_vitales",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      },
+      {
+        "id": "N017",
+        "tipo": "coloquial",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      },
+      {
+        "id": "N018",
+        "tipo": "tipico",
+        "lote": 1,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      },
+      {
+        "id": "N071",
+        "tipo": "tipico",
+        "lote": 2,
+        "reference_level": 1,
+        "predicted_level": 3,
+        "llm_level": null,
+        "rule_level": 3,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 3: Reacción alérgica con brote generalizado. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia."
+      },
+      {
+        "id": "N093",
+        "tipo": "coloquial",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      },
+      {
+        "id": "N095",
+        "tipo": "tipico",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Ardor al orinar o sospecha de infección local. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS."
+      },
+      {
+        "id": "N102",
+        "tipo": "negacion",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      },
+      {
+        "id": "N105",
+        "tipo": "signos_vitales",
+        "lote": 2,
+        "reference_level": 2,
+        "predicted_level": 4,
+        "llm_level": null,
+        "rule_level": 4,
+        "distance": 2,
+        "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria."
+      }
     ]
   },
   "performance": {
     "latency_ms_mean": 4,
-    "latency_ms_p95": 5,
+    "latency_ms_p50": 3,
+    "latency_ms_p95": 6,
+    "prompt_tokens_mean": 0,
+    "completion_tokens_mean": 0,
+    "thoughts_tokens_mean": 0,
+    "total_tokens_mean": 0,
     "tokens_mean": 0,
     "tokens_total": 0,
+    "cost_usd": 0.0,
+    "cost_usd_per_1000": 0.0,
     "llm_failures": 0,
-    "retried_cases": 0
+    "retried_cases": 0,
+    "pending_cases": 0
   },
   "cases": [
     {
@@ -189,6 +984,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "inconsciencia"
@@ -205,16 +1001,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 109,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 104,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1: Inconciencia o ausencia de signos vitales. Requiere reanimación inmediata.",
       "predicted_codes": [
         "R40.2",
         "V89.2",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -277,6 +1081,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "hemorragia profusa",
@@ -292,16 +1097,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 7,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.1",
         "R58",
         "R23.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -364,6 +1177,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -378,14 +1192,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.7"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -448,6 +1270,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "coronamiento fetal",
@@ -463,14 +1286,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "Z33"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -533,6 +1364,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -547,14 +1379,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T30.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -617,6 +1457,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "inconsciencia"
@@ -631,14 +1472,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: Temperatura < 32 °C. Requiere reanimación inmediata.",
       "predicted_codes": [
         "R40.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -701,6 +1550,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "dolor torácico opresivo",
@@ -715,15 +1565,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 4,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Dolor torácico con signos de alarma (sospecha SCA). Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R07.4",
         "R61.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "adulto",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -786,6 +1644,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "crisis convulsiva",
@@ -799,15 +1658,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Estado convulsivo. Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R56.8",
         "R40.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -870,6 +1737,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "taquipnea",
@@ -887,15 +1755,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2 por signos vitales: Glucemia < 54 o ≥ 400 mg/dL. Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "E14.9",
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -958,6 +1834,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -973,15 +1850,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T50.9",
         "X84"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -1044,6 +1929,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "paresia de miembro superior",
@@ -1057,14 +1943,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R47.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "mayor",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -1127,6 +2021,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -1143,15 +2038,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T30.0",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -1214,6 +2117,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -1228,14 +2132,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T74.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -1298,6 +2210,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 3,
+      "rule_level": 3,
       "predicted_entities": {
         "symptoms": [
           "vómito",
@@ -1314,17 +2227,25 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 4,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 3: Vómito y diarrea con signos de deshidratación. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia.",
       "predicted_codes": [
         "R11",
         "A09",
         "R68.2",
         "R34"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 5,
@@ -1387,6 +2308,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "mareo",
@@ -1400,15 +2322,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R42",
         "R42"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -1471,6 +2401,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 3,
+      "rule_level": 3,
       "predicted_entities": {
         "symptoms": [
           "urticaria",
@@ -1486,15 +2417,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 3: Reacción alérgica con brote generalizado. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia.",
       "predicted_codes": [
         "L50.9",
         "L29.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -1557,6 +2496,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "flictenas"
@@ -1571,14 +2511,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T30.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -1641,6 +2589,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "edema",
@@ -1656,15 +2605,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "S93.4",
         "R60.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -1727,6 +2684,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 3,
+      "rule_level": 3,
       "predicted_entities": {
         "symptoms": [
           "sibilancias",
@@ -1742,15 +2700,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 3: Dificultad respiratoria leve. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia.",
       "predicted_codes": [
         "R06.2",
         "R06.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -1813,6 +2779,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor en fosa ilíaca derecha",
@@ -1827,16 +2794,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R10.3",
         "R50.9",
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -1899,6 +2874,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 3,
+      "rule_level": 3,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -1916,16 +2892,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 3: Trauma moderado con dolor agudo. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia.",
       "predicted_codes": [
         "S09.9",
         "R55",
         "T14.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -1988,6 +2972,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "tos",
@@ -2005,16 +2990,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Tos y congestión respiratoria alta. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "J06.9",
         "R05",
         "R50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -2077,6 +3070,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria",
@@ -2090,15 +3084,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Ardor al orinar o sospecha de infección local. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R30.0",
         "R35"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -2161,6 +3163,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "diarrea"
@@ -2175,15 +3178,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "A09",
         "R63.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2246,6 +3257,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "odontalgia"
@@ -2258,14 +3270,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "K08.8"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2328,6 +3348,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "vómito"
@@ -2342,15 +3363,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Vómito o diarrea sin deshidratación. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R11",
         "E86"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2413,6 +3442,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "secreción uretral"
@@ -2425,14 +3455,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R36"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2495,6 +3533,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -2509,14 +3548,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Trauma menor superficial. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "T14.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -2579,6 +3626,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "odinofagia"
@@ -2593,15 +3641,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Faringitis o amigdalitis aguda. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R56.8",
         "R07.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2664,6 +3720,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -2678,12 +3735,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 2,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -2746,6 +3811,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "cefalea"
@@ -2758,14 +3824,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Dolor de cabeza crónico. Problema agudo o crónico sin evidencia de deterioro vital; corresponde a Consulta Externa ambulatoria.",
       "predicted_codes": [
         "R51"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2828,6 +3902,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -2840,12 +3915,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 2,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -2908,6 +3991,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "estreñimiento"
@@ -2920,14 +4004,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 2,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Síntomas digestivos crónicos o inapetencia. Problema agudo o crónico sin evidencia de deterioro vital; corresponde a Consulta Externa ambulatoria.",
       "predicted_codes": [
         "K59.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -2990,6 +4082,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "tos"
@@ -3005,16 +4098,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R05",
         "R50.9",
         "R06.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -3077,6 +4178,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -3091,14 +4193,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "I10"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -3161,6 +4271,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "dolor abdominal"
@@ -3175,15 +4286,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Síntomas digestivos crónicos o inapetencia. Problema agudo o crónico sin evidencia de deterioro vital; corresponde a Consulta Externa ambulatoria.",
       "predicted_codes": [
         "R10.4",
         "K29.5"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -3246,6 +4365,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "mareo"
@@ -3258,14 +4378,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R42"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -3328,6 +4456,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -3344,12 +4473,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: Glasgow ≤ 8. Requiere reanimación inmediata.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "adulto",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -3412,6 +4549,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "disartria",
@@ -3429,16 +4567,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 5,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 6,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R47.1",
         "R40.2",
         "E14.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -3501,6 +4647,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "hematemesis",
@@ -3523,10 +4670,16 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 6,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: PAS < 90 mmHg con FC > 120 lpm (choque). Requiere reanimación inmediata.",
       "predicted_codes": [
         "K92.0",
         "R23.1",
@@ -3534,7 +4687,9 @@
         "R41.0",
         "Z95.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 4,
@@ -3597,6 +4752,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "disnea"
@@ -3616,15 +4772,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 5,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 6,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1: Dificultad respiratoria severa con riesgo vital. Requiere reanimación inmediata.",
       "predicted_codes": [
         "R06.0",
         "J44.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "mayor",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -3687,6 +4851,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "hemorragia profusa",
@@ -3702,15 +4867,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.1",
         "R58"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -3773,6 +4946,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "crisis convulsiva"
@@ -3789,16 +4963,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Estado convulsivo. Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R56.8",
         "R56.8",
         "G40.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -3861,6 +5043,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "rigidez",
@@ -3878,15 +5061,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2 por signos vitales: PAS ≤ 90 o ≥ 220 mmHg. Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R41.0",
         "R23.3"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -3949,6 +5140,7 @@
       "lote": 1,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "inconsciencia",
@@ -3962,14 +5154,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R40.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -4032,6 +5232,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "dolor torácico opresivo",
@@ -4051,16 +5252,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 6,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Dolor torácico con signos de alarma (sospecha SCA). Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R07.4",
         "R61.9",
         "I10"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -4123,6 +5332,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "asimetría facial",
@@ -4138,14 +5348,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 4,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R20.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -4208,6 +5426,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "cefalea",
@@ -4223,16 +5442,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R51",
         "T14.0",
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "adulto",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -4295,6 +5522,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "urticaria",
@@ -4312,15 +5540,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "L50.9",
         "T78.3"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -4383,6 +5619,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "confusión",
@@ -4402,17 +5639,25 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 6,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 7,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R41.0",
         "R41.0",
         "R50.9",
         "R30.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "mayor",
       "counts": {
         "symptoms": {
           "tp": 4,
@@ -4475,6 +5720,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "cefalea",
@@ -4491,16 +5737,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 4,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "Z33",
         "R51",
         "R60.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -4563,6 +5817,7 @@
       "lote": 1,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "sangrado arterial"
@@ -4577,14 +5832,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -4647,6 +5910,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "epigastralgia",
@@ -4663,17 +5927,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 5,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 6,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R10.1",
         "R63.0",
         "R11",
         "R50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -4736,6 +6008,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "cefalea",
@@ -4754,17 +6027,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R51",
         "H53.1",
         "R50.9",
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -4827,6 +6108,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -4841,14 +6123,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "W54"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -4911,6 +6201,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria",
@@ -4928,17 +6219,25 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R30.0",
         "R50.9",
         "M54.5",
         "Z33"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 4,
@@ -5001,6 +6300,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "dolor torácico"
@@ -5017,16 +6317,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Dolor torácico con signos de alarma (sospecha SCA). Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R07.4",
         "R61.9",
         "R06.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -5089,6 +6397,7 @@
       "lote": 1,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "hiperemia conjuntival",
@@ -5102,14 +6411,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "H53.8"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -5172,6 +6489,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "rinorrea",
@@ -5191,17 +6509,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Tos y congestión respiratoria alta. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R06.7",
         "R07.0",
         "R50.9",
         "R06.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -5264,6 +6590,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor"
@@ -5280,16 +6607,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "L02.9",
         "R52.9",
         "R50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -5352,6 +6687,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "prurito",
@@ -5367,16 +6703,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "W57",
         "L29.9",
         "L53.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -5439,6 +6783,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "pirosis"
@@ -5456,16 +6801,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 4,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R12",
         "K92.0",
         "K92.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -5528,6 +6881,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -5546,17 +6900,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "S09.9",
         "R55",
         "R11",
         "S00.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -5619,6 +6981,7 @@
       "lote": 1,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "diarrea",
@@ -5634,16 +6997,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "A09",
         "R10.4",
         "K92.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -5706,6 +7077,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -5724,15 +7096,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "E14.9",
         "I10"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -5795,6 +7175,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "caspa",
@@ -5808,15 +7189,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "L21.0",
         "L65.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -5879,6 +7268,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -5895,15 +7285,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "D22.9",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -5966,6 +7364,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "visión borrosa"
@@ -5978,14 +7377,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "H53.8"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6048,6 +7455,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor abdominal"
@@ -6060,14 +7468,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R10.4"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -6130,6 +7546,7 @@
       "lote": 1,
       "reference_level": 5,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "gonalgia"
@@ -6146,15 +7563,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "M25.5",
         "M19.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -6217,6 +7642,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6229,12 +7655,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6297,6 +7731,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6309,12 +7744,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6377,6 +7820,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6389,12 +7833,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6457,6 +7909,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6469,12 +7922,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6537,6 +7998,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6549,12 +8011,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6617,6 +8087,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "hematemesis"
@@ -6629,14 +8100,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "K92.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -6699,6 +8178,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "cianosis",
@@ -6714,16 +8194,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "J44.9",
         "R23.0",
         "R40.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "mayor",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -6786,6 +8274,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -6798,12 +8287,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -6866,6 +8363,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 3,
+      "rule_level": 3,
       "predicted_entities": {
         "symptoms": [
           "estridor",
@@ -6879,15 +8377,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 3: Reacción alérgica con brote generalizado. Paciente estable fisiológicamente pero requiere exámenes diagnósticos o terapia de urgencia.",
       "predicted_codes": [
         "R06.1",
         "L50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -6950,6 +8456,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "sangrado vaginal",
@@ -6964,16 +8471,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "N93.9",
         "R00.0",
         "R23.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -7036,6 +8551,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7048,12 +8564,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7116,6 +8640,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "disfagia"
@@ -7128,14 +8653,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R13"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -7198,6 +8731,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7217,14 +8751,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: SpO2 < 85 %; FR < 8 o > 35 rpm. Requiere reanimación inmediata.",
       "predicted_codes": [
         "J18.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7287,6 +8829,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7302,12 +8845,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: Glasgow ≤ 8. Requiere reanimación inmediata.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7370,6 +8921,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7385,12 +8937,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: PAS < 70 mmHg; PAS < 90 mmHg con FC > 120 lpm (choque). Requiere reanimación inmediata.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7453,6 +9013,7 @@
       "lote": 2,
       "reference_level": 1,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7468,12 +9029,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: FC < 40 o > 150 lpm; Temperatura < 32 °C. Requiere reanimación inmediata.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7536,6 +9105,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "diaforesis"
@@ -7548,14 +9118,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R61.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -7618,6 +9196,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7632,14 +9211,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "J45.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7702,6 +9289,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "fiebre"
@@ -7716,15 +9304,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R52.9",
         "R50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -7787,6 +9383,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -7799,12 +9396,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7867,6 +9472,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "abdomen en tabla"
@@ -7881,15 +9487,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "Z33",
         "R10.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -7952,6 +9566,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor",
@@ -7969,15 +9584,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "I10",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -8040,6 +9663,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria",
@@ -8057,16 +9681,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Ardor al orinar o sospecha de infección local. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R30.0",
         "R50.9",
         "M54.5"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 4,
@@ -8129,6 +9761,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "dolor torácico",
@@ -8145,17 +9778,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Dolor torácico con signos de alarma (sospecha SCA). Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R07.4",
         "R06.0",
         "R50.9",
         "R05"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -8218,6 +9859,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -8230,12 +9872,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -8298,6 +9948,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "vómito"
@@ -8312,14 +9963,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -8382,6 +10041,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor abdominal"
@@ -8396,15 +10056,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R10.4",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -8467,6 +10135,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 2,
+      "rule_level": 2,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -8481,14 +10150,22 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 2: Ingestión de sustancias tóxicas o envenenamiento. Condición con riesgo de rápido deterioro vital o funcional.",
       "predicted_codes": [
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -8551,6 +10228,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 1,
+      "rule_level": 1,
       "predicted_entities": {
         "symptoms": [
           "diarrea"
@@ -8566,14 +10244,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 1 por signos vitales: PAS < 90 mmHg con FC > 120 lpm (choque). Requiere reanimación inmediata.",
       "predicted_codes": [
         "A09"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -8636,6 +10322,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "cefalea",
@@ -8649,15 +10336,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R51",
         "R11"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -8720,6 +10415,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -8734,14 +10430,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "U07.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -8804,6 +10508,7 @@
       "lote": 2,
       "reference_level": 2,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "sed"
@@ -8816,14 +10521,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R63.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -8886,6 +10599,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor",
@@ -8899,15 +10613,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R52.9",
         "R60.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -8970,6 +10692,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "vómito",
@@ -8983,15 +10706,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R11",
         "R68.2"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -9054,6 +10785,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -9068,15 +10800,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.1",
         "T14.1"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -9139,6 +10879,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -9153,12 +10894,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -9221,6 +10970,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria",
@@ -9235,15 +10985,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R30.0",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -9306,6 +11064,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor",
@@ -9319,15 +11078,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R52.9",
         "R12"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -9390,6 +11157,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "fiebre",
@@ -9404,15 +11172,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R50.9",
         "R05"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -9475,6 +11251,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "edema"
@@ -9487,14 +11264,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R60.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -9557,6 +11342,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "urticaria"
@@ -9571,14 +11357,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "L50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -9641,6 +11435,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -9653,12 +11448,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -9721,6 +11524,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "cefalea",
@@ -9738,17 +11542,25 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "S09.9",
         "R51",
         "R11",
         "R55"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -9811,6 +11623,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "hematuria"
@@ -9826,16 +11639,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "N23",
         "R31",
         "N20.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -9898,6 +11719,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "tos",
@@ -9912,16 +11734,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R05",
         "R50.9",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -9984,6 +11814,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "vómito"
@@ -9998,15 +11829,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R11",
         "R53"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10069,6 +11908,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -10081,12 +11921,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -10149,6 +11997,7 @@
       "lote": 2,
       "reference_level": 3,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -10163,14 +12012,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "E14.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -10233,6 +12090,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "congestión nasal",
@@ -10249,16 +12107,24 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 6,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 5,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "J06.9",
         "R06.7",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 3,
@@ -10321,6 +12187,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "odinofagia"
@@ -10333,14 +12200,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R07.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10403,6 +12278,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria"
@@ -10417,15 +12293,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Ardor al orinar o sospecha de infección local. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R30.0",
         "R50.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10488,6 +12372,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor"
@@ -10500,14 +12385,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10570,6 +12463,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -10582,12 +12476,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -10650,6 +12552,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor"
@@ -10662,14 +12565,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -10732,6 +12643,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "odinofagia"
@@ -10746,15 +12658,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Faringitis o amigdalitis aguda. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R07.0",
         "R13"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10817,6 +12737,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor"
@@ -10831,15 +12752,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "S93.4",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -10902,6 +12831,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "disuria",
@@ -10915,15 +12845,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Ardor al orinar o sospecha de infección local. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "R30.0",
         "R35"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "adulto",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -10986,6 +12924,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "cefalea"
@@ -11003,16 +12942,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R51",
         "R11",
         "H53.8"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -11075,6 +13022,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "rinorrea",
@@ -11091,16 +13039,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Tos y congestión respiratoria alta. Cuadro médico que no compromete el estado general; direccionable a consulta prioritaria de EPS.",
       "predicted_codes": [
         "L29.9",
         "R50.9",
         "R07.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -11163,6 +13119,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11177,14 +13134,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "T14.0"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11247,6 +13212,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11263,16 +13229,24 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R31",
         "R50.9",
         "M54.5"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11335,6 +13309,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "malestar general"
@@ -11350,14 +13325,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R53"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -11420,6 +13403,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 4,
+      "rule_level": 4,
       "predicted_entities": {
         "symptoms": [
           "dolor"
@@ -11432,15 +13416,23 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 3,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 4: Síntomas generales estables sin signos de alarma vital identificados. Requiere consulta prioritaria.",
       "predicted_codes": [
         "R52.9",
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 1,
@@ -11503,6 +13495,7 @@
       "lote": 2,
       "reference_level": 4,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "tos",
@@ -11519,14 +13512,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R05"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "masculino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 2,
@@ -11589,6 +13590,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11601,12 +13603,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11669,6 +13679,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11681,12 +13692,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11749,6 +13768,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11761,12 +13781,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11829,6 +13857,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11845,14 +13874,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "E14.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11915,6 +13952,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -11927,12 +13965,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -11995,6 +14041,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12007,12 +14054,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 4,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "pediatrico",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12075,6 +14130,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12087,12 +14143,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12155,6 +14219,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12167,12 +14232,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12235,6 +14308,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12249,14 +14323,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "I49.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12319,6 +14401,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12331,12 +14414,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
+      "model_version": null,
+      "prompt_version": null,
       "latency_ms": 2,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12399,6 +14490,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12415,14 +14507,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "E78.5"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12485,6 +14585,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12501,14 +14602,22 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "E03.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12571,6 +14680,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12585,14 +14695,22 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "R52.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12655,6 +14773,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12671,15 +14790,23 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "D22.9",
         "L29.9"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12742,6 +14869,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12758,14 +14886,22 @@
         ]
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [
         "Z33"
       ],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,
@@ -12828,6 +14964,7 @@
       "lote": 2,
       "reference_level": 5,
       "predicted_level": 5,
+      "rule_level": 5,
       "predicted_entities": {
         "symptoms": [
           "Síntomas referidos en consulta"
@@ -12843,12 +14980,20 @@
         "negated_findings": []
       },
       "engine_used": "Motor de Reglas Clínico (Christus Sinergia)",
-      "llm_failed": false,
       "ner_engine": null,
-      "latency_ms": 2,
+      "model_version": null,
+      "prompt_version": null,
+      "latency_ms": 3,
+      "llm_latency_ms": null,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "thoughts_tokens": 0,
       "total_tokens": 0,
+      "justification": "Protocolo Christus Sinergia Salud - Triage 5: Motivo de consulta sin compromiso de estado general. Corresponde a atención ambulatoria en red EPS.",
       "predicted_codes": [],
-      "attempts": 1,
+      "llm_level": null,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
       "counts": {
         "symptoms": {
           "tp": 0,

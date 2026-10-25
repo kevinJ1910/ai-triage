@@ -9,6 +9,7 @@ class SystemConfigurationSerializer(serializers.ModelSerializer):
             'active_asr_model',
             'active_llm_engine',
             'active_ner_model',
+            'local_llm_model',
             'snomed_version',
             'snomed_updated_at',
             'icd10_version',
