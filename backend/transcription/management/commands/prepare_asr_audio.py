@@ -181,7 +181,12 @@ class Command(BaseCommand):
             "--update-scripts",
             type=Path,
             default=None,
-            help="JSON {case_id: dialogo} o [{'case_id': ..., 'dialogue': ...}] para actualizar reference en manifest.json.",
+            help="JSON {case_id: dialogo} o [{'case_id': ..., 'dialogue'|'clinical_case': ...}] para actualizar reference.",
+        )
+        parser.add_argument(
+            "--default-locutor",
+            default="gemini-2.5-flash-tts-multispeaker",
+            help="Locutor por defecto cuando el JSON de --update-scripts omite el campo 'locutor'.",
         )
 
     def handle(self, *args, **options):
@@ -194,7 +199,13 @@ class Command(BaseCommand):
         base_dir = manifest_path.parent
 
         if options.get("update_scripts"):
-            entries = self._apply_scripts(manifest_path, base_dir, entries, options["update_scripts"])
+            entries = self._apply_scripts(
+                manifest_path,
+                base_dir,
+                entries,
+                options["update_scripts"],
+                default_locutor=options["default_locutor"],
+            )
 
         if options.get("mix_noise"):
             self._mix_noise(base_dir, entries, snr_db=options["snr_db"], overwrite=options["overwrite"])
@@ -202,7 +213,27 @@ class Command(BaseCommand):
         if options.get("status") or (not options.get("mix_noise") and not options.get("update_scripts")):
             self._report_status(base_dir, entries)
 
-    def _apply_scripts(self, manifest_path: Path, base_dir: Path, entries: List[dict], scripts_path: Path) -> List[dict]:
+    @staticmethod
+    def _extract_dialogue_fields(val: dict, default_locutor: str) -> Tuple[str, str]:
+        text = (
+            val.get("dialogue")
+            or val.get("clinical_case")
+            or val.get("script")
+            or val.get("text")
+            or val.get("reference")
+            or ""
+        )
+        locutor = val.get("locutor") or default_locutor
+        return text, locutor
+
+    def _apply_scripts(
+        self,
+        manifest_path: Path,
+        base_dir: Path,
+        entries: List[dict],
+        scripts_path: Path,
+        default_locutor: str = "gemini-2.5-flash-tts-multispeaker",
+    ) -> List[dict]:
         if not scripts_path.exists():
             raise CommandError(f"No existe el archivo de guiones {scripts_path}.")
         raw_payload = json.loads(scripts_path.read_text(encoding="utf-8"))
@@ -210,18 +241,19 @@ class Command(BaseCommand):
         if isinstance(raw_payload, dict):
             for cid, val in raw_payload.items():
                 if isinstance(val, str):
-                    by_case[cid] = (val, "")
+                    by_case[cid] = (val, default_locutor)
                 elif isinstance(val, dict):
-                    by_case[cid] = (val.get("dialogue") or val.get("reference") or "", val.get("locutor") or "")
+                    by_case[cid] = self._extract_dialogue_fields(val, default_locutor)
         elif isinstance(raw_payload, list):
             for row in raw_payload:
                 cid = row.get("case_id") or row.get("id")
                 if cid:
-                    by_case[cid] = (row.get("dialogue") or row.get("reference") or "", row.get("locutor") or "")
+                    by_case[cid] = self._extract_dialogue_fields(row, default_locutor)
         else:
             raise CommandError("Formato invalido en --update-scripts: use objeto JSON o lista de objetos.")
 
         updated_cases = set()
+        digit_cases = []
         for entry in entries:
             cid = entry["case_id"]
             if cid in by_case:
@@ -229,10 +261,23 @@ class Command(BaseCommand):
                 spoken = strip_speaker_labels(dialogue)
                 if not spoken:
                     raise CommandError(f"El guion de {cid} quedo vacio tras limpiar etiquetas.")
+                if re.search(r"\d", spoken) and cid not in digit_cases:
+                    digit_cases.append(cid)
                 entry["reference"] = spoken
                 if locutor:
                     entry["locutor"] = locutor
                 updated_cases.add(cid)
+
+        if not updated_cases:
+            raise CommandError(
+                f"Ningun case_id de {scripts_path} coincidio con {manifest_path} o faltan claves de texto."
+            )
+        if digit_cases:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Aviso WER: se detectaron digitos numericos en {', '.join(digit_cases)} (conviene escribirlos en letras)."
+                )
+            )
 
         manifest_path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
         md_lines = [

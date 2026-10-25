@@ -191,3 +191,35 @@ class TestPrepareAsrAudioCommand:
         noisy_samples, noisy_sr = read_pcm16_mono(tmp_path / "B006_ruido.wav")
         assert noisy_sr == sr and len(noisy_samples) == sr
         assert "2/2 audios disponibles" in out2.getvalue()
+
+    @pytest.mark.django_db
+    def test_update_scripts_accepts_clinical_case_key_and_default_locutor(self, tmp_path):
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(
+            json.dumps([
+                {"audio": "N001_silencio.wav", "case_id": "N001", "condicion": "silencio", "locutor": "", "reference": "x"}
+            ]),
+            encoding="utf-8",
+        )
+        scripts_path = tmp_path / "dialogos.json"
+        scripts_path.write_text(
+            json.dumps([
+                {
+                    "case_id": "N001",
+                    "level": 1,
+                    "clinical_case": "Enfermero: ¿Cuántos años tiene?\nPaciente: Tiene cuarenta y cinco años.",
+                }
+            ], ensure_ascii=False),
+            encoding="utf-8",
+        )
+        call_command(
+            "prepare_asr_audio",
+            "--manifest",
+            str(manifest_path),
+            "--update-scripts",
+            str(scripts_path),
+            stdout=StringIO(),
+        )
+        updated = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert updated[0]["reference"] == "¿Cuántos años tiene? Tiene cuarenta y cinco años."
+        assert updated[0]["locutor"] == "gemini-2.5-flash-tts-multispeaker"
