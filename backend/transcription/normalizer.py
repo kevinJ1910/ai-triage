@@ -3,8 +3,9 @@ Normalizacion por capas de texto clinico coloquial a terminologia estandarizada 
 
   1-3. Catalogos deterministas (transcription/terminology): correcciones ASR, abreviaturas y diccionario
        de coloquialismos. Siempre se ejecutan y no consumen tokens.
-  4.   Gemini Flash-Lite, solo para los terminos clinicos que el catalogo no resolvio. Opcional: si no
-       hay clave o la llamada falla, queda el resultado de las capas 1-3.
+  4.   LLM (Gemini Flash-Lite o servidor local Ollama cuando el motor activo es 'local'), solo para los
+       terminos clinicos que el catalogo no resolvio. Opcional: si no hay clave/servidor o la llamada falla,
+       queda el resultado de las capas 1-3.
   5.   Validacion: cada codigo CIE-10/ATC se verifica contra el catalogo local y cada SNOMED CT contra
        snomed.json y su digito de control (Verhoeff). Un codigo invalido se marca, no se corrige, y un
        termino que no aparece en el relato se descarta.
@@ -16,7 +17,7 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -136,15 +137,24 @@ def _resolve_gemini_key() -> str:
     return os.environ.get("GEMINI_API_KEY", "").strip('"\'')
 
 
-def _candidate_models() -> List[str]:
-    models = [NORMALIZER_LLM_MODEL]
+def _active_llm_engine() -> str:
     try:
         from system_settings.models import SystemConfiguration
         active = SystemConfiguration.get_solo().active_llm_engine
-        if active and 'gemini' in active and active not in models:
-            models.append(active)
+        if active:
+            return active
     except Exception:
         pass
+    return ""
+
+
+def _candidate_models(explicit_model: Optional[str] = None) -> List[str]:
+    if explicit_model:
+        return [explicit_model]
+    models = [NORMALIZER_LLM_MODEL]
+    active = _active_llm_engine()
+    if active and 'gemini' in active and active not in models:
+        models.append(active)
     return models
 
 
@@ -186,13 +196,8 @@ def _residual_mappings(text: str, llm_mappings: List[NormalizationMappingSchema]
     return residual
 
 
-def _normalize_with_gemini(raw_text: str, custom_instruction: str, api_key: str,
-                           base: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    from google import genai
-    from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT, _pseudonymize, _sanitize_schema_for_gemini
-
-    # Sin timeout, una llamada colgada bloquearia indefinidamente un hilo del worker LLM.
-    client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
+def _build_normalization_prompt(raw_text: str, custom_instruction: str, base: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    from triage.ai_analyzer import _pseudonymize
     pseudonymized = _pseudonymize(raw_text)
     resolved = "\n".join(
         f'- "{m["raw_term"]}" -> {m["medical_term"]}' + (f' ({m["code"]})' if m["code"] else '')
@@ -216,8 +221,58 @@ TAREA:
 
 Instrucción adicional: {custom_instruction or 'ninguna'}
 """
+    return prompt, pseudonymized
+
+
+def _finalize_llm_output(raw_text: str, base: Dict[str, Any], parsed: NormalizationOutputSchema,
+                         pseudonymized: Dict[str, Any], engine_label: str) -> Dict[str, Any]:
+    normalized_text = parsed.normalized_text
+    for placeholder, field in (("[NOMBRE]", "name"), ("[TELEFONO]", "phone"), ("[DOCUMENTO]", "documentId")):
+        value = pseudonymized['identifiers'].get(field)
+        if value:
+            normalized_text = normalized_text.replace(placeholder, value)
+
+    mappings = base["mappings"] + _residual_mappings(raw_text, parsed.mappings, base["mappings"])
+    mappings.sort(key=lambda m: m["start"])
+    return {
+        **base,
+        "normalized_text": normalized_text or base["normalized_text"],
+        "summary": parsed.summary or base["summary"],
+        "mappings": mappings,
+        "layers": _layer_counts(mappings),
+        "engine": f"Catálogo terminológico local + {engine_label}",
+    }
+
+
+def _normalize_with_local(raw_text: str, custom_instruction: str, base: Dict[str, Any],
+                          model_name: str) -> Optional[Dict[str, Any]]:
+    from triage import local_llm
+    from triage.ai_analyzer import _sanitize_schema_for_gemini
+
+    if not local_llm.configured():
+        return None
+    prompt, pseudonymized = _build_normalization_prompt(raw_text, custom_instruction, base)
+    call = local_llm.chat_json(
+        model_name,
+        "Normalizador terminológico clínico CIE-10 / SNOMED CT / ATC con salida JSON estricta.",
+        prompt,
+        schema=_sanitize_schema_for_gemini(NormalizationOutputSchema),
+        temperature=0.1,
+    )
+    parsed = NormalizationOutputSchema.model_validate(json.loads(call["text"]))
+    return _finalize_llm_output(raw_text, base, parsed, pseudonymized, f"LLM local ({model_name})")
+
+
+def _normalize_with_gemini(raw_text: str, custom_instruction: str, api_key: str,
+                           base: Dict[str, Any], explicit_model: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    from google import genai
+    from triage.ai_analyzer import GEMINI_REQUEST_TIMEOUT, _sanitize_schema_for_gemini
+
+    # Sin timeout, una llamada colgada bloquearia indefinidamente un hilo del worker LLM.
+    client = genai.Client(api_key=api_key, http_options={'timeout': GEMINI_REQUEST_TIMEOUT * 1000})
+    prompt, pseudonymized = _build_normalization_prompt(raw_text, custom_instruction, base)
     last_error: Optional[Exception] = None
-    for model_name in _candidate_models():
+    for model_name in _candidate_models(explicit_model):
         try:
             response = client.models.generate_content(
                 model=model_name,
@@ -236,33 +291,32 @@ Instrucción adicional: {custom_instruction or 'ninguna'}
             logger.warning(f"Fallo del normalizador con {model_name}: {err}")
             continue
 
-        normalized_text = parsed.normalized_text
-        for placeholder, field in (("[NOMBRE]", "name"), ("[TELEFONO]", "phone"), ("[DOCUMENTO]", "documentId")):
-            value = pseudonymized['identifiers'].get(field)
-            if value:
-                normalized_text = normalized_text.replace(placeholder, value)
-
-        mappings = base["mappings"] + _residual_mappings(raw_text, parsed.mappings, base["mappings"])
-        mappings.sort(key=lambda m: m["start"])
-        return {
-            **base,
-            "normalized_text": normalized_text or base["normalized_text"],
-            "summary": parsed.summary or base["summary"],
-            "mappings": mappings,
-            "layers": _layer_counts(mappings),
-            "engine": f"Catálogo terminológico local + LLM ({model_name})",
-        }
+        return _finalize_llm_output(raw_text, base, parsed, pseudonymized, f"LLM ({model_name})")
     if last_error:
         raise last_error
     return None
 
 
-def normalize_clinical_text(raw_text: str, custom_instruction: str = "") -> Dict[str, Any]:
+def normalize_clinical_text(raw_text: str, custom_instruction: str = "",
+                            model: Optional[str] = None) -> Dict[str, Any]:
     base = normalize_with_rules(raw_text)
+    target = model or _active_llm_engine()
+    if target == 'local' or (target and target.startswith('local:')):
+        from triage import local_llm
+        local_name = target.partition(':')[2] if target.startswith('local:') else ''
+        local_name = local_name or local_llm.active_model()
+        try:
+            enriched = _normalize_with_local(raw_text, custom_instruction, base, local_name)
+            if enriched:
+                return enriched
+        except Exception as local_err:
+            logger.warning(f"Fallo en llamada a LLM local normalizer: {local_err}. Usando solo el catálogo.")
+        return base
+
     api_key = _resolve_gemini_key()
     if api_key:
         try:
-            enriched = _normalize_with_gemini(raw_text, custom_instruction, api_key, base)
+            enriched = _normalize_with_gemini(raw_text, custom_instruction, api_key, base, explicit_model=model)
             if enriched:
                 return enriched
         except Exception as gemini_err:
