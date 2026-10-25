@@ -122,6 +122,7 @@ services:
       WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-4}
     command: ["celery", "-A", "config", "worker", "-Q", "asr", "--pool", "solo", "-n", "asr@%h", "--loglevel", "INFO"]
     volumes:
+      - ./backend:/app
       # Modelos Whisper descargados: se conservan entre reinicios y reconstrucciones.
       - asr_model_cache:/home/appuser/.cache/huggingface
     networks:
@@ -161,6 +162,7 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
     command: ["celery", "-A", "config", "worker", "-Q", "llm", "--pool", "threads", "--concurrency", "4", "-n", "llm@%h", "--loglevel", "INFO"]
     volumes:
+      - ./backend:/app
       # Descomprimir ai_triage_ner_roberta.zip del notebook en ml/ner/output/ (fuera de git).
       - ./ml/ner/output:/models/ner:ro
       # Modelo descargado del Hub, si NER_MODEL_PATH es un repositorio.

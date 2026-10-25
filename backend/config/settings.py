@@ -266,6 +266,8 @@ WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'auto')
 WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'default')
 WHISPER_CPU_THREADS = int(os.getenv('WHISPER_CPU_THREADS', '4'))
 WHISPER_BEAM_SIZE = int(os.getenv('WHISPER_BEAM_SIZE', '1'))
+WHISPER_USE_HOTWORDS = os.getenv('WHISPER_USE_HOTWORDS', 'True').lower() in ('true', '1', 'yes')
+WHISPER_AUDIO_NORMALIZE = os.getenv('WHISPER_AUDIO_NORMALIZE', 'True').lower() in ('true', '1', 'yes')
 
 # --- NER clinico (RoBERTa ajustado en ml/ner/; ver triage/ner_model.py) ---
 # Carpeta del modelo exportado o id de un repositorio de Hugging Face Hub. Vacio = sin NER (catalogo y reglas).

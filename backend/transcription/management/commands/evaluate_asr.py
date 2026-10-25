@@ -1,21 +1,22 @@
 """
 Evaluacion del ASR (paso 4.3 del plan): WER, CER, error en terminos clinicos y latencia de Faster-Whisper
-con la misma configuracion que la aplicacion (idioma, prompt clinico, beam, VAD).
+con la misma configuracion que la aplicacion (idioma, prompt clinico, hotwords, beam, VAD).
 
 1. Preparar el guion de grabacion (casos del corpus, dos condiciones acusticas):
 
     python manage.py evaluate_asr --prepare --out-dir data/asr
 
    Crea data/asr/guion_grabacion.md (texto a leer) y data/asr/manifest.json (nombres de archivo esperados).
-   Graben cada caso en silencio y con ruido de fondo (TV, conversacion, ventilador) y guarden los audios
-   (wav, m4a, mp3, webm) en data/asr/ con el nombre indicado. data/ esta en .gitignore: no se versionan voces.
+   Graben cada caso en silencio (o sinteticen TTS limpio) y usen `prepare_asr_audio --mix-noise` para
+   generar la condicion de ruido calibrado (o graben con ruido real). data/ esta en .gitignore.
 
 2. Evaluar:
 
     python manage.py evaluate_asr --manifest data/asr/manifest.json --output data/asr/resultado_small_cpu.json
     python manage.py evaluate_asr --manifest data/asr/manifest.json --chunk-seconds 4      # como el streaming
     python manage.py evaluate_asr --manifest data/asr/manifest.json --no-prompt            # ablacion del prompt
-    python manage.py evaluate_asr --manifest data/asr/manifest.json --model-size large-v3-turbo --device cuda
+    python manage.py evaluate_asr --manifest data/asr/manifest.json --no-hotwords          # ablacion hotwords
+    python manage.py evaluate_asr --manifest data/asr/manifest.json --model-size large-v3-turbo --device cuda --compute-type int8_float16
 
 WER = (sustituciones + borrados + inserciones) / palabras de referencia, sobre texto en minusculas y sin
 puntuacion (con --strip-accents tambien sin tildes). Los numeros dichos en letra frente a cifras cuentan como
@@ -124,18 +125,22 @@ def summarize(rows) -> dict:
 class Transcriber:
     """Faster-Whisper con los parametros de WhisperEngine.transcribe_chunk."""
 
-    def __init__(self, model_size, device, compute_type, use_prompt=True):
+    def __init__(self, model_size, device, compute_type, use_prompt=True, use_hotwords=True, beam_size=None):
         from faster_whisper import WhisperModel
-        from transcription.medical_prompts import CLINICAL_INITIAL_PROMPT
+        from transcription.medical_prompts import CLINICAL_HOTWORDS, CLINICAL_INITIAL_PROMPT
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type,
                                   cpu_threads=getattr(settings, 'WHISPER_CPU_THREADS', 4))
         self.prompt = CLINICAL_INITIAL_PROMPT if use_prompt else None
-        self.beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 1)
+        self.hotwords = CLINICAL_HOTWORDS if use_hotwords else None
+        self.beam_size = beam_size if beam_size is not None else getattr(settings, 'WHISPER_BEAM_SIZE', 1)
         self.repetitions = 0  # fragmentos con un bucle de Whisper filtrado
 
     def _run(self, audio, prompt):
         from transcription.whisper_engine import DECODE_OPTIONS, clean_transcript
-        segments, info = self.model.transcribe(audio, initial_prompt=prompt, beam_size=self.beam_size, **DECODE_OPTIONS)
+        decode_kwargs = dict(DECODE_OPTIONS)
+        if self.hotwords:
+            decode_kwargs['hotwords'] = self.hotwords
+        segments, info = self.model.transcribe(audio, initial_prompt=prompt, beam_size=self.beam_size, **decode_kwargs)
         text, repeated = clean_transcript(' '.join(s.text for s in segments).strip())
         self.repetitions += repeated
         return text, info.duration, repeated
@@ -176,8 +181,10 @@ class Command(BaseCommand):
         parser.add_argument('--model-size', default=None, help='Por defecto WHISPER_MODEL_SIZE.')
         parser.add_argument('--device', default='cpu')
         parser.add_argument('--compute-type', default='int8')
+        parser.add_argument('--beam-size', type=int, default=None)
         parser.add_argument('--chunk-seconds', type=float, default=0.0)
         parser.add_argument('--no-prompt', action='store_true', help='Sin el prompt clinico (ablacion).')
+        parser.add_argument('--no-hotwords', action='store_true', help='Sin hotwords clinicos (ablacion).')
         parser.add_argument('--strip-accents', action='store_true')
         parser.add_argument('--output', type=Path)
 
@@ -204,11 +211,14 @@ class Command(BaseCommand):
         manifest = [{'audio': f"{c['id']}_{cond}.wav", 'case_id': c['id'], 'condicion': cond, 'locutor': '',
                      'reference': c['transcript']} for c in chosen for cond in CONDITIONS]
         (out / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+        base_cases = [{'case_id': c['id'], 'level': c['reference_level'], 'clinical_case': c['transcript']}
+                      for c in chosen]
+        (out / 'casos_base.json').write_text(json.dumps(base_cases, ensure_ascii=False, indent=2), encoding='utf-8')
         lines = ['# Guion de grabacion para el WER del ASR', '',
                  f'{len(chosen)} casos ({options["per_level"]} por nivel, split {options["split"]}) x 2 condiciones '
                  f'= {len(manifest)} audios.', '',
                  '- Lean el texto tal cual, con naturalidad, como lo diria el paciente o el acompanante.',
-                 '- `silencio`: habitacion tranquila. `ruido`: TV, conversacion o ventilador de fondo a volumen moderado.',
+                 '- `silencio`: habitacion tranquila o TTS limpio. `ruido`: TV/conversacion o `prepare_asr_audio --mix-noise`.',
                  '- Graben con el celular o el microfono del portatil a 30-50 cm. Cualquier formato de audio sirve.',
                  '- Anoten quien lee en `locutor` dentro de manifest.json (idealmente al menos dos personas).', '']
         for c in chosen:
@@ -218,8 +228,14 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Guion y manifiesto en {out} ({len(manifest)} audios por grabar).'))
 
     def _load_transcriber(self, options):
-        return Transcriber(options['model_size'] or getattr(settings, 'WHISPER_MODEL_SIZE', 'small'),
-                           options['device'], options['compute_type'], use_prompt=not options['no_prompt'])
+        return Transcriber(
+            options['model_size'] or getattr(settings, 'WHISPER_MODEL_SIZE', 'small'),
+            options['device'],
+            options['compute_type'],
+            use_prompt=not options['no_prompt'],
+            use_hotwords=not options['no_hotwords'],
+            beam_size=options.get('beam_size'),
+        )
 
     def _evaluate(self, options):
         manifest_path = options['manifest']
@@ -259,13 +275,15 @@ class Command(BaseCommand):
             'model_size': options['model_size'] or getattr(settings, 'WHISPER_MODEL_SIZE', 'small'),
             'device': options['device'], 'compute_type': options['compute_type'],
             'chunk_seconds': options['chunk_seconds'], 'initial_prompt': not options['no_prompt'],
+            'hotwords': not options['no_hotwords'],
             'strip_accents': options['strip_accents'], 'audios_faltantes': missing,
             'global': summarize(rows), 'por_condicion': by_condition, 'audios': rows,
         }
         g = result['global']
         self.stdout.write(f"Modelo {result['model_size']} en {result['device']} ({result['compute_type']}) | "
                           f"{'fragmentos de %ss' % options['chunk_seconds'] if options['chunk_seconds'] else 'archivo completo'}"
-                          f" | prompt clinico {'si' if result['initial_prompt'] else 'no'}")
+                          f" | prompt clinico {'si' if result['initial_prompt'] else 'no'}"
+                          f" | hotwords {'si' if result['hotwords'] else 'no'}")
         self.stdout.write(f"  Global: WER {g['wer']} | CER {g['cer']} | error en terminos clinicos "
                           f"{g['error_terminos_clinicos']} | RTF {g['rtf']} ({g['audios']} audios)")
         for cond, s in by_condition.items():

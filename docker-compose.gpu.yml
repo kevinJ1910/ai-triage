@@ -15,7 +15,8 @@ services:
     environment:
       WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
       WHISPER_DEVICE: cuda
-      WHISPER_COMPUTE_TYPE: float16
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8_float16}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-2}
     deploy:
       resources:
         limits:
