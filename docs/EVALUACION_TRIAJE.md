@@ -207,7 +207,23 @@ Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
 ### Evaluación final (*test*)
 
 <!-- comparativa:test:inicio -->
-Pendiente de la evaluación final.
+Split **test**. Intervalos de confianza al 95 % por bootstrap (1.000 remuestreos).
+
+| Motor | n | Exactitud | Kappa ponderado | Sensibilidad I–II | Infratriaje | Sobretriaje | Latencia p50 / p95 | Costo por 1.000 | Privacidad |
+| :--- | ---: | :--- | :--- | :--- | :--- | ---: | :--- | ---: | :--- |
+| LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER) | 100 | 73,0 % [64,0–81,0] | 0,898 [0,828–0,945] | 92,5 % [83,0–100,0] | 12,0 % [6,0–19,0] | 15,0 % | 15220 / 19695 ms (NVIDIA GeForce RTX 3070 8GB (Ollama GPU)) | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 100 | 39,0 % [29,0–49,0] | 0,339 [0,189–0,511] | 37,5 % [22,5–54,5] | 56,0 % [46,0–66,0] | 5,0 % | 5 / 8 ms (x86_64) | 0,00 USD | local (los datos no salen del servidor) |
+
+Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor − referencia, IC95):
+
+| Motor | n | Exactitud (pp) | Kappa | Sensibilidad I–II (pp) | Infratriaje (pp) |
+| :--- | ---: | :--- | :--- | :--- | :--- |
+| LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER) | 100 | 34,0 [22,0–46,0] | 0,559 [0,371–0,717] | 55,0 [38,9–70,0] | -44,0 [-54,0–-34,0] |
+
+Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
+
+- LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER): 3 casos: N092 (coloquial; ref. 2, pred. 3), N097 (tipico; ref. 2, pred. 3), N098 (tipico; ref. 2, pred. 3)
+- Reglas (Christus Sinergia / Res. 5596): 25 casos: B010 (coloquial; ref. 1, pred. 5), N003 (coloquial; ref. 1, pred. 5), N005 (tipico; ref. 1, pred. 5), N010 (coloquial; ref. 1, pred. 5), N056 (coloquial; ref. 1, pred. 5), N058 (coloquial; ref. 1, pred. 5), N062 (coloquial; ref. 1, pred. 5), N063 (coloquial; ref. 1, pred. 5), N064 (coloquial; ref. 1, pred. 5), N066 (coloquial; ref. 1, pred. 5), N075 (negacion; ref. 1, pred. 5), B018 (coloquial; ref. 2, pred. 5), B021 (coloquial; ref. 2, pred. 5), B022 (coloquial; ref. 2, pred. 5), N069 (tipico; ref. 1, pred. 4) y 10 más
 <!-- comparativa:test:fin -->
 
 ## 9. Texto para la tesis
