@@ -13,7 +13,7 @@ import wave
 import zlib
 from typing import Any, Dict, Tuple
 
-# --- Dynamic Path Resolution for CUDA/cuDNN DLLs on Windows ---
+# --- Dynamic Resolution for CUDA/cuDNN Libraries (Windows & Linux) ---
 if sys.platform == 'win32':
     import site
     try:
@@ -29,7 +29,22 @@ if sys.platform == 'win32':
             os.environ["PATH"] = ";".join(paths_to_add) + ";" + os.environ.get("PATH", "")
     except Exception:
         pass
-# -------------------------------------------------------------
+elif sys.platform.startswith('linux'):
+    import ctypes
+    import glob
+    import site
+    try:
+        for sp in site.getsitepackages():
+            for pattern in (
+                "nvidia/cublas/lib/libcublasLt.so*",
+                "nvidia/cublas/lib/libcublas.so*",
+                "nvidia/cudnn/lib/libcudnn.so*",
+            ):
+                for so_path in sorted(glob.glob(os.path.join(sp, pattern))):
+                    ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)
+    except Exception:
+        pass
+# ---------------------------------------------------------------------
 
 try:
     from faster_whisper import WhisperModel
@@ -331,9 +346,9 @@ class WhisperEngine:
                 temp_file.write(processed_bytes)
                 temp_file_path = temp_file.name
 
-            # Construir prompt con historial clinico reciente (ultimos 400 caracteres)
+            # Presupuesto de ventana de Whisper (448 tokens): hotwords + prompt + historial <= ~180 tokens
             previous_context = get_session_context(session_id)
-            history_slice = previous_context[-400:] if len(previous_context) > 400 else previous_context
+            history_slice = previous_context[-220:] if len(previous_context) > 220 else previous_context
             full_prompt = CLINICAL_INITIAL_PROMPT
             if history_slice:
                 full_prompt += "\nHistorial previo de la conversacion: " + history_slice

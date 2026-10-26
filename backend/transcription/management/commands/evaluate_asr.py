@@ -126,6 +126,7 @@ class Transcriber:
     """Faster-Whisper con los parametros de WhisperEngine.transcribe_chunk."""
 
     def __init__(self, model_size, device, compute_type, use_prompt=True, use_hotwords=True, beam_size=None):
+        import transcription.whisper_engine  # noqa: F401 - precarga librerias CUDA/cuDNN
         from faster_whisper import WhisperModel
         from transcription.medical_prompts import CLINICAL_HOTWORDS, CLINICAL_INITIAL_PROMPT
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type,
@@ -157,7 +158,7 @@ class Transcriber:
         for start in range(0, len(audio), step):
             prompt = self.prompt
             if prompt and history:
-                prompt += "\nHistorial previo de la conversacion: " + history[-400:]
+                prompt += "\nHistorial previo de la conversacion: " + history[-220:]
             text, _, repeated = self._run(audio[start:start + step], prompt)
             if text:
                 texts.append(text)

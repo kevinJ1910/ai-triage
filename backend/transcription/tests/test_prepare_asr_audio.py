@@ -18,7 +18,7 @@ from transcription.management.commands.prepare_asr_audio import (
     strip_speaker_labels,
     write_pcm16_wav,
 )
-from transcription.medical_prompts import CLINICAL_HOTWORDS
+from transcription.medical_prompts import CLINICAL_HOTWORDS, CLINICAL_INITIAL_PROMPT
 from transcription.whisper_engine import WhisperEngine, normalize_wav_bytes
 
 
@@ -51,6 +51,8 @@ class TestAcousticPreprocessingAndHotwords:
         assert "losartán" in lower
         assert "metformina" in lower
         assert "glucometría" in lower
+        # Presupuesto conjunto (prompt + hotwords) acotado para no desbordar max_length=448 de Whisper
+        assert len(CLINICAL_INITIAL_PROMPT) + len(CLINICAL_HOTWORDS) <= 600
 
     def test_normalize_wav_bytes_amplifies_quiet_voice_and_preserves_non_wav(self):
         # Tono vocal de 440 Hz muy bajo (~ -38 dBFS) -> debe amplificarse hacia ~ -20 dBFS (tope 10x = +20 dB)
