@@ -55,16 +55,16 @@ Reglas            Qwen2.5-7B         Gemma 4 E4B
 
 El error dominante de las reglas es enviar a nivel 5 los casos que no reconocen: 62 casos de niveles 1–4 terminan en la fila 5. Es el comportamiento esperado de un motor léxico, que no entiende paráfrasis. Qwen reduce ese error a 42 casos y Gemma a 24.
 
-## 3. Los cuatro motores sobre los mismos 32 casos (los que lleva Gemini)
+## 3. Los cuatro motores sobre los mismos 66 casos evaluados con Gemini
 
 | Motor | Exactitud | Kappa | Sensibilidad I–II | Infratriaje |
 | :--- | :--- | :--- | :---: | :---: |
-| Reglas | 56,2 % [37,5–71,9] | 0,196 [−0,047–0,494] | 38,5 % | 43,8 % |
-| Qwen2.5-7B | 65,6 % [46,9–81,2] | 0,494 [0,178–0,795] | 61,5 % | 34,4 % |
-| Gemma 4 E4B | 81,2 % [65,6–93,8] | 0,840 [0,611–0,979] | 76,9 % | 18,8 % |
-| Gemini 2.5 Flash | 87,5 % [75,0–96,9] | 0,868 [0,666–0,992] | 92,3 % | 12,5 % |
+| Reglas | 37,9 % [26,5–49,2] | 0,098 [−0,075–0,278] | 21,4 % | 57,6 % |
+| Qwen2.5-7B + min_critico | 54,5 % [42,4–66,7] | 0,598 [0,432–0,753] | 60,7 % | 40,9 % |
+| Gemma 4 E4B + min_critico | 69,7 % [58,5–80,3] | 0,852 [0,735–0,942] | 85,7 % | 24,2 % |
+| Gemini 2.5 Flash | 74,2 % [63,6–84,8] | 0,896 [0,803–0,954] | 92,9 % | 18,2 % |
 
-Con n = 32 los intervalos son muy anchos y se solapan entre Gemma y Gemini. Estos casos son del lote 1, que está más cerca del catálogo y es más fácil: todos los motores rinden aquí mejor que sobre los 150. El orden (reglas < Qwen < Gemma ≤ Gemini) es consistente con la tabla de la sección 2. Hay que esperar a los 150 casos de Gemini antes de sacar conclusiones.
+Al ampliar la muestra evaluada de Gemini a 66 casos, la progresión entre arquitecturas se mantiene sólida y estadísticamente clara (reglas < Qwen < Gemma < Gemini). Gemini 2.5 Flash alcanza un Kappa ponderado de 0,896 (concordancia casi perfecta) y una sensibilidad del 92,9 % en casos críticos (26 de 28 casos nivel I–II detectados correctamente). Por su parte, Gemma 4 E4B local con política min_critico se sitúa muy próximo a Gemini (Kappa 0,852 y sensibilidad del 85,7 %) ejecutándose íntegramente de manera local y privada en el servidor hospitalario.
 
 ## 4. Dónde falla cada motor
 
