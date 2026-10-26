@@ -16,6 +16,7 @@ from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
 from .clinical_rag import ClinicalKnowledgeRAG
 from .benchmark_results import load_results
+from .blind_review_corpus import CORPUS_PREFIX
 from .fhir_validation import validate_fhir_bundle
 from .metrics import (
     confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
@@ -212,7 +213,10 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         Cada usuario ve sus propias sesiones; un administrador ve todas.
         Devuelve la misma forma que consume TriageDashboard.
         """
-        qs = TriageSession.objects.select_related('patient', 'transcription').order_by('-created_at')
+        qs = (TriageSession.objects
+              .exclude(patient__document_id__startswith=CORPUS_PREFIX)
+              .select_related('patient', 'transcription')
+              .order_by('-created_at'))
         if not is_admin_user(request.user):
             qs = qs.filter(user=request.user)
         try:
@@ -271,7 +275,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         # Agregaciones en la base de datos: no se cargan todas las sesiones en memoria. Los casos del corpus
         # cargados para la validacion ciega (CORPUS-) no son pacientes reales y se resumen con export_blind_review.
-        from .blind_review_corpus import CORPUS_PREFIX
+
         qs = TriageSession.objects.exclude(patient__document_id__startswith=CORPUS_PREFIX).order_by()
         matrix = _level_matrix(qs, 'ai_level', 'final_level')
         dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
@@ -371,6 +375,11 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
               .select_related('patient', 'transcription')
               .order_by('created_at'))
         pending_total = qs.count()
+        adjudicated_by_me = TriageSession.objects.filter(reference_by=request.user).count()
+        rated_by_me = TriageSession.objects.filter(
+            reference_by=request.user,
+            justification_rated_at__isnull=False,
+        ).count()
         results = []
         for s in qs[:20]:
             transcription = getattr(s, 'transcription', None)
@@ -386,7 +395,12 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "age": age,
                 "transcript": transcription.full_text if transcription else '',
             })
-        return Response({"pending_total": pending_total, "results": results})
+        return Response({
+            "pending_total": pending_total,
+            "adjudicated_by_me": adjudicated_by_me,
+            "rated_by_me": rated_by_me,
+            "results": results,
+        })
 
     @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanEditSymptoms])
     def reference_level(self, request, pk=None):
@@ -468,7 +482,10 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         Returns patients list from real database for the EMR simulator.
         Reads persisted assigned_box and care_status.
         """
-        sessions = TriageSession.objects.select_related('patient').all().order_by('-created_at')[:20]
+        sessions = (TriageSession.objects
+                    .exclude(patient__document_id__startswith=CORPUS_PREFIX)
+                    .select_related('patient')
+                    .order_by('-created_at')[:20])
         results = []
 
         for s in sessions:
@@ -858,7 +875,9 @@ def _find_session_in_bundle(payload) -> "TriageSession | None":
         if res_id.startswith(('enc-', 'pat-')):
             parts = res_id.split('-')
             if len(parts) > 1 and parts[1].isdigit():
-                return TriageSession.objects.filter(id=int(parts[1])).first()
+                candidate_id = int(parts[1])
+                if 0 < candidate_id <= 2147483647:
+                    return TriageSession.objects.filter(id=candidate_id).first()
     return None
 
 
