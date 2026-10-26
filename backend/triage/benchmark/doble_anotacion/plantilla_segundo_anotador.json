@@ -3,10 +3,50 @@
     "id": "N003",
     "transcript": "Llega una muchacha que la picó una abeja hace diez minutos, se le hinchó toda la cara y la lengua, casi no le pasa el aire y está ronca. Dice que es alérgica a las abejas y no trajo la inyección de adrenalina.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
-      "medications": [],
-      "allergies": [],
+      "symptoms": [
+        {
+          "text": "se le hinchó toda la cara y la lengua",
+          "normalized": "angioedema",
+          "negated": false,
+          "cie10": "T78.3"
+        },
+        {
+          "text": "casi no le pasa el aire",
+          "normalized": "dificultad respiratoria severa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "ronca",
+          "normalized": "disfonía",
+          "negated": false,
+          "cie10": "R49.0"
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "la picó una abeja",
+          "normalized": "picadura de abeja",
+          "negated": false,
+          "cie10": "X23"
+        }
+      ],
+      "medications": [
+        {
+          "text": "adrenalina",
+          "normalized": "adrenalina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "abejas",
+          "normalized": "veneno de himenópteros",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "vitals": [],
       "history": []
     }
@@ -15,8 +55,34 @@
     "id": "N010",
     "transcript": "Llegó un muchacho que se tomó un veneno para ratas hace media hora, está babeando mucho, con las pupilas chiquitas y le cuesta respirar.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "babeando mucho",
+          "normalized": "sialorrea",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "las pupilas chiquitas",
+          "normalized": "miosis",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "le cuesta respirar",
+          "normalized": "disnea",
+          "negated": false,
+          "cie10": "R06.0"
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "se tomó un veneno para ratas",
+          "normalized": "intoxicación por plaguicida",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -28,7 +94,14 @@
     "transcript": "Niña de 8 años que fue víctima de abuso sexual hace unas horas",
     "entities": {
       "symptoms": [],
-      "diagnoses": [],
+      "diagnoses": [
+        {
+          "text": "abuso sexual",
+          "normalized": "abuso sexual",
+          "negated": false,
+          "cie10": "T74.2"
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -39,24 +112,116 @@
     "id": "N004",
     "transcript": "Paciente con vómito con sangre abundante desde hace una hora, está muy pálido, sudoroso y confuso, presión de 75 sobre 45 y frecuencia cardiaca de 135. Toma warfarina por una válvula en el corazón.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "vómito con sangre abundante",
+          "normalized": "hematemesis",
+          "negated": false,
+          "cie10": "K92.0"
+        },
+        {
+          "text": "pálido",
+          "normalized": "palidez",
+          "negated": false,
+          "cie10": "R23.1"
+        },
+        {
+          "text": "sudoroso",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": "R61.9"
+        },
+        {
+          "text": "confuso",
+          "normalized": "confusión",
+          "negated": false,
+          "cie10": "R41.0"
+        }
+      ],
       "diagnoses": [],
-      "medications": [],
+      "medications": [
+        {
+          "text": "warfarina",
+          "normalized": "warfarina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "allergies": [],
-      "vitals": [],
-      "history": []
+      "vitals": [
+        {
+          "text": "presión de 75 sobre 45",
+          "normalized": "PA: 75/45 mmHg",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia cardiaca de 135",
+          "normalized": "FC: 135 lpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "una válvula en el corazón",
+          "normalized": "prótesis valvular cardíaca",
+          "negated": false,
+          "cie10": "Z95.2"
+        }
+      ]
     }
   },
   {
     "id": "N006",
     "transcript": "Señor de 67 años con dificultad respiratoria severa, no puede terminar las frases, está saturando al 82 por ciento con frecuencia respiratoria de 38. Tiene EPOC y usa oxígeno en la casa.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "dificultad respiratoria severa",
+          "normalized": "dificultad respiratoria severa",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "no puede terminar las frases",
+          "normalized": "disnea que impide hablar",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "diagnoses": [],
-      "medications": [],
+      "medications": [
+        {
+          "text": "oxígeno",
+          "normalized": "oxigenoterapia domiciliaria",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "allergies": [],
-      "vitals": [],
-      "history": []
+      "vitals": [
+        {
+          "text": "saturando al 82 por ciento",
+          "normalized": "SpO2: 82%",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia respiratoria de 38",
+          "normalized": "FR: 38 rpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "history": [
+        {
+          "text": "EPOC",
+          "normalized": "enfermedad pulmonar obstructiva crónica",
+          "negated": false,
+          "cie10": null
+        }
+      ]
     }
   },
   {
@@ -64,7 +229,14 @@
     "transcript": "Paciente con quemaduras en casi todo el cuerpo por un incendio en la casa",
     "entities": {
       "symptoms": [],
-      "diagnoses": [],
+      "diagnoses": [
+        {
+          "text": "quemaduras en casi todo el cuerpo",
+          "normalized": "quemadura de gran superficie corporal",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -75,8 +247,28 @@
     "id": "B021",
     "transcript": "Paciente muy agitado y agresivo, grita y no deja que lo examinen, dicen que consumió drogas",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "agitado",
+          "normalized": "agitación psicomotora",
+          "negated": false,
+          "cie10": "R45.1"
+        },
+        {
+          "text": "agresivo",
+          "normalized": "agresividad",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "consumió drogas",
+          "normalized": "consumo de sustancias psicoactivas",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -91,7 +283,20 @@
       "diagnoses": [],
       "medications": [],
       "allergies": [],
-      "vitals": [],
+      "vitals": [
+        {
+          "text": "Saturación de 84 por ciento",
+          "normalized": "SpO2: 84%",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "frecuencia respiratoria de 32",
+          "normalized": "FR: 32 rpm",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "history": []
     }
   },
@@ -99,7 +304,26 @@
     "id": "B014",
     "transcript": "Hombre de 58 años con dolor en el pecho tipo opresión desde hace una hora, sudoroso, se le irradia al brazo izquierdo",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "dolor en el pecho tipo opresión",
+          "normalized": "dolor torácico opresivo",
+          "negated": false,
+          "cie10": "R07.4"
+        },
+        {
+          "text": "sudoroso",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": "R61.9"
+        },
+        {
+          "text": "se le irradia al brazo izquierdo",
+          "normalized": "irradiación a miembro superior izquierdo",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -111,8 +335,28 @@
     "id": "B025",
     "transcript": "Gestante en trabajo de parto, contracciones cada 3 minutos y ya rompió fuente",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "contracciones cada 3 minutos",
+          "normalized": "contracciones uterinas",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "rompió fuente",
+          "normalized": "ruptura de membranas",
+          "negated": false,
+          "cie10": "O42.9"
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "trabajo de parto",
+          "normalized": "trabajo de parto",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -124,7 +368,14 @@
     "transcript": "Viene a consultar porque sufrió abuso sexual hace una semana",
     "entities": {
       "symptoms": [],
-      "diagnoses": [],
+      "diagnoses": [
+        {
+          "text": "abuso sexual",
+          "normalized": "abuso sexual",
+          "negated": false,
+          "cie10": "T74.2"
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -135,19 +386,71 @@
     "id": "N012",
     "transcript": "Tengo un dolor en el pecho como si me apretaran, me empezó hace 40 minutos, me corre sudor frío y me duele la mandíbula. Soy hipertenso, tomo posartan y aspirina.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "dolor en el pecho como si me apretaran",
+          "normalized": "dolor torácico opresivo",
+          "negated": false,
+          "cie10": "R07.4"
+        },
+        {
+          "text": "sudor frío",
+          "normalized": "diaforesis",
+          "negated": false,
+          "cie10": "R61.9"
+        },
+        {
+          "text": "me duele la mandíbula",
+          "normalized": "dolor mandibular",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "diagnoses": [],
-      "medications": [],
+      "medications": [
+        {
+          "text": "posartan",
+          "normalized": "losartán",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "aspirina",
+          "normalized": "ácido acetilsalicílico",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "allergies": [],
       "vitals": [],
-      "history": []
+      "history": [
+        {
+          "text": "hipertenso",
+          "normalized": "hipertensión arterial",
+          "negated": false,
+          "cie10": "I10"
+        }
+      ]
     }
   },
   {
     "id": "B040",
     "transcript": "Tengo un dolor muy fuerte en la espalda que baja a la ingle, como un cólico, y oriné con sangre",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "dolor muy fuerte en la espalda que baja a la ingle",
+          "normalized": "dolor lumbar irradiado a ingle",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "oriné con sangre",
+          "normalized": "hematuria",
+          "negated": false,
+          "cie10": "R31"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -159,10 +462,43 @@
     "id": "N023",
     "transcript": "Me caí de la escalera y me duele mucho la muñeca, está torcida y muy hinchada, puedo mover los dedos. Tomo losartán y soy alérgica al ibuprofeno.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "me duele mucho la muñeca",
+          "normalized": "dolor de muñeca",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "está torcida",
+          "normalized": "deformidad de muñeca",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "muy hinchada",
+          "normalized": "edema",
+          "negated": false,
+          "cie10": "R60.9"
+        }
+      ],
       "diagnoses": [],
-      "medications": [],
-      "allergies": [],
+      "medications": [
+        {
+          "text": "losartán",
+          "normalized": "losartán",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "allergies": [
+        {
+          "text": "ibuprofeno",
+          "normalized": "ibuprofeno",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "vitals": [],
       "history": []
     }
@@ -171,8 +507,22 @@
     "id": "N028",
     "transcript": "Me mordió un perro en la pierna hace una hora, tiene varios huecos y sangra poquito. No me acuerdo si tengo la vacuna del tétano.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "sangra poquito",
+          "normalized": "sangrado leve",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "Me mordió un perro en la pierna",
+          "normalized": "mordedura de perro",
+          "negated": false,
+          "cie10": "W54"
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -183,9 +533,41 @@
     "id": "N026",
     "transcript": "Tengo un dolor de cabeza que no se me quita con acetaminofén desde hace dos días, me molesta la luz pero no tengo fiebre ni vómito.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "dolor de cabeza",
+          "normalized": "cefalea",
+          "negated": false,
+          "cie10": "R51"
+        },
+        {
+          "text": "me molesta la luz",
+          "normalized": "fotofobia",
+          "negated": false,
+          "cie10": "H53.1"
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": "R50.9"
+        },
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": true,
+          "cie10": "R11"
+        }
+      ],
       "diagnoses": [],
-      "medications": [],
+      "medications": [
+        {
+          "text": "acetaminofén",
+          "normalized": "acetaminofén",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "allergies": [],
       "vitals": [],
       "history": []
@@ -195,19 +577,52 @@
     "id": "B032",
     "transcript": "Paciente en diálisis que no se ha podido dializar esta semana y tiene las piernas hinchadas",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "las piernas hinchadas",
+          "normalized": "edema de miembros inferiores",
+          "negated": false,
+          "cie10": "R60.0"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
       "vitals": [],
-      "history": []
+      "history": [
+        {
+          "text": "diálisis",
+          "normalized": "enfermedad renal crónica en diálisis",
+          "negated": false,
+          "cie10": null
+        }
+      ]
     }
   },
   {
     "id": "B037",
     "transcript": "Dolor de barriga fuerte en el lado derecho abajo desde hoy, con fiebre y vómito",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "Dolor de barriga fuerte en el lado derecho abajo",
+          "normalized": "dolor en fosa ilíaca derecha",
+          "negated": false,
+          "cie10": "R10.3"
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": false,
+          "cie10": "R50.9"
+        },
+        {
+          "text": "vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": "R11"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -219,7 +634,20 @@
     "id": "B043",
     "transcript": "Ardor al orinar y ganas de orinar a cada rato desde hace dos días",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "Ardor al orinar",
+          "normalized": "disuria",
+          "negated": false,
+          "cie10": "R30.0"
+        },
+        {
+          "text": "ganas de orinar a cada rato",
+          "normalized": "polaquiuria",
+          "negated": false,
+          "cie10": "R35"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -232,7 +660,14 @@
     "transcript": "Me raspé la rodilla al caerme, es una herida superficial",
     "entities": {
       "symptoms": [],
-      "diagnoses": [],
+      "diagnoses": [
+        {
+          "text": "Me raspé la rodilla",
+          "normalized": "abrasión de rodilla",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -243,7 +678,26 @@
     "id": "B049",
     "transcript": "Vómito dos veces hoy, sin deshidratación, tolera líquidos",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "Vómito",
+          "normalized": "vómito",
+          "negated": false,
+          "cie10": "R11"
+        },
+        {
+          "text": "deshidratación",
+          "normalized": "deshidratación",
+          "negated": true,
+          "cie10": "E86"
+        },
+        {
+          "text": "tolera líquidos",
+          "normalized": "intolerancia a la vía oral",
+          "negated": true,
+          "cie10": null
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -255,7 +709,38 @@
     "id": "N041",
     "transcript": "Tengo los ojos rojos y con lagaña desde ayer, me pica y me arde, veo bien.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "los ojos rojos",
+          "normalized": "hiperemia conjuntival",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "lagaña",
+          "normalized": "secreción ocular",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "me pica",
+          "normalized": "prurito",
+          "negated": false,
+          "cie10": "L29.9"
+        },
+        {
+          "text": "me arde",
+          "normalized": "ardor ocular",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "veo bien",
+          "normalized": "disminución de la agudeza visual",
+          "negated": true,
+          "cie10": null
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -267,8 +752,34 @@
     "id": "N035",
     "transcript": "Me salió un nacido en la axila, está rojo y me duele, no he tenido fiebre.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "rojo",
+          "normalized": "eritema",
+          "negated": false,
+          "cie10": "L53.9"
+        },
+        {
+          "text": "me duele",
+          "normalized": "dolor local",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": "R50.9"
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "un nacido en la axila",
+          "normalized": "absceso cutáneo axilar",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -279,7 +790,26 @@
     "id": "B044",
     "transcript": "Diarrea desde ayer, unas cuatro veces, pero tomo líquidos bien y no tengo sed",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "Diarrea",
+          "normalized": "diarrea",
+          "negated": false,
+          "cie10": "A09"
+        },
+        {
+          "text": "tomo líquidos bien",
+          "normalized": "intolerancia a la vía oral",
+          "negated": true,
+          "cie10": null
+        },
+        {
+          "text": "sed",
+          "normalized": "sed",
+          "negated": true,
+          "cie10": "R63.1"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -291,7 +821,32 @@
     "id": "N049",
     "transcript": "Me siento cansado desde hace como dos meses, duermo mal, no tengo fiebre ni he bajado de peso.",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "cansado",
+          "normalized": "fatiga",
+          "negated": false,
+          "cie10": "R53"
+        },
+        {
+          "text": "duermo mal",
+          "normalized": "insomnio",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "fiebre",
+          "normalized": "fiebre",
+          "negated": true,
+          "cie10": "R50.9"
+        },
+        {
+          "text": "bajado de peso",
+          "normalized": "pérdida de peso",
+          "negated": true,
+          "cie10": "R63.4"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -303,7 +858,14 @@
     "id": "B058",
     "transcript": "Estreñimiento desde hace un mes",
     "entities": {
-      "symptoms": [],
+      "symptoms": [
+        {
+          "text": "Estreñimiento",
+          "normalized": "estreñimiento",
+          "negated": false,
+          "cie10": "K59.0"
+        }
+      ],
       "diagnoses": [],
       "medications": [],
       "allergies": [],
@@ -315,8 +877,22 @@
     "id": "N044",
     "transcript": "Tengo los pies resecos y con hongos en las uñas desde hace años, quiero que me manden algo.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "los pies resecos",
+          "normalized": "xerosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "hongos en las uñas",
+          "normalized": "onicomicosis",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -329,18 +905,58 @@
     "entities": {
       "symptoms": [],
       "diagnoses": [],
-      "medications": [],
+      "medications": [
+        {
+          "text": "levotiroxina",
+          "normalized": "levotiroxina",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "allergies": [],
       "vitals": [],
-      "history": []
+      "history": [
+        {
+          "text": "tiroides",
+          "normalized": "hipotiroidismo",
+          "negated": false,
+          "cie10": "E03.9"
+        }
+      ]
     }
   },
   {
     "id": "N053",
     "transcript": "Tengo várices en las piernas que me duelen al final del día, no están rojas ni calientes.",
     "entities": {
-      "symptoms": [],
-      "diagnoses": [],
+      "symptoms": [
+        {
+          "text": "me duelen",
+          "normalized": "dolor en miembros inferiores",
+          "negated": false,
+          "cie10": null
+        },
+        {
+          "text": "rojas",
+          "normalized": "eritema",
+          "negated": true,
+          "cie10": "L53.9"
+        },
+        {
+          "text": "calientes",
+          "normalized": "calor local",
+          "negated": true,
+          "cie10": null
+        }
+      ],
+      "diagnoses": [
+        {
+          "text": "várices en las piernas",
+          "normalized": "várices de miembros inferiores",
+          "negated": false,
+          "cie10": null
+        }
+      ],
       "medications": [],
       "allergies": [],
       "vitals": [],
@@ -356,7 +972,14 @@
       "medications": [],
       "allergies": [],
       "vitals": [],
-      "history": []
+      "history": [
+        {
+          "text": "hipertenso",
+          "normalized": "hipertensión arterial",
+          "negated": false,
+          "cie10": "I10"
+        }
+      ]
     }
   }
 ]
