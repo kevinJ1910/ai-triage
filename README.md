@@ -1,31 +1,30 @@
 # AI-Triage: Asistente Inteligente de Voz para la Clasificación Médica Automatizada
 
-**AI-Triage** es una plataforma web de procesamiento de voz en tiempo real y soporte a la decisión clínica para el triaje en servicios de urgencias. Transcribe la consulta con un ASR clínico, normaliza la terminología a estándares médicos (SNOMED-CT / CIE-10), extrae entidades críticas y propone el nivel de prioridad (1 a 5) según el protocolo institucional Christus Sinergia Salud (Resolución 5596 de Minsalud), que el profesional ratifica o ajusta.
+**AI-Triage** es una plataforma web de procesamiento de voz en tiempo real y soporte a la decisión clínica para el triaje en servicios de urgencias hospitalarias. Transcribe la consulta con un ASR clínico adaptado acústicamente, extrae entidades biomédicas mediante modelos RoBERTa especializados (Model Soup), normaliza la terminología a estándares médicos internacionales (SNOMED CT / CIE-10 / ATC), recupera guías institucionales mediante un RAG híbrido (`pgvector` + Okapi BM25) y propone el nivel de prioridad (1 a 5) según el protocolo Christus Sinergia Salud (Resolución 5596 de Minsalud), bajo un flujo centrado en el profesional médico (*human-in-the-loop*) y con interoperabilidad dual HL7 v2.5.1 / FHIR R4.
 
 ---
 
 ## Características Clave
 
-* **ASR clínico en tiempo real (Faster-Whisper):** Transcripción en español por fragmentos de 4 s, con prompts de terminología médica y contexto de continuidad por sesión guardado en Redis con expiración (TTL).
+* **ASR clínico en tiempo real (Faster-Whisper):** Transcripción en español por fragmentos de 4 s con preprocesamiento acústico adaptativo (filtro pasa-banda, reducción de ruido, normalización LUFS), inyección dinámica de *hotwords* médicas y contexto de continuidad por sesión guardado en Redis con expiración (TTL). WER empírico de 14,17 % y RTF de 0,22 en GPU / 0,81 en CPU.
 * **CPU por defecto, GPU NVIDIA opcional:** El stack corre en cualquier equipo con Whisper en CPU (`int8`, modelo `small`). Con GPU NVIDIA, un override activa CUDA (`float16`, modelo `large-v3-turbo`). Ver [Ejecución con GPU NVIDIA](#ejecución-con-gpu-nvidia).
-* **Inferencia en workers dedicados (Celery + Redis):** Whisper corre en `worker-asr` y Gemini en `worker-llm`; el proceso web solo valida, persiste y encola. Si el worker LLM no responde, el triaje se resuelve con el motor de reglas: el clínico nunca recibe un error por un fallo de la IA.
-* **Motor de triaje con prioridad Christus Sinergia Salud:** Motor determinista de reglas (niveles 1 a 5) que se pasa como pauta prioritaria a Google Gemini y actúa como respaldo garantizado.
-* **LLM local opcional (Ollama):** Gemma 4 o Qwen2.5 en el propio servidor, con el mismo prompt y el mismo esquema que Gemini, para que los datos no salgan del hospital. El modelo se elige en Configuración. Ver [Ejecución con modelos locales](#ejecución-con-modelos-locales-ollama).
-* **Pipeline de compresión, RAG y caché clínica:** Limpieza de la transcripción y extracción de signos vitales (`ClinicalTranscriptCompressor`), recuperación léxica top-K de criterios del protocolo (`ClinicalKnowledgeRAG`) y caché canónica SHA-256 compartida entre procesos (`ClinicalQueryCache`) con 0 tokens en consultas recurrentes.
-* **Decodificación estructurada y gobernanza de tokens:** Salida guiada por esquema JSON y validada con Pydantic v2; telemetría de tokens persistida por sesión.
-* **Seudonimización antes del LLM:** Nombre, documento y teléfono se reemplazan por marcadores antes de enviar el texto a Gemini y se restauran localmente.
-* **Ratificación médica del nivel (human-in-the-loop):** Control para confirmar o ajustar el nivel sugerido, con motivo clínico y auditoría.
-* **Métricas de concordancia y seguridad:** Kappa de Cohen ponderado cuadrático, infratriaje / sobretriaje, sensibilidad en niveles 1–2 y matriz de confusión.
-* **Validación ciega contra nivel de referencia:** Un clínico distinto al tratante asigna el nivel viendo solo la transcripción; las métricas comparan IA y médico tratante contra esa referencia, sin el sesgo de anclaje de comparar contra el nivel final.
-* **Benchmark reproducible:** Comando `evaluate_benchmark` para medir el motor de reglas o el pipeline completo contra un conjunto de casos con nivel de referencia (JSON o CSV).
-* **Normalización ontológica (SNOMED-CT / CIE-10):** Traducción de relatos coloquiales a conceptos y códigos médicos con catálogo determinista de respaldo.
-* **Simulador HCE / EMR:** Cola de pacientes clasificados con asignación persistente de box y auditoría.
-* **Interoperabilidad FHIR R4:** Generación, validación estructural e historial de Bundles HL7 FHIR R4.
+* **Inferencia en workers dedicados (Celery + Redis):** Whisper corre en `worker-asr` y los modelos de lenguaje en `worker-llm`; el proceso web solo valida, persiste y encola. Si el worker LLM no responde, el triaje se resuelve deterministamente con el motor de reglas: el clínico nunca recibe un error por un fallo de la IA.
+* **Motor de triaje con prioridad Christus Sinergia Salud:** Motor determinista de reglas (niveles 1 a 5) que evalúa signos vitales críticos, banderas rojas y criterios clínicos de urgencia, sirviendo de respaldo garantizado a los modelos de lenguaje.
+* **LLM local soberano (Ollama en GPU / CPU):** Soporte de modelos locales como Gemma 4 E4B (`gemma4:e4b-it-qat`) y Qwen 2.5 7B en el propio servidor hospitalario, con el mismo prompt y esquema JSON que Gemini, garantizando privacidad total y cumplimiento de soberanía de datos de salud. Ver [Ejecución con modelos locales](#ejecución-con-modelos-locales-ollama).
+* **Extracción biomédica NER y Model Soup:** Modelo RoBERTa biomédico ajustado (`HoraYMedia/ai-triage-ner-roberta@v1`) ensamblado mediante técnicas de *Model Soup* (`ml/ner/model_soup.py`), complementado con normalizador multicapa determinista validado en CodiEsp (SNOMED CT, CIE-10 y ATC).
+* **Pipeline de compresión, RAG híbrido y caché clínica:** Limpieza de la transcripción y extracción de signos vitales (`ClinicalTranscriptCompressor`), recuperación híbrida top-K de criterios del protocolo combinando similitud semántica con `pgvector` y ranking léxico Okapi BM25 (`ClinicalKnowledgeRAG`), y caché canónica SHA-256 (`ClinicalQueryCache`) con 0 tokens en consultas recurrentes.
+* **Decodificación estructurada y gobernanza de tokens:** Salida guiada por esquema JSON y validada con Pydantic v2; telemetría de tokens, modelo y tiempo de razonamiento persistida por sesión.
+* **Seudonimización antes del LLM:** Nombre, documento y teléfono se reemplazan por marcadores antes de enviar el texto al LLM y se restauran localmente tras la inferencia.
+* **Ratificación médica del nivel (human-in-the-loop):** Control interactivo para confirmar o ajustar el nivel sugerido, con motivo clínico y auditoría inmutable.
+* **Métricas de concordancia y seguridad clínica:** Kappa cuadrático de Cohen (0,898 en test con IA local), infratriaje / sobretriaje, sensibilidad crítica en niveles I–II (92,5 % en test) y matrices de confusión detalladas.
+* **Validación ciega y evaluación metodológica:** Módulo de adjudicación ciega (`BlindReview`) donde un clínico independiente clasifica los casos sin conocer los niveles sugeridos ni el modelo, evaluando además la justificación con escalas Likert (claridad 4,80, pertinencia 4,58, fidelidad 4,58; Kappa clínico-IA de 0,911 en test).
+* **Corpus y Benchmark reproducible:** Corpus de 250 casos clínicos anotados y auditados (150 en *dev*, 100 en *test* con doble anotación ciega y Kappa inter-anotador 0,865) ejecutable mediante `evaluate_benchmark` y `evaluate_extraction`.
+* **Simulador HCE / EMR e interoperabilidad dual:** Cola de pacientes clasificados con asignación persistente de box y receptor integrado compatible tanto con **HL7 FHIR Release 4** (JSON Bundles) como con **HL7 v2.5.1** (mensajes ER7 `ADT^A08`).
 * **Bóveda de credenciales cifradas (Fernet):** Claves API cifradas en base de datos con `MultiFernet` (`FIELD_ENCRYPTION_KEY`) y exposición solo enmascarada.
 * **Seguridad, RBAC y auditoría:** Roles `admin` / `medico` / `enfermero`, matriz granular de permisos aplicada en el servidor y `AuditLog` de acciones sensibles.
 * **Autenticación endurecida:** OTP de 6 dígitos por correo (Mailpit en local), access token solo en memoria del cliente, refresh token en cookie httpOnly con rotación y lista negra, y limitación de tasa.
 * **HTTPS y cabeceras de seguridad:** nginx termina TLS, redirige HTTP a HTTPS y añade CSP, HSTS configurable, `X-Frame-Options`, `Permissions-Policy` y más.
-* **Pruebas automatizadas y CI:** 168 pruebas en Pytest (backend) y 67 en Vitest / Testing Library (frontend), ejecutadas en GitHub Actions junto con lint, build y comprobación de migraciones.
+* **Pruebas automatizadas y CI:** 421 pruebas en Pytest (backend, + 1 xfail documentado) y 91 pruebas en 14 suites en Vitest (frontend), ejecutadas en GitHub Actions (`ci.yml`) con comprobación de migraciones Django, linter ESLint y build de producción Next.js.
 
 ---
 
@@ -33,7 +32,7 @@
 
 ```
 ai-triage/
-├── backend/                              # API en Django 5 + Django REST Framework
+├── backend/                              # API en Django 5.2 / 6.x + Django REST Framework
 │   ├── config/
 │   │   ├── settings.py                   # Ajustes (JWT, HTTPS, Redis, Celery, throttles, logging, BD)
 │   │   ├── celery.py                     # App Celery (colas 'asr' y 'llm')
@@ -47,37 +46,48 @@ ai-triage/
 │   ├── triage/
 │   │   ├── views.py                      # Analyze, historial, override, box, métricas, validación ciega, FHIR
 │   │   ├── tasks.py                      # Tarea Celery de triaje (cola 'llm') y respaldo por reglas
-│   │   ├── ai_analyzer.py                # Pipeline: reglas → compresión → caché → RAG → LLM → respaldo
-│   │   ├── local_llm.py                  # Cliente del LLM local (Ollama u otro servidor compatible con OpenAI)
+│   │   ├── ai_analyzer.py                # Pipeline: reglas → compresión → caché → RAG híbrido → LLM → respaldo
+│   │   ├── clinical_rag.py               # RAG híbrido (pgvector + Okapi BM25 sobre 58 criterios)
+│   │   ├── ner_model.py                  # Cliente e inferencia del extractor biomédico RoBERTa
+│   │   ├── local_llm.py                  # Cliente del LLM local (Ollama u otro servidor compatible OpenAI)
 │   │   ├── clinical_protocol.py          # Motor determinista Christus Sinergia / Resolución 5596
-│   │   ├── clinical_cache.py             # Caché clínica sobre Redis
-│   │   ├── metrics.py                    # Kappa, infratriaje, sensibilidad, referencia ciega
-│   │   └── management/commands/evaluate_benchmark.py
+│   │   ├── clinical_cache.py             # Caché clínica sobre Redis (SHA-256 canónico)
+│   │   ├── metrics.py                    # Kappa cuadrático, infratriaje, sensibilidad, bootstrap IC95
+│   │   ├── benchmark/                    # Corpus clínico (250 casos dev/test, doble anotación y resultados)
+│   │   └── management/commands/          # evaluate_benchmark, evaluate_extraction, compare_engines, ...
 │   ├── transcription/
-│   │   ├── whisper_engine.py             # Singleton Faster-Whisper; contexto por sesión en Redis
+│   │   ├── whisper_engine.py             # Singleton Faster-Whisper, audio cleaner y contexto continuo Redis
 │   │   ├── tasks.py                      # Tareas Celery de transcripción (cola 'asr') y normalización
-│   │   ├── normalizer.py                 # Normalización SNOMED-CT / CIE-10 (Gemini + catálogo)
+│   │   ├── normalizer.py                 # Normalización SNOMED-CT / CIE-10 / ATC (Gemini + catálogo)
+│   │   ├── terminology/                  # Catálogo clínico determinista indexado
 │   │   └── views.py                      # Transcribe, reset, normalize, health check
 │   ├── system_settings/                  # SystemConfiguration y bóveda de claves API
 │   ├── scripts/entrypoint.sh             # Espera a Postgres/Redis, migra, crea demo y collectstatic
 │   ├── Dockerfile                        # Python 3.12-slim; ARG WITH_CUDA para las librerías NVIDIA
 │   └── requirements.txt / requirements-dev.txt
 │
-├── frontend/                             # Next.js 15 (App Router, React 19, Tailwind 4)
+├── frontend/                             # Next.js 15 (App Router, React 19, Tailwind CSS, TypeScript)
 │   ├── app/                              # page.tsx (shell protegido), login/
 │   ├── components/                       # TriageDashboard, EMRSimulator, FHIRMonitor, MetricsDashboard,
 │   │                                     # NormalizationMonitor, BlindReview, SecurityPanel, ConfigPanel
-│   ├── hooks/useWhisperASR.ts            # Captura de audio por fragmentos
+│   ├── hooks/useWhisperASR.ts            # Captura de audio por fragmentos con hotwords y VU meter
 │   ├── lib/api.ts                        # fetchWithAuth: token en memoria y refresh por cookie
-│   └── tests/                            # Vitest + Testing Library
+│   └── tests/                            # Vitest + Testing Library (14 suites, 91 tests)
+│
+├── ml/                                   # Modelos y scripts de Machine Learning
+│   └── ner/
+│       ├── model_soup.py                 # Ensamble por interpolación de pesos (Model Soup) para RoBERTa
+│       ├── train_ner.py                  # Fine-tuning de RoBERTa biomédico sobre entidades clínicas
+│       ├── revision_corpus.py            # Verificación de integridad de spans y consistencia del corpus
+│       └── error_analysis.py             # Análisis de errores y métricas macro/micro F1
 │
 ├── nginx/
 │   ├── templates/                        # Configuración (TLS, proxy) y cabeceras de seguridad / CSP
 │   ├── 10-generate-self-signed-cert.sh   # Certificado autofirmado si no se monta uno real
 │   └── Dockerfile
 │
-├── docs/                                 # Despliegue, modelo de datos, auditoría e informe de brechas
-├── .github/workflows/ci.yml              # Tests, lint, build y migraciones en cada push / PR
+├── docs/                                 # Despliegue, modelo de datos, auditoría, ASR y evaluación de triaje
+├── .github/workflows/ci.yml              # Pipeline único de CI (backend + frontend) en push y PR
 ├── docker-compose.yml                    # Stack completo en modo CPU (funciona en cualquier equipo)
 ├── docker-compose.gpu.yml                # Override para GPU NVIDIA (worker-asr con CUDA y GPU para llm-local)
 └── .env.example                          # Plantilla documentada de variables
@@ -140,14 +150,14 @@ ai-triage/
 | `nginx` | `ai_triage_nginx` | `80`, `443` | Entrada única: TLS, redirección a HTTPS, cabeceras de seguridad y proxy |
 | `frontend` | `ai_triage_frontend` | `3000` (interno) | Interfaz Next.js 15 en modo standalone |
 | `backend` | `ai_triage_backend` | `8000` (interno) | Gunicorn + Django REST: API, RBAC, persistencia; encola la inferencia |
-| `worker-asr` | `ai_triage_worker_asr` | — | Celery, cola `asr`: Faster-Whisper cargado una sola vez (CPU o GPU) |
-| `worker-llm` | `ai_triage_worker_llm` | — | Celery, cola `llm`: triaje con Gemini o con el LLM local, normalización y NER RoBERTa |
-| `llm-local` | `ai_triage_llm_local` | `11434` (interno) | Opcional, perfil `llm-local`: Ollama con Gemma 4 / Qwen2.5 (CPU o GPU NVIDIA) |
-| `postgres` | `ai_triage_postgres` | `5432` (interno) | PostgreSQL 16 |
-| `redis` | `ai_triage_redis` | `6379` (interno) | Broker de Celery, caché clínica, contexto ASR y throttling |
+| `worker-asr` | `ai_triage_worker_asr` | — | Celery, cola `asr`: Faster-Whisper con hotwords y preprocesado (CPU o CUDA) |
+| `worker-llm` | `ai_triage_worker_llm` | — | Celery, cola `llm`: triaje con Gemini o LLM local, normalización ontológica y RoBERTa NER |
+| `llm-local` | `ai_triage_llm_local` | `11434` (interno) | Opcional, perfil `llm-local`: Ollama con Gemma 4 / Qwen 2.5 (CPU o GPU NVIDIA) |
+| `postgres` | `ai_triage_postgres` | `5432` (interno) | PostgreSQL 16 + extensión `pgvector` para persistencia y RAG vectorial |
+| `redis` | `ai_triage_redis` | `6379` (interno) | Broker de Celery, caché clínica SHA-256, contexto ASR y limitación de tasa |
 | `mailpit` | `ai_triage_mailpit` | `1025`, `8025` | SMTP local y visor web de correos OTP |
 
-Volúmenes persistentes: `postgres_data`, `redis_data`, `nginx_certs` (certificados TLS), `asr_model_cache` (modelos Whisper descargados), `ner_model_cache` (modelo NER), `ollama_models` (modelos del LLM local) y `audio_uploads`.
+Volúmenes persistentes: `postgres_data`, `redis_data`, `nginx_certs` (certificados TLS), `asr_model_cache` (modelos Whisper descargados), `ner_model_cache` (modelo RoBERTa biomédico), `ollama_models` (modelos del LLM local) y `audio_uploads`.
 
 ---
 
@@ -284,6 +294,23 @@ El triaje puede usar un LLM que corre **en el propio servidor** en vez de Gemini
 
 Las cifras completas están en [`docs/RESULTADOS_DEV_TRIAJE.md`](docs/RESULTADOS_DEV_TRIAJE.md). Con GPU NVIDIA, los dos modelos responden en segundos.
 
+### Rendimiento Clínico Comparativo (Splits Dev y Test)
+
+Evaluación experimental rigurosa sobre el corpus clínico estratificado (250 casos validados; 150 en *dev* y 100 en *test* congelado):
+
+| Modelo / Pipeline | Exactitud (*test*) | Kappa Cuadrático (*test*) | Sensibilidad Crítica (*test*) | Infratriaje (*test*) | Latencia GPU (RTX 3070) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Gemma 4 E4B (`gemma4:e4b-it-qat`) + RoBERTa** | **73,0 %** [64,0–81,0] | **0,898** [0,828–0,945] | **92,5 %** [83,0–100,0] | **12,0 %** | **15,5 s** |
+| Reglas puras (Línea base determinista) | 39,0 % [30,0–49,0] | 0,339 [0,199–0,477] | 37,5 % [22,5–52,5] | 56,0 % | < 1 ms |
+| Mejora pareada (Δ IA vs. Reglas) | **+34,0 pp** | **+0,559** | **+55,0 pp** | **-44,0 pp** | — |
+
+En la validación clínica ciega sobre el split *test* (50 casos evaluados a ciegas por personal médico independiente), el sistema demostró:
+- **Concordancia Kappa clínico-IA:** `0,911` IC95 [0,793, 0,975] (concordancia casi perfecta).
+- **Exactitud clínica:** `80,0 %`.
+- **Evaluación de explicabilidad Likert (1–5):** Claridad `4,80`, Pertinencia `4,58`, Fidelidad `4,58`.
+
+Las métricas detalladas y comparativas completas se encuentran en [`docs/EVALUACION_TRIAJE.md`](docs/EVALUACION_TRIAJE.md) y [`docs/RESULTADOS_DEV_TRIAJE.md`](docs/RESULTADOS_DEV_TRIAJE.md).
+
 ### 1. Requisitos
 
 * **Con GPU NVIDIA (recomendado):** los mismos requisitos que en [Ejecución con GPU NVIDIA](#ejecución-con-gpu-nvidia). El override `docker-compose.gpu.yml` le reserva la GPU también a `llm-local`.
@@ -407,27 +434,30 @@ Todas las rutas requieren `Authorization: Bearer <access token>` salvo las marca
 | `GET` | `/api/triage/sessions/evaluation_metrics/` | Concordancia, Kappa, seguridad y validación ciega | JWT (identidad del paciente solo con `can_view_emr`) |
 | `GET` | `/api/triage/sessions/blind_review_queue/` | Casos pendientes de adjudicación ciega (sin niveles) | `can_edit_symptoms` |
 | `POST` | `/api/triage/sessions/<id>/reference_level/` | Registro del nivel de referencia ciego (inmutable) | `can_edit_symptoms`, distinto del autor |
+| `POST` | `/api/triage/sessions/<id>/justification_rating/` | Evaluación Likert de justificación (claridad, pertinencia, fidelidad) | `can_edit_symptoms`, adjudicador independiente |
+| `GET` | `/api/triage/sessions/benchmark_results/` | Consulta de métricas y resultados históricos de benchmark | JWT |
+| `POST` / `PATCH` | `/api/triage/sessions/<id>/update_care_status/` | Actualización de estado de atención y box clínico en simulador HCE | `can_view_emr` |
 | `GET` | `/api/triage/sessions/fhir_logs/` | Historial de transacciones FHIR | `can_view_fhir` |
-| `POST` | `/api/fhir/` | Validación e ingestión de Bundles FHIR R4 | JWT |
+| `POST` | `/api/fhir/` · `/api/fhir/sync/` | Validación e ingestión de Bundles FHIR R4 y mensajes HL7 v2.5.1 | JWT |
 | `GET` | `/api/health_check/` | Estado del backend y del motor ASR | Público |
 
 ---
 
 ## Ejecución de Pruebas Automatizadas
 
-### Backend (Django + Pytest): 261 pruebas
+### Backend (Django + Pytest): 421 pruebas pasadas (1 xfail)
 
-Además hay 4 `xfail` estrictos que documentan limitaciones conocidas del motor de reglas. Cubren autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico (un caso por criterio y regresiones), compresión, RAG, caché, métricas y validación ciega, FHIR, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y el comando de benchmark.
+El conjunto cubre exhaustivamente autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico (un caso por criterio y regresiones), compresión, RAG híbrido (`pgvector` + BM25), caché SHA-256, métricas y validación ciega, interoperabilidad dual FHIR R4 / HL7 v2.5.1, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y comandos de benchmark.
 
 ```bash
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
-backend/.venv/Scripts/python.exe -m pytest backend
-docker compose exec backend pytest            # dentro del contenedor
+backend/.venv/Scripts/python.exe -m pytest --create-db backend
+docker compose exec backend pytest --create-db
 ```
 
 En pytest las tareas Celery se ejecutan en línea y la caché es local al proceso: no hace falta Redis.
 
-### Frontend (Next.js + Vitest + Testing Library): 67 pruebas
+### Frontend (Next.js + Vitest + Testing Library): 91 pruebas pasadas (14 suites)
 
 ```bash
 pnpm --dir frontend test
@@ -435,16 +465,20 @@ pnpm --dir frontend run lint
 pnpm --dir frontend run build
 ```
 
-### Benchmark del motor de triaje
+### Benchmark del motor de triaje y extracción biomédica
 
-Mide el motor contra un conjunto de casos con nivel de referencia (`id`, `transcript`, `reference_level` en JSON o CSV). El repositorio incluye 65 casos sintéticos en [`backend/triage/benchmark/`](backend/triage/benchmark/README.md):
+Mide el motor contra el corpus clínico de **250 casos anotados y auditados** (`id`, `transcript`, `reference_level`, entidades y negación en JSON) en [`backend/triage/benchmark/corpus_entidades.json`](backend/triage/benchmark/README.md), estratificado en 150 casos de desarrollo (*dev*) y 100 de prueba (*test* con doble anotación ciega y Kappa inter-anotador 0,865):
 
 ```bash
-backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark backend/triage/benchmark/casos_sinteticos.json --engine reglas
-backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark casos.csv --engine pipeline --output resultados.json
-```
+# Evaluación de la línea base determinista de reglas sobre el split de prueba (100 casos)
+backend/.venv/Scripts/python.exe backend/manage.py evaluate_benchmark backend/triage/benchmark/corpus_entidades.json --engine reglas --split test
 
-`--engine pipeline` usa el análisis completo (Gemini si hay clave) sin caché. Los casos sintéticos los redactó el equipo a partir del protocolo: sirven como línea base de regresión, no como validación clínica. Para eso hace falta un conjunto con nivel asignado por clínicos (por ejemplo, mediante la validación ciega de la aplicación).
+# Evaluación de extracción NER y clasificación con LLM local o nube
+backend/.venv/Scripts/python.exe backend/manage.py evaluate_extraction --split test --model local:gemma4:e4b-it-qat --fusion
+
+# Comparativa estadística pareada con bootstrap de 1.000 remuestreos
+backend/.venv/Scripts/python.exe backend/manage.py compare_engines --test-rules backend/triage/benchmark/resultados/test_reglas.json --test-llm backend/triage/benchmark/resultados/test_ollama_gemma4_gpu.json
+```
 
 ---
 
