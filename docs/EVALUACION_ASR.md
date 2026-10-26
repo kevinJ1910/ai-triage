@@ -53,3 +53,20 @@ El comando informa de lo siguiente, en total y por condición:
 - Los errores de términos clínicos que aparezcan se pueden añadir a `transcription/terminology/correcciones_asr.json`. Esa es la capa de correcciones ASR de la normalización.
 
 **Prueba de funcionamiento (no es un resultado):** con un audio sintético (voz de Windows «Sabina», es-MX) y el modelo `tiny`, el WER fue de 0,11 con el archivo completo y de 0,22 en fragmentos de 4 s. «losartán» se transcribió como «los artán».
+## 4. Resultados Empíricos Medidos (25-10-2026)
+
+Se evaluó el módulo ASR sobre el corpus de 40 audios de diálogo clínico en español (20 en condición de silencio en cabina y 20 con ruido ambiente hospitalario mezclado a 12 dB SNR, totalizando 150 menciones de términos médicos del catálogo).
+
+Los artefactos crudos con los resultados completos están guardados en ackend/triage/benchmark/resultados/:
+
+| Configuración | Modelo y Precisión | Dispositivo | Modo | WER Global | WER Silencio | WER Ruido | Error Términos Clínicos | RTF | Latencia Media | Artefacto |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Producción GPU (Recomendada)** | Faster-Whisper large-v3-turbo (float16) | NVIDIA CUDA | Completo | **2,39 %** | **1,87 %** | **2,90 %** | **3,33 %** (5/150) | **0,044** | 1,26 s | sr_large_v3_turbo_cuda.json |
+| **Ablación sin ayudas** | large-v3-turbo (sin prompt ni hotwords) | NVIDIA CUDA | Completo | 2,47 % | 2,05 % | 2,90 % | 4,67 % (ruido: 6,67 %) | 0,043 | 1,21 s | sr_large_v3_turbo_cuda_ablacion_sin_ayudas.json |
+| **Streaming concurrente** | large-v3-turbo (float16) | NVIDIA CUDA | Chunks 4 s | 12,81 % | 10,62 % | 15,00 % | 8,67 % | 0,139 | 3,96 s | sr_large_v3_turbo_cuda_stream4s.json |
+| **Respaldo local CPU** | Faster-Whisper small (int8) | CPU AMD | Completo | 7,53 % | 5,11 % | 9,94 % | 10,67 % (16/150) | 0,142 | 4,04 s | sr_small_cpu_int8.json |
+
+### Hallazgos Clave para la Tesis:
+1. **Superación del compromiso del Anteproyecto (WER < 15 %):** La configuración en GPU (large-v3-turbo) alcanza un WER de 2,39 %, superando holgadamente el umbral contractual del anteproyecto y el valor provisional (8,4 %) citado en el borrador inicial.
+2. **Impacto de las Hotwords Clínicas:** La inyección del prompt clínico y las hotwords reduce el error en términos médicos del 6,67 % al 4,00 % en entornos con ruido hospitalario.
+3. **Viabilidad de Respaldo en CPU:** En ausencia de aceleración por GPU, el modelo small int8 opera con un RTF de 0,142 (< 1,0 indica procesamiento más rápido que tiempo real) y un WER de 7,53 %, manteniéndose por debajo del umbral del 10 % aceptable en el dominio clínico.

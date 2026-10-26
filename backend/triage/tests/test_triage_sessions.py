@@ -1,3 +1,4 @@
+import json
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -6,6 +7,7 @@ from patients.models import Patient
 from triage.models import TriageSession
 
 User = get_user_model()
+
 
 @pytest.mark.django_db
 class TestTriageSessions:
@@ -171,52 +173,65 @@ class TestTriageSessions:
         ])
         assert count_queries() == few
 
-    def test_emr_patients_endpoint(self):
-        TriageSession.objects.create(
+    def test_emr_patients_endpoint_and_fhir_hce_reception(self):
+        from accounts.models import AuditLog
+        from triage.models import Transcription
+
+        session = TriageSession.objects.create(
             patient=self.patient,
             level=2,
-            ai_level=2,
+            ai_level=3,
             final_level=2,
-            justification="Atencion inmediata en box",
-            clinical_entities={"vitals": {"fc": "110", "ta": "140/90"}}
+            is_level_modified=True,
+            justification="Atencion prioritaria en HCE",
+            final_symptoms=["Dolor toracico", "Disnea"],
+            clinical_entities={"symptoms": ["dolor"], "vitals": ["PA: 140/90 mmHg", "FC: 110 lpm"]},
         )
+        Transcription.objects.create(
+            triage_session=session,
+            session_uuid="emr-hce-1",
+            full_text="Medico: como se siente\nPaciente: dolor opresivo",
+            model_used="gemma4:e4b-it-qat",
+        )
+
         response = self.client.get("/api/triage/sessions/emr_patients/")
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) >= 1
+        assert len(response.data) == 1
         first_patient = response.data[0]
         assert first_patient["name"] == "Alejandro Morales"
         assert first_patient["document_id"] == "CC-TRIAGE-001"
-        # Sin asignacion real no se inventa ubicacion
-        assert first_patient["assigned_box"] == ""
-        assert first_patient["status"] == "Pendiente de Box"
+        assert first_patient["status"] == "Pendiente de Recepcion"
+        assert first_patient["fhir_synced"] is False
+        assert first_patient["entities"]["symptoms"] == ["Dolor toracico", "Disnea"]
+        assert first_patient["engine_used"] == "gemma4:e4b-it-qat"
 
-    def test_assign_box_endpoint_success(self):
-        session = TriageSession.objects.create(
-            patient=self.patient,
-            level=3,
-            ai_level=3,
-            final_level=3,
-            justification="Paciente para box 3",
-            clinical_entities={"vitals": {"fc": "88"}}
-        )
-        response = self.client.post(
-            f"/api/triage/sessions/{session.id}/assign_box/",
-            data={"box_name": "BOX-03"},
-            format="json"
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["assigned_box"] == "BOX-03"
-        assert response.data["status"] == "En Atencion"
+        # Al sincronizar Bundle FHIR R4 con enc-<session.id>, la HCE marca la admision como recibida y audita.
+        bundle = {
+            "resourceType": "Bundle",
+            "type": "collection",
+            "entry": [
+                {
+                    "resource": {
+                        "resourceType": "Encounter",
+                        "id": f"enc-{session.id}",
+                        "status": "triaged",
+                        "class": {"code": "EMER", "display": "emergency"},
+                    }
+                }
+            ],
+        }
+        sync_res = self.client.post("/api/fhir/", data=json.dumps(bundle), content_type="application/json")
+        assert sync_res.status_code == status.HTTP_201_CREATED
 
         session.refresh_from_db()
-        assert session.assigned_box == "BOX-03"
-        assert session.care_status == "En Atencion"
-        # La ubicacion ya no se mezcla con las entidades clinicas
-        assert session.clinical_entities == {"vitals": {"fc": "88"}}
+        assert session.care_status == "Recibido en HCE"
+        assert AuditLog.objects.filter(action="FHIR_HCE_SYNC", resource=f"TriageSession:{session.id}").exists()
 
-        listed = self.client.get("/api/triage/sessions/emr_patients/").data[0]
-        assert listed["assigned_box"] == "BOX-03"
-        assert listed["status"] == "En Atencion"
+        refreshed = self.client.get("/api/triage/sessions/emr_patients/").data[0]
+        assert refreshed["fhir_synced"] is True
+        assert refreshed["fhir_resource_id"] == sync_res.json()["id"]
+        assert refreshed["status"] == "Recibido en HCE"
+        assert refreshed["fhir_bundle"]["resourceType"] == "Bundle"
 
     def test_box_migration_moves_entities_to_columns(self):
         import importlib
@@ -244,20 +259,14 @@ class TestTriageSessions:
         assert legacy.clinical_entities["assigned_box"] == "REAN-01"
         assert "assigned_box" not in untouched.clinical_entities
 
-    def test_assign_box_endpoint_invalid_name(self):
+    def test_removed_box_crud_routes_return_404(self):
         session = TriageSession.objects.create(
-            patient=self.patient,
-            level=3,
-            ai_level=3,
-            final_level=3,
-            justification="Paciente para box invalido"
+            patient=self.patient, level=3, ai_level=3, final_level=3, justification="Sin crud de boxes"
         )
-        response = self.client.post(
-            f"/api/triage/sessions/{session.id}/assign_box/",
-            data={"box_name": ""},
-            format="json"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert self.client.get("/api/triage/sessions/boxes_census/").status_code == status.HTTP_404_NOT_FOUND
+        assert self.client.post("/api/triage/sessions/manage_boxes/", {"action": "create"}, format="json").status_code == status.HTTP_404_NOT_FOUND
+        assert self.client.post(f"/api/triage/sessions/{session.id}/assign_box/", {"box_name": "BOX-01"}, format="json").status_code == status.HTTP_404_NOT_FOUND
+        assert self.client.post(f"/api/triage/sessions/{session.id}/release_box/", {}, format="json").status_code == status.HTTP_404_NOT_FOUND
 
     def test_unauthenticated_requests_blocked(self):
         unauth_client = APIClient()
@@ -268,7 +277,6 @@ class TestTriageSessions:
             final_level=3,
             justification="Sesion para prueba auth"
         )
-        # Mutaciones sin auth son bloqueadas con 401
         res_override = unauth_client.patch(
             f"/api/triage/sessions/{session.id}/override_level/",
             data={"final_level": 2},
@@ -276,12 +284,12 @@ class TestTriageSessions:
         )
         assert res_override.status_code == status.HTTP_401_UNAUTHORIZED
 
-        res_box = unauth_client.post(
-            f"/api/triage/sessions/{session.id}/assign_box/",
-            data={"box_name": "BOX-01"},
+        res_care = unauth_client.post(
+            f"/api/triage/sessions/{session.id}/update_care_status/",
+            data={"status": "En Atencion"},
             format="json"
         )
-        assert res_box.status_code == status.HTTP_401_UNAUTHORIZED
+        assert res_care.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_unauthenticated_reads_blocked(self):
         unauth_client = APIClient()
@@ -591,7 +599,6 @@ class TestTriageSessions:
         assert ratings == {"n": 2, "clarity": 3.5, "relevance": 5.0, "fidelity": 4.0}
 
     def test_benchmark_results_summarizes_saved_runs(self, tmp_path, settings, mocker):
-        import json
         results = tmp_path / "resultados"
         results.mkdir()
         (results / "test_hibrido.json").write_text(json.dumps({
@@ -653,89 +660,6 @@ class TestTriageSessions:
         # El respaldo no intenta llamar a Gemini desde el proceso web
         resolve_key.assert_not_called()
 
-    def test_release_box_frees_patient_and_audits(self):
-        from accounts.models import AuditLog
-        session = TriageSession.objects.create(
-            patient=self.patient,
-            level=2,
-            ai_level=2,
-            final_level=2,
-            assigned_box="BOX-02",
-            care_status="En Atencion",
-            justification="Paciente para liberar"
-        )
-        response = self.client.post(
-            f"/api/triage/sessions/{session.id}/release_box/",
-            {"status": "Alta Medica"},
-            format="json"
-        )
-        assert response.status_code == status.HTTP_200_OK
-        session.refresh_from_db()
-        assert session.assigned_box == ""
-        assert session.care_status == "Alta Medica"
-        assert AuditLog.objects.filter(action="EMR_BOX_RELEASED").count() == 1
-
-    def test_boxes_census_and_management_lifecycle(self):
-        # 1. Consultar censo inicial
-        census_res = self.client.get("/api/triage/sessions/boxes_census/")
-        assert census_res.status_code == status.HTTP_200_OK
-        assert "boxes" in census_res.data
-        assert "summary" in census_res.data
-        assert census_res.data["summary"]["total"] >= 10
-
-        # 2. Crear nuevo box personalizado
-        create_res = self.client.post(
-            "/api/triage/sessions/manage_boxes/",
-            {
-                "action": "create",
-                "code": "BOX-TEST-99",
-                "area": "Urgencias Pediatria",
-                "type": "Cuna Hospitalaria",
-                "equipment": "Monitor neonatal"
-            },
-            format="json"
-        )
-        assert create_res.status_code == status.HTTP_201_CREATED
-        assert create_res.data["box"]["code"] == "BOX-TEST-99"
-
-        # 3. Cambiar estado operativo (ej. desinfeccion)
-        state_res = self.client.post(
-            "/api/triage/sessions/manage_boxes/",
-            {"action": "update_state", "code": "BOX-TEST-99", "state": "En Desinfeccion"},
-            format="json"
-        )
-        assert state_res.status_code == status.HTTP_200_OK
-
-        # 4. Actualizar/Editar datos del box (area, tipo, equipamiento)
-        edit_res = self.client.post(
-            "/api/triage/sessions/manage_boxes/",
-            {
-                "action": "update",
-                "code": "BOX-TEST-99",
-                "area": "Reanimacion",
-                "type": "Box Vital",
-                "equipment": "Monitor neonatal, Carro de paro"
-            },
-            format="json"
-        )
-        assert edit_res.status_code == status.HTTP_200_OK
-
-        # 5. Verificar en el censo que aparece con los nuevos valores y en desinfeccion
-        updated_census = self.client.get("/api/triage/sessions/boxes_census/")
-        box_item = next(b for b in updated_census.data["boxes"] if b["code"] == "BOX-TEST-99")
-        assert box_item["status"] == "En Desinfeccion"
-        assert box_item["area"] == "Reanimacion"
-        assert box_item["type"] == "Box Vital"
-        assert "Carro de paro" in box_item["equipment"]
-
-        # 6. Eliminar box personalizado
-        del_res = self.client.post(
-            "/api/triage/sessions/manage_boxes/",
-            {"action": "delete", "code": "BOX-TEST-99"},
-            format="json"
-        )
-        assert del_res.status_code == status.HTTP_200_OK
-
     def test_update_care_status_and_evolution_notes(self):
         from accounts.models import AuditLog
         session = TriageSession.objects.create(
@@ -743,7 +667,7 @@ class TestTriageSessions:
             level=3,
             ai_level=3,
             final_level=3,
-            care_status="En Espera",
+            care_status="Recibido en HCE",
             justification="Paciente prueba estado"
         )
         url = f"/api/triage/sessions/{session.id}/update_care_status/"
@@ -760,4 +684,3 @@ class TestTriageSessions:
         assert session.care_status == "En Atencion"
         assert session.clinical_entities.get("evolution_notes") == "Paciente canalizado, recibiendo analgesia IV."
         assert AuditLog.objects.filter(action="EMR_CARE_STATUS_UPDATED").count() == 1
-

@@ -12,8 +12,8 @@ El sistema se distribuye en 8 componentes interconectados mediante una red *brid
 *   **`frontend` (Next.js 15 Standalone):** Servidor Node.js 20 Alpine ejecutado con usuario sin privilegios `nextjs` (UID 1001), sirviendo la interfaz reactiva optimizada.
 *   **`backend` (Django 5.2.8 / DRF, Gunicorn):** API web bajo usuario no-root `appuser`. Valida, persiste y aplica RBAC; **no** carga Whisper ni llama a Gemini: encola la inferencia en los workers y espera el resultado con un tiempo máximo (`ASR_TASK_TIMEOUT`, `LLM_TASK_TIMEOUT`).
 *   **`worker-asr` (Celery, cola `asr`):** Un único proceso (`--pool solo`) que carga *faster-whisper* una sola vez al arrancar y es el único que reserva la GPU.
-*   **`worker-llm` (Celery, cola `llm`):** Llamadas a Gemini para el triaje y la normalización clínica, con un pool de hilos (trabajo de E/S). Si no responde a tiempo, el triaje se resuelve con el motor de reglas en el propio backend.
-*   **`postgres` (PostgreSQL 16 Alpine):** Persistencia ACID relacional con esquemas optimizados e índices compuestos.
+*   **worker-llm (Celery, cola llm):** Inferencia de triaje estructurado con Gemini o LLM local (Ollama) y extracción NER / RAG clínico (pgvector). Si no responde a tiempo, el triaje se resuelve con el motor de reglas en el propio backend.
+*   **postgres (PostgreSQL 16 con pgvector):** Persistencia ACID relacional con esquemas optimizados, índices compuestos y búsqueda semántica vectorial para el RAG clínico institucional.
 *   **`redis` (Redis 7 Alpine):** Broker y resultados de Celery (db 0) y caché compartida (db 1): caché clínica de consultas, contexto de transcripción por sesión y contadores de *throttling*, comunes a todos los procesos.
 *   **`mailpit` (Servidor SMTP Transaccional):** Servidor SMTP (puerto 1025) y panel web de inspección de correos (puerto 8025) para captura local de OTPs y alertas; reemplazable en producción por relé SMTP corporativo o SendGrid/SES.
 
@@ -148,9 +148,14 @@ docker compose exec llm-local ollama pull qwen2.5:7b-instruct-q4_K_M
 Después se elige «LLM local» en Configuración, y el estado aparece en `/api/config/engines/`. Con GPU NVIDIA, `docker-compose.gpu.yml` le reserva la GPU y responde en segundos. En CPU tarda 1–2 minutos por triaje, así que hay que subir `LLM_TASK_TIMEOUT` por encima de `LOCAL_LLM_TIMEOUT_SECONDS`.
 
 ```env
-LOCAL_LLM_BASE_URL=http://llm-local:11434   # Ollama nativo: http://localhost:11434
-LOCAL_LLM_MODEL=qwen2.5:7b-instruct-q4_K_M
+# LLM Local (Ollama)
+LOCAL_LLM_BASE_URL=http://host.docker.internal:11434   # O http://llm-local:11434 en Docker
+LOCAL_LLM_MODEL=gemma4:e4b-it-qat                      # o qwen2.5:7b-instruct-q4_K_M
 LOCAL_LLM_TIMEOUT_SECONDS=300
+
+# Extractor Biomédico RoBERTa NER (Model Soup)
+NER_MODEL_PATH=HoraYMedia/ai-triage-ner-roberta
+NER_MODEL_REVISION=v1
 ```
 
 ### 3.6. Configuración del Frontend

@@ -1,9 +1,9 @@
 # Informe Técnico de Implementación, Arquitectura y Brechas del Sistema
 
-**Fecha:** 2026-10-05  
+**Fecha:** 2026-10-26  
 **Proyecto:** AI-Triage Hospitalario (Trabajo de Grado / Sistema de Soporte a la Decisión Clínica)  
 **Rama base:** `develop`  
-**Versión anterior del informe:** 2026-09-10
+**Versión anterior del informe:** 2026-10-05 (Versión 3)
 
 ---
 

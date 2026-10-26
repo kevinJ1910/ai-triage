@@ -36,9 +36,18 @@ PSEUDO_AFTER_SIN = {'poder', 'respirar', 'respuesta', 'responder', 'despertar', 
 CLITICS = {'se', 'le', 'les', 'me', 'te', 'lo', 'la', 'nos'}
 # "casi no orino": la particula previa "casi" anula la negacion.
 PSEUDO_BEFORE = {'no': {'casi'}}
-# Tras "no he" / "no ha" el verbo decide: "no he vomitado" niega; "no he podido comer" no.
-NEGATING_AFTER_HABER = {'tenido', 'presentado', 'vomitado', 'perdido', 'tomado', 'sentido', 'notado',
-                        'pensado', 'hecho', 'bajado', 'cambiado', 'sangrado'}
+# Tras "no he" / "no ha" el verbo decide: "no he vomitado" o "no se ha caido" niega;
+# solo los participios aspectuales/modales ("no he podido comer") describen un hallazgo presente.
+PSEUDO_PARTICIPLES_AFTER_HABER = {
+    'podido', 'dejado', 'parado', 'mejorado', 'cedido', 'quitado', 'servido',
+    'tolerado', 'despertado', 'respondido', 'respirado', 'logrado', 'comido', 'dormido',
+}
+
+# Terminos privativos morfologicos y funciones fisiologicas conservadas ("afebril", "respiro bien",
+# "tolera liquidos"): expresan ausencia de hallazgo patologico cuando no van negados.
+_PRIVATIVE_RE = re.compile(r"\b(afebril(?:es)?|apiretic[oa]s?|asintomatic[oa]s?|anicteric[oa]s?|eupneic[oa]s?)\b")
+_PRESERVED_RE = re.compile(r"\b(bien|normal(?:es|mente)?|toler(?:a|o|an|ando|ar)|conservad[oa]s?|adecuad[oa]s?)\b")
+_NEG_MODIFIER_RE = re.compile(r"\b(no|sin|ni|nunca|tampoco|mal|poco|casi|dificultad|imposibilidad)\b")
 
 # 'y'/'e' cierran el alcance: la negacion coordinada en espanol usa 'ni' ("sin fiebre ni tos"),
 # mientras que "no tengo fiebre y me duele la cabeza" afirma la cefalea.
@@ -86,7 +95,7 @@ def _is_pseudo(tokens, idx, length) -> bool:
     verb = tokens[nxt][0]
     if verb in ('he', 'ha', 'han', 'hemos'):
         # "no he vomitado" niega; "no he podido comer" describe un hallazgo presente.
-        return nxt + 1 < len(tokens) and tokens[nxt + 1][0] not in NEGATING_AFTER_HABER
+        return nxt + 1 < len(tokens) and tokens[nxt + 1][0] in PSEUDO_PARTICIPLES_AFTER_HABER
     return verb in PSEUDO_VERBS_AFTER_NO
 
 
@@ -121,6 +130,21 @@ def is_negated(text: str, start: int, end: int, window: int = WINDOW) -> bool:
         if _trigger_at(tokens, idx, POST_TRIGGERS):
             return True
     return False
+
+
+def is_preserved_or_privative(text: str, start: int, end: int) -> bool:
+    """
+    True si el span normalizado expresa ausencia morfologica de sintoma ('afebril', 'asintomatico')
+    o funcion fisiologica conservada sin particula negativa ('respiro bien', 'tolera liquidos').
+    """
+    span_text = text[start:end]
+    if _PRIVATIVE_RE.search(span_text):
+        return True
+    if not _PRESERVED_RE.search(span_text) or _NEG_MODIFIER_RE.search(span_text):
+        return False
+    prefix = text[max(0, start - 25):start]
+    clause_prefix = re.split(r"[.,;:!?]|\b(?:pero|aunque|y|e)\b", prefix)[-1]
+    return not bool(_NEG_MODIFIER_RE.search(clause_prefix))
 
 
 def find_affirmed(pattern: str, text: str, flags: int = 0) -> Optional[re.Match]:

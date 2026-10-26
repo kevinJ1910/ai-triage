@@ -16,6 +16,7 @@ from .tasks import analyze_with_worker
 from .clinical_cache import ClinicalQueryCache
 from .clinical_rag import ClinicalKnowledgeRAG
 from .benchmark_results import load_results
+from .blind_review_corpus import CORPUS_PREFIX
 from .fhir_validation import validate_fhir_bundle
 from .metrics import (
     confusion_matrix_from_counts, cohen_kappa, interpret_kappa,
@@ -28,6 +29,7 @@ import uuid
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class TriageSessionViewSet(viewsets.GenericViewSet):
     """
@@ -45,12 +47,12 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         transcript_text = (request.data.get('transcript') or '').strip()
         audio_file = request.FILES.get('audio')
-        
+
         if not transcript_text and not audio_file:
             return Response({"error": "No audio or transcript provided"}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         session_uuid = str(uuid.uuid4())
-        
+
         if audio_file and not transcript_text:
             try:
                 result = transcribe_audio(audio_file.read(), session_uuid)
@@ -66,19 +68,19 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             if not transcript_text:
                 # El audio llego pero no contenia voz reconocible: es un problema de la entrada, no del servidor.
                 return Response({"error": "No se detecto voz en el audio enviado"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-                
+
         # Analyze using Gemini or fallback
         analysis = analyze_with_worker(transcript_text)
-        
+
         if "error" in analysis:
             # El analizador solo devuelve 'error' ante entradas no analizables; nunca por fallo del LLM.
             return Response(analysis, status=status.HTTP_400_BAD_REQUEST)
-            
+
         patient_info = analysis.get('patientInfo', {})
         triage_data = analysis.get('triage', {})
         entities = analysis.get('entities', {})
         confidence = analysis.get('confidence', None)
-        
+
         ai_level_val = triage_data.get('level', 5)
         # El cliente puede enviar un final_level confirmado; fuera de 1-5 se ignora.
         try:
@@ -210,9 +212,12 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         Historial de triajes persistido en BD (reemplaza el guardado en localStorage del navegador).
         Cada usuario ve sus propias sesiones; un administrador ve todas.
-        Devuelve la misma forma que consume TriageDashboard.
+        Los casos CORPUS- de validacion ciega nunca se exponen en el historial para preservar el doble ciego.
         """
-        qs = TriageSession.objects.select_related('patient', 'transcription').order_by('-created_at')
+        qs = (TriageSession.objects
+              .exclude(patient__document_id__startswith=CORPUS_PREFIX)
+              .select_related('patient', 'transcription')
+              .order_by('-created_at'))
         if not is_admin_user(request.user):
             qs = qs.filter(user=request.user)
         try:
@@ -271,7 +276,6 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
         """
         # Agregaciones en la base de datos: no se cargan todas las sesiones en memoria. Los casos del corpus
         # cargados para la validacion ciega (CORPUS-) no son pacientes reales y se resumen con export_blind_review.
-        from .blind_review_corpus import CORPUS_PREFIX
         qs = TriageSession.objects.exclude(patient__document_id__startswith=CORPUS_PREFIX).order_by()
         matrix = _level_matrix(qs, 'ai_level', 'final_level')
         dist_ai = {lvl: sum(matrix[lvl - 1]) for lvl in range(1, 6)}
@@ -371,6 +375,11 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
               .select_related('patient', 'transcription')
               .order_by('created_at'))
         pending_total = qs.count()
+        adjudicated_by_me = TriageSession.objects.filter(reference_by=request.user).count()
+        rated_by_me = TriageSession.objects.filter(
+            reference_by=request.user,
+            justification_rated_at__isnull=False,
+        ).count()
         results = []
         for s in qs[:20]:
             transcription = getattr(s, 'transcription', None)
@@ -386,7 +395,12 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "age": age,
                 "transcript": transcription.full_text if transcription else '',
             })
-        return Response({"pending_total": pending_total, "results": results})
+        return Response({
+            "pending_total": pending_total,
+            "adjudicated_by_me": adjudicated_by_me,
+            "rated_by_me": rated_by_me,
+            "results": results,
+        })
 
     @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanEditSymptoms])
     def reference_level(self, request, pk=None):
@@ -465,100 +479,65 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
     def emr_patients(self, request):
         """
-        Returns patients list from real database for the EMR simulator.
-        Reads persisted assigned_box and care_status.
+        Admisiones clinicas para el Simulador HCE receptor interoperable (HL7 FHIR R4 / HL7 v2.5.1).
+        Excluye los casos CORPUS- de validacion ciega y expone el estado real de sincronizacion FHIR.
         """
-        sessions = TriageSession.objects.select_related('patient').all().order_by('-created_at')[:20]
+        sessions = (TriageSession.objects
+                    .exclude(patient__document_id__startswith=CORPUS_PREFIX)
+                    .select_related('patient', 'transcription', 'fhir_record')
+                    .order_by('-created_at')[:50])
         results = []
 
         for s in sessions:
             pat = s.patient
-            entities = s.clinical_entities or {}
+            raw_entities = s.clinical_entities if isinstance(s.clinical_entities, dict) else {}
+            entities = dict(raw_entities)
+            if s.final_symptoms:
+                entities['symptoms'] = s.final_symptoms
+            try:
+                transcription = s.transcription
+            except Transcription.DoesNotExist:
+                transcription = None
+            try:
+                fhir_rec = s.fhir_record
+            except FHIRRecord.DoesNotExist:
+                fhir_rec = None
+
+            raw_status = (s.care_status or '').strip()
+            normalized_status = (
+                'Recibido en HCE'
+                if fhir_rec and raw_status in ('', 'Pendiente de Box', 'Pendiente de Recepcion')
+                else ('Pendiente de Recepcion' if raw_status in ('', 'Pendiente de Box') else raw_status)
+            )
 
             results.append({
                 "id": s.id,
                 "patient_id": pat.id,
                 "document_id": pat.document_id,
-                "name": pat.full_name or f"Paciente {pat.document_id}",
-                "gender": pat.gender,
-                "birth_date": pat.birth_date,
-                "phone": pat.phone or "N/A",
-                "insurance": pat.insurance,
+                "name": pat.full_name or (
+                    "Paciente sin identificacion" if pat.document_id.startswith("anon-") else f"Paciente {pat.document_id}"
+                ),
+                "gender": pat.gender or "unknown",
+                "birth_date": pat.birth_date.isoformat() if pat.birth_date else "",
+                "phone": pat.phone or "",
+                "insurance": pat.insurance or "",
+                "created_at": s.created_at.isoformat(),
+                "admission_time": local_strftime(s.created_at, '%Y-%m-%d %H:%M'),
                 "level": s.final_level,
                 "ai_level": s.ai_level,
-                # Solo se informa la ubicacion realmente asignada (assign_box); nunca se inventa.
-                "assigned_box": s.assigned_box,
-                "status": s.care_status,
-                "admission_time": local_strftime(s.created_at, '%H:%M:%S'),
+                "is_level_modified": s.is_level_modified,
+                "status": normalized_status,
                 "justification": s.justification,
-                "entities": entities
+                "transcript": transcription.full_text if transcription else "",
+                "engine_used": transcription.model_used if transcription else "",
+                "entities": entities,
+                "fhir_synced": bool(fhir_rec),
+                "fhir_resource_id": fhir_rec.fhir_resource_id if fhir_rec else "",
+                "fhir_synced_at": local_strftime(fhir_rec.created_at, '%Y-%m-%d %H:%M:%S') if fhir_rec else None,
+                "fhir_bundle": fhir_rec.payload_sent if fhir_rec else None,
             })
 
         return Response(results)
-
-    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
-    def assign_box(self, request, pk=None):
-        """
-        Assigns a hospital box/bed to a triage session patient.
-        Validates payload with EMRBoxAssignSchema and persists assigned_box / care_status.
-        """
-        session = self.get_object()
-        from core.validation import validate_payload, EMRBoxAssignSchema
-        validated = validate_payload(EMRBoxAssignSchema, request.data)
-
-        box = validated.assigned_box
-        status_str = validated.status or 'En Atencion'
-
-        session.assigned_box = box
-        session.care_status = status_str
-        session.save(update_fields=['assigned_box', 'care_status'])
-
-        AuditLog.objects.create(
-            user=request.user,
-            action="EMR_BOX_ASSIGNED",
-            resource=f"TriageSession:{session.id}",
-            status="SUCCESS",
-            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
-            details=f"Box asignado: {box} al paciente {session.patient.document_id}"
-        )
-
-        return Response({
-            "message": f"Box {box} asignado exitosamente",
-            "session_id": session.id,
-            "patient_id": session.patient.id,
-            "assigned_box": box,
-            "status": status_str
-        })
-
-    @action(detail=True, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
-    def release_box(self, request, pk=None):
-        """
-        Libera el box asignado al paciente y actualiza su estado asistencial
-        (por defecto 'Alta Medica').
-        """
-        session = self.get_object()
-        status_str = request.data.get('status', 'Alta Medica')
-        old_box = session.assigned_box or 'Sin Box'
-        session.assigned_box = ''
-        session.care_status = status_str
-        session.save(update_fields=['assigned_box', 'care_status'])
-
-        AuditLog.objects.create(
-            user=request.user,
-            action="EMR_BOX_RELEASED",
-            resource=f"TriageSession:{session.id}",
-            status="SUCCESS",
-            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
-            details=f"Box {old_box} liberado. Estado: {status_str} (Paciente {session.patient.document_id})"
-        )
-
-        return Response({
-            "message": f"Box {old_box} liberado exitosamente. Estado: {status_str}",
-            "session_id": session.id,
-            "patient_id": session.patient.id,
-            "assigned_box": "",
-            "status": status_str
-        })
 
     @action(detail=True, methods=['POST', 'PATCH'], permission_classes=[IsAuthenticated, CanViewEMR])
     def update_care_status(self, request, pk=None):
@@ -575,7 +554,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             update_fields.append('care_status')
 
         if evolution_notes is not None:
-            entities = session.clinical_entities or {}
+            entities = dict(session.clinical_entities) if isinstance(session.clinical_entities, dict) else {}
             entities['evolution_notes'] = evolution_notes
             session.clinical_entities = entities
             update_fields.append('clinical_entities')
@@ -600,183 +579,6 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             "evolution_notes": (session.clinical_entities or {}).get('evolution_notes', '')
         })
 
-    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewEMR])
-    def boxes_census(self, request):
-        """
-        Retorna el censo hospitalario de boxes y camillas con ocupacion en tiempo real.
-        """
-        from django.core.cache import cache
-        custom_boxes = cache.get('emr_custom_boxes') or []
-        deleted_boxes = set(cache.get('emr_deleted_boxes') or [])
-        box_states = cache.get('emr_box_operational_states') or {}
-
-        default_boxes = [
-            {"code": "REAN-01", "area": "Reanimacion", "type": "Box Vital", "equipment": "Monitor invasivo, Desfibrilador, Ventilador"},
-            {"code": "REAN-02", "area": "Reanimacion", "type": "Box Vital", "equipment": "Monitor invasivo, Carro de paro"},
-            {"code": "BOX-01", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
-            {"code": "BOX-02", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
-            {"code": "BOX-03", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales, Oxigeno"},
-            {"code": "BOX-04", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
-            {"code": "BOX-05", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
-            {"code": "BOX-06", "area": "Boxes Generales", "type": "Camilla Urgencias", "equipment": "Monitor de signos vitales"},
-            {"code": "SALA-OBSERVACION", "area": "Observacion", "type": "Cama Hospitalaria", "equipment": "Toma de oxigeno, Succion"},
-            {"code": "AISL-01", "area": "Aislamiento", "type": "Box Presion Negativa", "equipment": "Filtro HEPA, Monitor de signos"},
-        ]
-
-        all_boxes_dict = {b["code"]: b for b in default_boxes if b["code"] not in deleted_boxes}
-        for cb in custom_boxes:
-            if cb["code"] not in deleted_boxes:
-                all_boxes_dict[cb["code"]] = cb
-
-        active_sessions = (TriageSession.objects
-                           .exclude(assigned_box='')
-                           .exclude(care_status__icontains='Alta')
-                           .select_related('patient')
-                           .order_by('-created_at'))
-
-        occupied_map = {}
-        for s in active_sessions:
-            if s.assigned_box not in occupied_map:
-                occupied_map[s.assigned_box] = {
-                    "session_id": s.id,
-                    "patient_id": s.patient.id,
-                    "patient_name": s.patient.full_name or f"Paciente {s.patient.document_id}",
-                    "document_id": s.patient.document_id,
-                    "triage_level": s.final_level,
-                    "care_status": s.care_status,
-                    "admission_time": local_strftime(s.created_at, '%H:%M:%S'),
-                }
-
-        results = []
-        for code, b in all_boxes_dict.items():
-            occupant = occupied_map.get(code)
-            operational_state = box_states.get(code, 'Libre')
-
-            if occupant:
-                status_val = 'Ocupado'
-            elif operational_state == 'En Desinfeccion':
-                status_val = 'En Desinfeccion'
-            elif operational_state == 'Mantenimiento':
-                status_val = 'Mantenimiento'
-            else:
-                status_val = 'Libre'
-
-            results.append({
-                "code": code,
-                "area": b.get("area", "Boxes Generales"),
-                "type": b.get("type", "Camilla Urgencias"),
-                "equipment": b.get("equipment", ""),
-                "status": status_val,
-                "occupant": occupant,
-                "is_custom": b.get("is_custom", False)
-            })
-
-        total = len(results)
-        occupied_count = sum(1 for r in results if r["status"] == "Ocupado")
-        cleaning_count = sum(1 for r in results if r["status"] == "En Desinfeccion")
-        available_count = sum(1 for r in results if r["status"] == "Libre")
-
-        return Response({
-            "boxes": results,
-            "summary": {
-                "total": total,
-                "occupied": occupied_count,
-                "available": available_count,
-                "cleaning": cleaning_count,
-                "occupancy_rate": round((occupied_count / total * 100) if total > 0 else 0, 1)
-            }
-        })
-
-    @action(detail=False, methods=['POST'], permission_classes=[IsAuthenticated, CanViewEMR])
-    def manage_boxes(self, request):
-        """
-        Permite registrar, actualizar o eliminar boxes hospitalarios y sus estados operativos.
-        """
-        from django.core.cache import cache
-        action_type = request.data.get('action')
-
-        if action_type == 'create':
-            code = (request.data.get('code') or '').strip().upper()
-            if not code:
-                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
-            area = request.data.get('area', 'Boxes Generales')
-            box_type = request.data.get('type', 'Camilla Urgencias')
-            equipment = request.data.get('equipment', '')
-
-            custom_boxes = cache.get('emr_custom_boxes') or []
-            if any(b["code"] == code for b in custom_boxes):
-                return Response({"error": f"El box {code} ya existe."}, status=status.HTTP_400_BAD_REQUEST)
-
-            deleted_boxes = cache.get('emr_deleted_boxes') or []
-            if code in deleted_boxes:
-                deleted_boxes = [c for c in deleted_boxes if c != code]
-                cache.set('emr_deleted_boxes', deleted_boxes, timeout=None)
-
-            new_box = {
-                "code": code,
-                "area": area,
-                "type": box_type,
-                "equipment": equipment,
-                "is_custom": True
-            }
-            custom_boxes.append(new_box)
-            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
-            return Response({"message": f"Box {code} creado exitosamente.", "box": new_box}, status=status.HTTP_201_CREATED)
-
-        elif action_type in ('update', 'edit'):
-            code = (request.data.get('code') or '').strip().upper()
-            if not code:
-                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
-            area = request.data.get('area')
-            box_type = request.data.get('type')
-            equipment = request.data.get('equipment')
-
-            custom_boxes = cache.get('emr_custom_boxes') or []
-            found = False
-            for b in custom_boxes:
-                if b["code"] == code:
-                    if area: b["area"] = area
-                    if box_type: b["type"] = box_type
-                    if equipment is not None: b["equipment"] = equipment
-                    found = True
-                    break
-
-            if not found:
-                custom_boxes.append({
-                    "code": code,
-                    "area": area or "Boxes Generales",
-                    "type": box_type or "Camilla Urgencias",
-                    "equipment": equipment or "",
-                    "is_custom": True
-                })
-
-            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
-            return Response({"message": f"Box {code} actualizado exitosamente."})
-
-        elif action_type == 'update_state':
-            code = (request.data.get('code') or '').strip().upper()
-            new_state = request.data.get('state', 'Libre')
-            box_states = cache.get('emr_box_operational_states') or {}
-            box_states[code] = new_state
-            cache.set('emr_box_operational_states', box_states, timeout=None)
-            return Response({"message": f"Estado del box {code} actualizado a {new_state}."})
-
-        elif action_type == 'delete':
-            code = (request.data.get('code') or '').strip().upper()
-            if not code:
-                return Response({"error": "El codigo de box es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
-            custom_boxes = cache.get('emr_custom_boxes') or []
-            custom_boxes = [b for b in custom_boxes if b["code"] != code]
-            cache.set('emr_custom_boxes', custom_boxes, timeout=None)
-
-            deleted_boxes = cache.get('emr_deleted_boxes') or []
-            if code not in deleted_boxes:
-                deleted_boxes.append(code)
-                cache.set('emr_deleted_boxes', deleted_boxes, timeout=None)
-            return Response({"message": f"Box {code} eliminado exitosamente."})
-
-        return Response({"error": "Accion no reconocida."}, status=status.HTTP_400_BAD_REQUEST)
-
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated, CanViewFHIR])
     def fhir_logs(self, request):
         """
@@ -799,12 +601,13 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             })
         return Response(data)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def fhir_sync(request) -> JsonResponse:
     """
-    Simula la sincronizacion con un servidor FHIR: valida la estructura R4 del Bundle,
-    registra la transaccion en FHIRMessageLog y, si es valido, guarda el FHIRRecord.
+    Simula la sincronizacion con un servidor FHIR / receptor HCE: valida la estructura R4 del Bundle,
+    registra la transaccion en FHIRMessageLog y, si es valido, guarda el FHIRRecord y actualiza la admision HCE.
     JSON malformado -> 400 (parser DRF); esquema base invalido -> 400; Bundle R4 invalido -> 422.
     """
     payload = request.data
@@ -824,6 +627,17 @@ def fhir_sync(request) -> JsonResponse:
             FHIRRecord.objects.update_or_create(
                 triage_session=triage_session,
                 defaults={'fhir_resource_id': fhir_id, 'payload_sent': payload}
+            )
+            if (triage_session.care_status or '').strip() in ('', 'Pendiente de Box', 'Pendiente de Recepcion'):
+                triage_session.care_status = 'Recibido en HCE'
+                triage_session.save(update_fields=['care_status'])
+            AuditLog.objects.create(
+                user=request.user,
+                action="FHIR_HCE_SYNC",
+                resource=f"TriageSession:{triage_session.id}",
+                status="SUCCESS",
+                ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+                details=f"Bundle FHIR R4 recibido en HCE ({fhir_id})"
             )
         FHIRMessageLog.objects.create(
             session=triage_session,
@@ -858,7 +672,9 @@ def _find_session_in_bundle(payload) -> "TriageSession | None":
         if res_id.startswith(('enc-', 'pat-')):
             parts = res_id.split('-')
             if len(parts) > 1 and parts[1].isdigit():
-                return TriageSession.objects.filter(id=int(parts[1])).first()
+                candidate_id = int(parts[1])
+                if 0 < candidate_id <= 2147483647:
+                    return TriageSession.objects.filter(id=candidate_id).first()
     return None
 
 

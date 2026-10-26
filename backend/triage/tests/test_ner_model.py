@@ -165,6 +165,22 @@ class TestFusion:
         assert entities['negated_findings'] == ['fiebre']
         assert not next(d for d in details if d['text'] == 'ayer')['kept']
 
+    def test_residual_llm_negated_or_preserved_terms_route_to_negated_findings(self):
+        text = "No puede mover el lado derecho; no se ha caído, afebril y respiro bien"
+        spans = FakeEngine([("No puede mover el lado derecho", "SINTOMA", 0.95)]).extract(text)
+        llm = {
+            "symptoms": ["afebril", "respiro bien"],
+            "diagnoses": ["se ha caído"],
+            "medications": [],
+            "allergies": [],
+            "history": [],
+            "negated_findings": [],
+        }
+        entities, _ = fuse_entities(text, spans, concept_mappings(text), llm)
+        assert entities["symptoms"] == ["No puede mover el lado derecho"]
+        assert entities["diagnoses"] == []
+        assert {"se ha caído", "afebril", "respiro bien"}.issubset(set(entities["negated_findings"]))
+
     def test_catalog_normalizes_ner_mentions(self):
         text = 'tengo calentura alta'
         spans = FakeEngine([('calentura', 'SINTOMA', 0.9)]).extract(text)

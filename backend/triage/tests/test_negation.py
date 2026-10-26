@@ -3,7 +3,7 @@ import pytest
 from triage.clinical_protocol import _normalize_text, evaluate_christus_sinergia_triage
 from triage.clinical_rag import ClinicalKnowledgeRAG
 from triage.input_pipeline import ClinicalTranscriptCompressor
-from triage.negation import find_affirmed, split_affirmed_negated, strip_negated
+from triage.negation import find_affirmed, is_preserved_or_privative, split_affirmed_negated, strip_negated
 
 
 def _affirmed(text, phrase):
@@ -22,6 +22,8 @@ class TestNegationDetector:
         ("no le duele", "duele"),
         ("sin sudoración, sin falta de aire y no se le corre al brazo", "se le corre al brazo"),
         ("tóxicos negativo", "toxicos"),
+        ("no se ha caído en ningún momento", "se ha caido"),
+        ("el lunar no ha crecido ni sangra", "ha crecido"),
     ])
     def test_negated_findings(self, text, phrase):
         assert _affirmed(text, phrase) is None
@@ -51,6 +53,28 @@ class TestNegationDetector:
     def test_strip_negated_keeps_only_affirmed_text(self):
         text = _normalize_text("no tengo fiebre ni vómito, pero me duele el pecho")
         assert strip_negated(text) == "pero me duele el pecho"
+
+    def test_preserved_function_and_privative_spans(self):
+        for raw, span in [
+            ("Mujer con disuria de un día, afebril", "afebril"),
+            ("Me salieron ronchas pero respiro bien", "respiro bien"),
+            ("Vómito dos veces hoy, sin deshidratación, tolera líquidos", "tolera liquidos"),
+            ("Me tomé un suero y lo estoy tolerando", "lo estoy tolerando"),
+        ]:
+            norm = _normalize_text(raw)
+            idx = norm.index(span)
+            assert is_preserved_or_privative(norm, idx, idx + len(span)) is True
+
+        for raw, span in [
+            ("Ya no contesta bien y tiene manos heladas", "ya no contesta bien"),
+            ("Hace meses no duermo bien", "no duermo bien"),
+            ("Ya no tolero ni el agua", "no tolero ni el agua"),
+            ("El paciente no respira bien", "respira bien"),
+        ]:
+            norm = _normalize_text(raw)
+            idx = norm.index(span)
+            assert is_preserved_or_privative(norm, idx, idx + len(span)) is False
+
 
 
 class TestNegationInPipeline:

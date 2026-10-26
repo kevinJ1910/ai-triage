@@ -110,7 +110,12 @@ class TestApplyReview:
 class TestReviewCommands:
     def test_export_apply_dry_run_and_write(self, tmp_path):
         corpus = tmp_path / 'corpus.json'
-        corpus.write_text(CORPUS_PATH.read_text(encoding='utf-8'), encoding='utf-8')
+        raw_cases = json.loads(CORPUS_PATH.read_text(encoding='utf-8'))
+        for c in raw_cases:
+            c['estado'] = 'borrador'
+            c.pop('revisado_por', None)
+            c.pop('revisado_el', None)
+        corpus.write_text(json.dumps(raw_cases, ensure_ascii=False), encoding='utf-8')
         sheet = tmp_path / 'revision_test.csv'
         call_command('export_corpus_review', '--corpus', str(corpus), '--split', 'test', '--output', str(sheet),
                      stdout=StringIO())

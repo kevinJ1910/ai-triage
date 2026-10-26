@@ -145,3 +145,29 @@ class TestFHIRIntegration:
             content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_fhir_sync_handles_millisecond_timestamp_id_without_integer_overflow(self):
+        bundle_payload = {
+            "resourceType": "Bundle",
+            "type": "transaction",
+            "entry": [
+                {
+                    "resource": {
+                        "resourceType": "Encounter",
+                        "id": "enc-1792980000000",
+                        "status": "arrived",
+                        "class": {"code": "EMER", "display": "Emergencia"},
+                    }
+                }
+            ],
+        }
+        response = self.client.post(
+            "/api/fhir/",
+            data=json.dumps(bundle_payload),
+            content_type="application/json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        log_entry = FHIRMessageLog.objects.order_by("-id").first()
+        assert log_entry is not None
+        assert log_entry.session is None
+        assert log_entry.status_code == 201

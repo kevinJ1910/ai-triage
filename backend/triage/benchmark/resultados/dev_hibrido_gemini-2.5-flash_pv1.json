@@ -21,15 +21,15 @@
     "policy": "llm",
     "temperature": 0.1,
     "thinking": "por defecto del modelo",
-    "tier": "gratuito",
+    "tier": null,
     "privacy": "nube (texto seudonimizado)",
     "corpus": "corpus_entidades.json",
-    "corpus_sha256": "6b5043b2871c180b23f584beec4fc4629c94eddc05e5ddf888c3fcc4dde223bd",
+    "corpus_sha256": "e043bc64b8bbe6aa664e0979919fe512e0317af4f5517a07a3db3099ade0170c",
     "git_commit": null,
     "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
     "processor": "x86_64",
     "python": "3.12.15",
-    "hardware": "Docker CPU (AMD Ryzen, equipo de Kevin)",
+    "hardware": null,
     "prices": {
       "checked_at": "2026-10-18",
       "source": "https://ai.google.dev/gemini-api/docs/pricing",
@@ -38,216 +38,216 @@
         "output": 2.5
       }
     },
-    "generated_at": "2026-10-23T01:10:25+00:00"
+    "generated_at": "2026-10-26T06:32:20+00:00"
   },
   "entities": {
     "by_type": {
       "symptoms": {
-        "tp": 82,
-        "fp": 22,
+        "tp": 114,
+        "fp": 27,
         "fn": 2,
-        "negated_gold": 12,
+        "negated_gold": 27,
         "negation_errors": 4,
-        "negated_detected": 8,
-        "precision": 0.788,
-        "recall": 0.976,
-        "f1": 0.872
+        "negated_detected": 23,
+        "precision": 0.809,
+        "recall": 0.983,
+        "f1": 0.887
       },
       "diagnoses": {
-        "tp": 15,
-        "fp": 10,
+        "tp": 23,
+        "fp": 11,
         "fn": 0,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
-        "precision": 0.6,
+        "precision": 0.676,
         "recall": 1.0,
-        "f1": 0.75
+        "f1": 0.807
       },
       "medications": {
-        "tp": 11,
+        "tp": 16,
         "fp": 1,
         "fn": 0,
         "negated_gold": 1,
         "negation_errors": 0,
         "negated_detected": 1,
-        "precision": 0.917,
+        "precision": 0.941,
         "recall": 1.0,
-        "f1": 0.957
+        "f1": 0.97
       },
       "allergies": {
-        "tp": 4,
+        "tp": 5,
         "fp": 0,
         "fn": 1,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
         "precision": 1.0,
-        "recall": 0.8,
-        "f1": 0.889
+        "recall": 0.833,
+        "f1": 0.909
       },
       "vitals": {
-        "tp": 13,
-        "fp": 5,
+        "tp": 14,
+        "fp": 9,
         "fn": 0,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
-        "precision": 0.722,
+        "precision": 0.609,
         "recall": 1.0,
-        "f1": 0.839
+        "f1": 0.757
       },
       "history": {
-        "tp": 8,
+        "tp": 10,
         "fp": 0,
         "fn": 1,
         "negated_gold": 0,
         "negation_errors": 0,
         "negated_detected": 0,
         "precision": 1.0,
-        "recall": 0.889,
-        "f1": 0.941
+        "recall": 0.909,
+        "f1": 0.952
       }
     },
     "micro": {
-      "tp": 133,
-      "fp": 38,
+      "tp": 182,
+      "fp": 48,
       "fn": 4,
-      "precision": 0.778,
-      "recall": 0.971,
-      "f1": 0.864
+      "precision": 0.791,
+      "recall": 0.978,
+      "f1": 0.875
     },
-    "macro_f1": 0.875,
+    "macro_f1": 0.88,
     "negation": {
-      "negated_gold": 13,
-      "negation_accuracy": 0.692,
+      "negated_gold": 28,
+      "negation_accuracy": 0.857,
       "negation_errors": 4,
-      "negated_detection_recall": 0.692
+      "negated_detection_recall": 0.857
     },
     "micro_f1_ci95": [
-      0.816,
-      0.906
+      0.84,
+      0.91
     ],
     "normalization": {
-      "coded_gold": 76,
-      "code_hits": 73,
-      "cie10_accuracy": 0.961
+      "coded_gold": 114,
+      "code_hits": 109,
+      "cie10_accuracy": 0.956
     },
     "by_lote": {
       "1": {
-        "tp": 133,
-        "fp": 38,
+        "tp": 182,
+        "fp": 48,
         "fn": 4,
-        "precision": 0.778,
-        "recall": 0.971,
-        "f1": 0.864
+        "precision": 0.791,
+        "recall": 0.978,
+        "f1": 0.875
       }
     }
   },
   "triage": {
-    "n": 50,
-    "exact_agreement": 84.0,
-    "cohen_kappa": 0.913,
+    "n": 66,
+    "exact_agreement": 74.2,
+    "cohen_kappa": 0.896,
     "kappa_interpretation": "Concordancia casi perfecta",
-    "undertriage_rate": 14.0,
-    "overtriage_rate": 2.0,
-    "critical_cases": 26,
-    "critical_sensitivity": 92.3,
+    "undertriage_rate": 18.2,
+    "overtriage_rate": 7.6,
+    "critical_cases": 28,
+    "critical_sensitivity": 92.9,
     "critical_undertriage_count": 2,
     "confusion_matrix": [
       [
         12,
-        1,
+        2,
         0,
         0,
         0
       ],
       [
         2,
+        10,
+        2,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        8,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
         9,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        6,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        7,
         0
       ],
       [
         0,
         1,
         1,
-        1,
-        8
+        4,
+        10
       ]
     ],
     "exact_agreement_ci95": [
-      74.0,
-      94.0
+      63.6,
+      84.8
     ],
     "cohen_kappa_ci95": [
-      0.81,
-      0.981
+      0.803,
+      0.954
     ],
     "critical_sensitivity_ci95": [
       80.8,
       100.0
     ],
     "undertriage_rate_ci95": [
-      6.0,
-      24.0
+      9.1,
+      27.3
     ],
     "overtriage_rate_ci95": [
-      0.0,
-      6.0
+      1.5,
+      13.6
     ],
     "by_tipo": {
       "coloquial": {
-        "n": 32,
-        "exact_agreement": 81.2,
-        "cohen_kappa": 0.93,
-        "critical_cases": 15,
-        "critical_sensitivity": 93.3,
-        "undertriage_rate": 15.6,
-        "overtriage_rate": 3.1,
+        "n": 43,
+        "exact_agreement": 72.1,
+        "cohen_kappa": 0.903,
+        "critical_cases": 16,
+        "critical_sensitivity": 93.8,
+        "undertriage_rate": 16.3,
+        "overtriage_rate": 11.6,
         "exact_agreement_ci95": [
-          65.6,
-          93.8
+          58.1,
+          86.0
         ],
         "cohen_kappa_ci95": [
-          0.835,
-          0.984
+          0.818,
+          0.958
         ],
         "critical_sensitivity_ci95": [
-          78.6,
+          80.0,
           100.0
         ],
         "undertriage_rate_ci95": [
-          3.1,
-          28.1
+          7.0,
+          27.9
         ],
         "overtriage_rate_ci95": [
-          0.0,
-          9.4
+          2.3,
+          20.9
         ]
       },
       "negacion": {
-        "n": 2,
-        "exact_agreement": 100.0,
-        "cohen_kappa": 1.0,
+        "n": 5,
+        "exact_agreement": 40.0,
+        "cohen_kappa": 0.845,
         "critical_cases": 1,
         "critical_sensitivity": 100.0,
-        "undertriage_rate": 0.0,
+        "undertriage_rate": 60.0,
         "overtriage_rate": 0.0
       },
       "signos_vitales": {
@@ -260,81 +260,81 @@
         "overtriage_rate": 0.0
       },
       "tipico": {
-        "n": 9,
-        "exact_agreement": 88.9,
-        "cohen_kappa": 0.755,
-        "critical_cases": 3,
-        "critical_sensitivity": 66.7,
-        "undertriage_rate": 11.1,
+        "n": 11,
+        "exact_agreement": 90.9,
+        "cohen_kappa": 0.803,
+        "critical_cases": 4,
+        "critical_sensitivity": 75.0,
+        "undertriage_rate": 9.1,
         "overtriage_rate": 0.0
       }
     },
     "by_lote": {
       "1": {
-        "n": 50,
-        "exact_agreement": 84.0,
-        "cohen_kappa": 0.913,
-        "critical_cases": 26,
-        "critical_sensitivity": 92.3,
-        "undertriage_rate": 14.0,
-        "overtriage_rate": 2.0,
+        "n": 66,
+        "exact_agreement": 74.2,
+        "cohen_kappa": 0.896,
+        "critical_cases": 28,
+        "critical_sensitivity": 92.9,
+        "undertriage_rate": 18.2,
+        "overtriage_rate": 7.6,
         "exact_agreement_ci95": [
-          74.0,
-          94.0
+          63.6,
+          84.8
         ],
         "cohen_kappa_ci95": [
-          0.81,
-          0.981
+          0.803,
+          0.954
         ],
         "critical_sensitivity_ci95": [
           80.8,
           100.0
         ],
         "undertriage_rate_ci95": [
-          6.0,
-          24.0
+          9.1,
+          27.3
         ],
         "overtriage_rate_ci95": [
-          0.0,
-          6.0
+          1.5,
+          13.6
         ]
       }
     },
     "by_sexo": {
       "desconocido": {
-        "n": 40,
-        "exact_agreement": 85.0,
-        "cohen_kappa": 0.904,
-        "critical_cases": 16,
-        "critical_sensitivity": 93.8,
-        "undertriage_rate": 12.5,
-        "overtriage_rate": 2.5,
+        "n": 54,
+        "exact_agreement": 72.2,
+        "cohen_kappa": 0.88,
+        "critical_cases": 17,
+        "critical_sensitivity": 94.1,
+        "undertriage_rate": 18.5,
+        "overtriage_rate": 9.3,
         "exact_agreement_ci95": [
-          72.5,
-          95.0
+          59.3,
+          83.3
         ],
         "cohen_kappa_ci95": [
-          0.76,
-          0.984
+          0.748,
+          0.949
         ],
         "critical_sensitivity_ci95": [
           78.9,
           100.0
         ],
         "undertriage_rate_ci95": [
-          5.0,
-          22.5
+          9.3,
+          29.6
         ],
         "overtriage_rate_ci95": [
-          0.0,
-          10.0
+          1.9,
+          18.5
         ]
       },
       "femenino": {
-        "n": 5,
+        "n": 7,
         "exact_agreement": 100.0,
         "cohen_kappa": 1.0,
-        "critical_cases": 5,
+        "critical_cases": 6,
         "critical_sensitivity": 100.0,
         "undertriage_rate": 0.0,
         "overtriage_rate": 0.0
@@ -360,32 +360,32 @@
         "overtriage_rate": 0.0
       },
       "desconocido": {
-        "n": 43,
-        "exact_agreement": 83.7,
-        "cohen_kappa": 0.907,
-        "critical_cases": 19,
-        "critical_sensitivity": 94.7,
-        "undertriage_rate": 14.0,
-        "overtriage_rate": 2.3,
+        "n": 59,
+        "exact_agreement": 72.9,
+        "cohen_kappa": 0.887,
+        "critical_cases": 21,
+        "critical_sensitivity": 95.2,
+        "undertriage_rate": 18.6,
+        "overtriage_rate": 8.5,
         "exact_agreement_ci95": [
-          72.1,
-          93.0
+          61.0,
+          83.1
         ],
         "cohen_kappa_ci95": [
-          0.778,
-          0.983
+          0.79,
+          0.953
         ],
         "critical_sensitivity_ci95": [
-          83.3,
+          84.6,
           100.0
         ],
         "undertriage_rate_ci95": [
-          4.7,
-          25.6
+          10.2,
+          28.8
         ],
         "overtriage_rate_ci95": [
-          0.0,
-          7.0
+          1.7,
+          16.9
         ]
       },
       "mayor": {
@@ -433,21 +433,21 @@
     ]
   },
   "performance": {
-    "latency_ms_mean": 6925,
-    "latency_ms_p50": 5958,
+    "latency_ms_mean": 7179,
+    "latency_ms_p50": 6303,
     "latency_ms_p95": 12668,
-    "prompt_tokens_mean": 508.1,
-    "completion_tokens_mean": 269.7,
-    "thoughts_tokens_mean": 963.4,
-    "total_tokens_mean": 1741.2,
-    "tokens_mean": 1741.2,
-    "tokens_total": 87062,
-    "cost_usd": 0.1618,
-    "cost_usd_per_1000": 3.24,
+    "prompt_tokens_mean": 519.1,
+    "completion_tokens_mean": 268.5,
+    "thoughts_tokens_mean": 1008.0,
+    "total_tokens_mean": 1795.7,
+    "tokens_mean": 1795.7,
+    "tokens_total": 118516,
+    "cost_usd": 0.2209,
+    "cost_usd_per_1000": 3.35,
     "llm_failures": 0,
-    "retried_cases": 3,
+    "retried_cases": 4,
     "coerced_cases": 0,
-    "pending_cases": 100
+    "pending_cases": 84
   },
   "cases": [
     {
@@ -5368,6 +5368,1629 @@
       "code_hits": {
         "coded_gold": 4,
         "code_hits": 4
+      }
+    },
+    {
+      "id": "N018",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 2,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor de cabeza intenso",
+          "fotopsias",
+          "edema de miembros inferiores",
+          "cefalea intensa"
+        ],
+        "diagnoses": [
+          "Gestante de 34 semanas"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "PA: 170/110 mmHg"
+        ],
+        "history": [],
+        "negated_findings": [
+          "sin banderas rojas"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6433,
+      "llm_latency_ms": 6197,
+      "prompt_tokens": 575,
+      "completion_tokens": 218,
+      "thoughts_tokens": 924,
+      "total_tokens": 1717,
+      "justification": "Paciente gestante con cefalea intensa, fotopsias y cifras tensionales elevadas (170/110 mmHg), sugestivo de preeclampsia severa, cumpliendo criterios de emergencia.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "Z33",
+        "R51",
+        "R60.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:28:19+00:00",
+      "llm_level": 2,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "N019",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 2,
+      "predicted_level": 1,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "sangrado arterial"
+        ],
+        "diagnoses": [
+          "Me corté la muñeca con un vidrio"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 7974,
+      "llm_latency_ms": 7747,
+      "prompt_tokens": 503,
+      "completion_tokens": 279,
+      "thoughts_tokens": 1203,
+      "total_tokens": 1985,
+      "justification": "Paciente con herida cortante en muñeca con sangrado arterial activo ('sangre sale a chorros') y persistente a la compresión, lo que configura una hemorragia masiva exanguinante activa o herida arterial pulsátil, criterio de Reanimación.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "T14.1"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:28:44+00:00",
+      "llm_level": 1,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 0,
+        "code_hits": 0
+      }
+    },
+    {
+      "id": "N021",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 2,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "epigastralgia",
+          "se pasó al lado derecho",
+          "hiporexia",
+          "náuseas",
+          "dolor abdominal en cuadrante superior derecho"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "Sin reporte"
+        ],
+        "history": [],
+        "negated_findings": [
+          "fiebre"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 9643,
+      "llm_latency_ms": 9577,
+      "prompt_tokens": 592,
+      "completion_tokens": 325,
+      "thoughts_tokens": 998,
+      "total_tokens": 1915,
+      "justification": "Paciente con dolor abdominal que inició en epigastrio y migró a cuadrante superior derecho, asociado a náuseas e hiporexia, lo que sugiere un abdomen agudo quirúrgico sospechado (posible apendicitis o colecistitis), cumpliendo criterio de Triage 2.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R10.1",
+        "R63.0",
+        "R11",
+        "R50.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:28:54+00:00",
+      "llm_level": 2,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 4,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 1
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 4,
+        "code_hits": 4
+      }
+    },
+    {
+      "id": "N026",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 4,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "cefalea",
+          "fotofobia"
+        ],
+        "diagnoses": [],
+        "medications": [
+          "acetaminofén"
+        ],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "fiebre",
+          "vómito"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 10885,
+      "llm_latency_ms": 10820,
+      "prompt_tokens": 577,
+      "completion_tokens": 327,
+      "thoughts_tokens": 1045,
+      "total_tokens": 1949,
+      "justification": "Paciente con cefalea aguda de dos días de evolución, refractaria a acetaminofén y asociada a fotofobia. No presenta signos de alarma vital como cefalea súbita de máxima intensidad, signos meníngeos o focalización neurológica, pero la persistencia y la fotofobia justifican una evaluación prioritaria.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R51",
+        "H53.1",
+        "R50.9",
+        "R11"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:05+00:00",
+      "llm_level": 4,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 2
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 4,
+        "code_hits": 4
+      }
+    },
+    {
+      "id": "N028",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 3,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "sangra poquito",
+          "varios huecos"
+        ],
+        "diagnoses": [
+          "Me mordió un perro en la pierna",
+          "mordedura de perro en la pierna"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 8657,
+      "llm_latency_ms": 8577,
+      "prompt_tokens": 507,
+      "completion_tokens": 210,
+      "thoughts_tokens": 1488,
+      "total_tokens": 2205,
+      "justification": "Paciente con mordedura de perro en la pierna con múltiples perforaciones y sangrado leve. Requiere evaluación urgente para limpieza de herida, profilaxis antitetánica y manejo del riesgo de infección.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "W54"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:13+00:00",
+      "llm_level": 3,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 1,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "N029",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 3,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "disuria",
+          "fiebre",
+          "escalofríos",
+          "me duele la espalda del lado derecho",
+          "dolor al orinar",
+          "dolor lumbar"
+        ],
+        "diagnoses": [
+          "embarazada de 12 semanas"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 8226,
+      "llm_latency_ms": 8157,
+      "prompt_tokens": 597,
+      "completion_tokens": 327,
+      "thoughts_tokens": 1259,
+      "total_tokens": 2183,
+      "justification": "Paciente embarazada de 12 semanas con fiebre persistente de tres días, escalofríos, disuria y dolor lumbar, sugiriendo una posible infección urinaria alta (pielonefritis), lo cual representa un riesgo significativo en el embarazo y cumple criterio de fiebre persistente de más de 48-72 horas.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R30.0",
+        "R50.9",
+        "M54.5",
+        "Z33"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:22+00:00",
+      "llm_level": 3,
+      "sexo": "femenino",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 4,
+          "fp": 2,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "N030",
+      "split": "dev",
+      "tipo": "negacion",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 4,
+      "rule_level": 2,
+      "predicted_entities": {
+        "symptoms": [
+          "dolor en el pecho que aumenta al apretarle"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "Sin reporte"
+        ],
+        "history": [],
+        "negated_findings": [
+          "diaforesis",
+          "disnea",
+          "irradiación a miembro superior",
+          "sudoración",
+          "falta de aire"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 18017,
+      "llm_latency_ms": 17937,
+      "prompt_tokens": 617,
+      "completion_tokens": 329,
+      "thoughts_tokens": 3175,
+      "total_tokens": 4121,
+      "justification": "Dolor torácico de probable origen musculoesquelético, exacerbado a la palpación y posterior a esfuerzo físico. No presenta signos de alarma para Síndrome Coronario Agudo (niega sudoración, disnea e irradiación). No cumple criterios para Triage 1, 2 o 3.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R07.4",
+        "R61.9",
+        "R06.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:40+00:00",
+      "llm_level": 4,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 3,
+          "negation_errors": 0,
+          "negated_detected": 3
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "N031",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 3,
+      "predicted_level": 2,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "hiperemia conjuntival",
+          "me arde",
+          "visión borrosa"
+        ],
+        "diagnoses": [
+          "me entró algo"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 9249,
+      "llm_latency_ms": 9178,
+      "prompt_tokens": 506,
+      "completion_tokens": 299,
+      "thoughts_tokens": 1484,
+      "total_tokens": 2289,
+      "justification": "Paciente con trauma ocular por cuerpo extraño y/o fotoqueratitis secundario a soldadura sin protección, presentando ardor y visión borrosa, lo que indica compromiso de la agudeza visual y riesgo de lesión corneal severa, requiriendo evaluación urgente.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "H53.8"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:49+00:00",
+      "llm_level": 2,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "N033",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 4,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "rinorrea",
+          "estornudos",
+          "odinofagia"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [
+          "ácaros del polvo"
+        ],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "fiebre",
+          "disnea"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5672,
+      "llm_latency_ms": 5605,
+      "prompt_tokens": 602,
+      "completion_tokens": 190,
+      "thoughts_tokens": 861,
+      "total_tokens": 1653,
+      "justification": "Paciente con cuadro respiratorio alto (rinorrea, estornudos, odinofagia) de 2 días de evolución, sin fiebre ni dificultad respiratoria, lo que no compromete el estado general y cumple criterios para Consulta Prioritaria.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R06.7",
+        "R07.0",
+        "R50.9",
+        "R06.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:29:55+00:00",
+      "llm_level": 4,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 2
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 4,
+        "code_hits": 4
+      }
+    },
+    {
+      "id": "N035",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 3,
+      "rule_level": 4,
+      "predicted_entities": {
+        "symptoms": [
+          "rojo",
+          "dolor"
+        ],
+        "diagnoses": [
+          "un nacido en la axila"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "Sin reporte"
+        ],
+        "history": [],
+        "negated_findings": [
+          "fiebre"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5360,
+      "llm_latency_ms": 5302,
+      "prompt_tokens": 563,
+      "completion_tokens": 276,
+      "thoughts_tokens": 501,
+      "total_tokens": 1340,
+      "justification": "Paciente con absceso subcutáneo doloroso y eritematoso en axila, que requiere valoración médica para posible drenaje, clasificando como urgencia según criterios institucionales.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "L02.9",
+        "R52.9",
+        "R50.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:30:01+00:00",
+      "llm_level": 3,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 1,
+          "negation_errors": 0,
+          "negated_detected": 1
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 1
+      }
+    },
+    {
+      "id": "N038",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "prurito",
+          "eritema"
+        ],
+        "diagnoses": [
+          "picadura de insecto"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 8926,
+      "llm_latency_ms": 8859,
+      "prompt_tokens": 463,
+      "completion_tokens": 268,
+      "thoughts_tokens": 1438,
+      "total_tokens": 2169,
+      "justification": "Picadura de insecto con signos de infección local leve (prurito, eritema) sin compromiso del estado general ni banderas rojas, compatible con atención ambulatoria.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "W57",
+        "L29.9",
+        "L53.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:30:11+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 3,
+        "code_hits": 3
+      }
+    },
+    {
+      "id": "N039",
+      "split": "dev",
+      "tipo": "negacion",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "pirosis"
+        ],
+        "diagnoses": [],
+        "medications": [
+          "omeprazol"
+        ],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "hematemesis",
+          "melenas"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5523,
+      "llm_latency_ms": 5451,
+      "prompt_tokens": 588,
+      "completion_tokens": 207,
+      "thoughts_tokens": 804,
+      "total_tokens": 1599,
+      "justification": "El paciente presenta pirosis de 3 días de evolución sin signos de alarma como hematemesis o melenas, y sin compromiso del estado general. No cumple criterios para niveles de triaje superiores, por lo que se clasifica como consulta externa para manejo ambulatorio.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "R12",
+        "K92.0",
+        "K92.1"
+      ],
+      "attempts": 2,
+      "timestamp": "2026-10-26T06:31:19+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 2
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 3,
+        "code_hits": 3
+      }
+    },
+    {
+      "id": "N040",
+      "split": "dev",
+      "tipo": "negacion",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "hematoma de cuero cabelludo"
+        ],
+        "diagnoses": [
+          "traumatismo craneal"
+        ],
+        "medications": [],
+        "allergies": [],
+        "vitals": [
+          "Sin reporte"
+        ],
+        "history": [],
+        "negated_findings": [
+          "pérdida de conciencia",
+          "vómito"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 4212,
+      "llm_latency_ms": 4140,
+      "prompt_tokens": 557,
+      "completion_tokens": 207,
+      "thoughts_tokens": 516,
+      "total_tokens": 1280,
+      "justification": "Paciente con traumatismo craneal leve sin pérdida de conciencia, vómito o signos de alarma neurológica. Presenta únicamente un hematoma de cuero cabelludo, sin compromiso del estado general.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "S09.9",
+        "R55",
+        "R11",
+        "S00.0"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:31:24+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 2
+        },
+        "diagnoses": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 3,
+        "code_hits": 3
+      }
+    },
+    {
+      "id": "N042",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 4,
+      "predicted_level": 4,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "diarrea",
+          "dolor abdominal tipo cólico"
+        ],
+        "diagnoses": [],
+        "medications": [
+          "suero"
+        ],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": [
+          "lo estoy tolerando",
+          "hematoquecia"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 5082,
+      "llm_latency_ms": 5015,
+      "prompt_tokens": 558,
+      "completion_tokens": 308,
+      "thoughts_tokens": 656,
+      "total_tokens": 1522,
+      "justification": "Paciente con diarrea y cólicos abdominales, pero con adecuada tolerancia a la vía oral (suero) y sin signos de deshidratación moderada o severa, lo que no requiere rehidratación endovenosa. Se clasifica como Consulta Prioritaria según criterios institucionales.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "A09",
+        "R10.4",
+        "K92.2"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:31:31+00:00",
+      "llm_level": 4,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 2,
+          "negation_errors": 0,
+          "negated_detected": 2
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 3,
+        "code_hits": 3
+      }
+    },
+    {
+      "id": "N045",
+      "split": "dev",
+      "tipo": "tipico",
+      "lote": 1,
+      "reference_level": 5,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [],
+        "diagnoses": [],
+        "medications": [
+          "metformina",
+          "enalapril"
+        ],
+        "allergies": [],
+        "vitals": [],
+        "history": [
+          "diabetes mellitus",
+          "hipertensión arterial"
+        ],
+        "negated_findings": [
+          "no refiere síntomas nuevos"
+        ]
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 6627,
+      "llm_latency_ms": 6573,
+      "prompt_tokens": 568,
+      "completion_tokens": 292,
+      "thoughts_tokens": 786,
+      "total_tokens": 1646,
+      "justification": "Paciente acude por control de enfermedades crónicas (diabetes e hipertensión) sin referir síntomas nuevos ni compromiso del estado general, lo que corresponde a una atención ambulatoria.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "E14.9",
+        "I10"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:31:40+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
+      }
+    },
+    {
+      "id": "N047",
+      "split": "dev",
+      "tipo": "coloquial",
+      "lote": 1,
+      "reference_level": 5,
+      "predicted_level": 5,
+      "rule_level": 5,
+      "predicted_entities": {
+        "symptoms": [
+          "caspa",
+          "alopecia"
+        ],
+        "diagnoses": [],
+        "medications": [],
+        "allergies": [],
+        "vitals": [],
+        "history": [],
+        "negated_findings": []
+      },
+      "engine_used": "LLM (gemini-2.5-flash) + Christus Sinergia",
+      "ner_engine": "roberta:ai-triage-ner-roberta@v1",
+      "model_version": "gemini-2.5-flash",
+      "prompt_version": "v1",
+      "latency_ms": 7036,
+      "llm_latency_ms": 6966,
+      "prompt_tokens": 483,
+      "completion_tokens": 177,
+      "thoughts_tokens": 1221,
+      "total_tokens": 1881,
+      "justification": "El paciente presenta síntomas crónicos (caspa y alopecia) sin compromiso del estado general ni signos de alarma, lo que corresponde a una atención ambulatoria.",
+      "output_coerced": [],
+      "predicted_codes": [
+        "L21.0",
+        "L65.9"
+      ],
+      "attempts": 1,
+      "timestamp": "2026-10-26T06:31:47+00:00",
+      "llm_level": 5,
+      "sexo": "desconocido",
+      "grupo_edad": "desconocido",
+      "counts": {
+        "symptoms": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "diagnoses": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "medications": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "allergies": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "vitals": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        },
+        "history": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "negated_gold": 0,
+          "negation_errors": 0,
+          "negated_detected": 0
+        }
+      },
+      "code_hits": {
+        "coded_gold": 2,
+        "code_hits": 2
       }
     }
   ]

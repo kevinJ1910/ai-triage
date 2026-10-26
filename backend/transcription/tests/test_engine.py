@@ -355,3 +355,42 @@ class TestNormalizerGemini:
 
         config = client_cls.return_value.models.generate_content.call_args.kwargs["config"]
         assert "mappings" in config["response_schema"]["properties"]
+
+    def test_local_llm_normalizer_uses_ollama_and_never_calls_gemini(self, mocker):
+        from system_settings.models import SystemConfiguration
+        from transcription import normalizer
+        from triage import local_llm
+
+        cfg = SystemConfiguration.get_solo()
+        cfg.active_llm_engine = "local"
+        cfg.local_llm_model = "gemma4:e4b-it-qat"
+        cfg.save()
+
+        gemini_cls = mocker.patch("google.genai.Client")
+        mocker.patch.object(local_llm, "configured", return_value=True)
+        chat = mocker.patch.object(
+            local_llm,
+            "chat_json",
+            return_value={
+                "text": json.dumps({
+                    "normalized_text": "Paciente con disnea y otalgia.",
+                    "summary": "Disnea con otalgia asociada.",
+                    "mappings": [
+                        {
+                            "raw_term": "punzada en el oído",
+                            "medical_term": "otalgia",
+                            "code": "H92.0",
+                            "code_snomed": "",
+                            "category": "Sintoma",
+                        }
+                    ],
+                })
+            },
+        )
+
+        result = normalizer.normalize_clinical_text("Tengo falta de aire y punzada en el oído")
+        gemini_cls.assert_not_called()
+        chat.assert_called_once()
+        assert "LLM local (gemma4:e4b-it-qat)" in result["engine"]
+        assert any(m["medical_term"] == "otalgia" and m["source"] == "llm" for m in result["mappings"])
+

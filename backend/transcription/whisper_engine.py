@@ -1,15 +1,19 @@
+import array
 import gc
+import io
+import logging
+import math
 import os
 import re
 import sys
 import tempfile
-import logging
 import threading
 import time
+import wave
 import zlib
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
-# --- Dynamic Path Resolution for CUDA/cuDNN DLLs on Windows ---
+# --- Dynamic Resolution for CUDA/cuDNN Libraries (Windows & Linux) ---
 if sys.platform == 'win32':
     import site
     try:
@@ -17,13 +21,30 @@ if sys.platform == 'win32':
         cublas_bin = os.path.join(sp, "nvidia", "cublas", "bin")
         cudnn_bin = os.path.join(sp, "nvidia", "cudnn", "bin")
         paths_to_add = []
-        if os.path.exists(cublas_bin): paths_to_add.append(cublas_bin)
-        if os.path.exists(cudnn_bin): paths_to_add.append(cudnn_bin)
+        if os.path.exists(cublas_bin):
+            paths_to_add.append(cublas_bin)
+        if os.path.exists(cudnn_bin):
+            paths_to_add.append(cudnn_bin)
         if paths_to_add:
             os.environ["PATH"] = ";".join(paths_to_add) + ";" + os.environ.get("PATH", "")
     except Exception:
         pass
-# -------------------------------------------------------------
+elif sys.platform.startswith('linux'):
+    import ctypes
+    import glob
+    import site
+    try:
+        for sp in site.getsitepackages():
+            for pattern in (
+                "nvidia/cublas/lib/libcublasLt.so*",
+                "nvidia/cublas/lib/libcublas.so*",
+                "nvidia/cudnn/lib/libcudnn.so*",
+            ):
+                for so_path in sorted(glob.glob(os.path.join(sp, pattern))):
+                    ctypes.CDLL(so_path, mode=ctypes.RTLD_GLOBAL)
+    except Exception:
+        pass
+# ---------------------------------------------------------------------
 
 try:
     from faster_whisper import WhisperModel
@@ -32,7 +53,7 @@ except ImportError:
 
 from django.conf import settings
 from django.core.cache import cache
-from .medical_prompts import CLINICAL_INITIAL_PROMPT
+from .medical_prompts import CLINICAL_HOTWORDS, CLINICAL_INITIAL_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +128,78 @@ def clean_transcript(text: str) -> Tuple[str, bool]:
     return cleaned, repeated
 
 
+def normalize_wav_bytes(audio_bytes: bytes, target_dbfs: float = -20.0) -> bytes:
+    """
+    Preprocesado acustico ligero para contenedores WAV PCM de 16 bits:
+    1. Filtro paso-alto IIR de 1er orden (~80 Hz) para atenuar retumbo de ventilacion/microfono.
+    2. Normalizacion RMS hacia target_dbfs con limitador de pico sin clipping y techo de ganancia (10x).
+    Si los bytes son WebM/MP3 o un mock de prueba, retorna audio_bytes intacto sin lanzar error.
+    """
+    if not audio_bytes or len(audio_bytes) < 44 or audio_bytes[:4] != b"RIFF":
+        return audio_bytes
+    try:
+        with wave.open(io.BytesIO(audio_bytes), "rb") as reader:
+            if reader.getsampwidth() != 2 or reader.getcomptype() != "NONE":
+                return audio_bytes
+            n_channels = reader.getnchannels()
+            framerate = reader.getframerate()
+            frames = reader.readframes(reader.getnframes())
+        samples = array.array("h")
+        samples.frombytes(frames)
+        if sys.byteorder != "little":
+            samples.byteswap()
+        if not samples:
+            return audio_bytes
+
+        rc = 1.0 / (2.0 * math.pi * 80.0)
+        dt = 1.0 / max(8000, framerate)
+        alpha = rc / (rc + dt)
+
+        filtered = array.array("h", [0] * len(samples))
+        prev_x = [0.0] * n_channels
+        prev_y = [0.0] * n_channels
+        sum_sq = 0.0
+        peak = 1
+        for idx, x_int in enumerate(samples):
+            ch = idx % n_channels
+            x = float(x_int)
+            y = alpha * (prev_y[ch] + x - prev_x[ch])
+            prev_x[ch] = x
+            prev_y[ch] = y
+            yi = max(-32767, min(32767, int(round(y))))
+            filtered[idx] = yi
+            sum_sq += yi * yi
+            if abs(yi) > peak:
+                peak = abs(yi)
+
+        rms = math.sqrt(sum_sq / len(filtered))
+        if rms < 40.0:
+            return audio_bytes
+        target_rms = 32767.0 * (10.0 ** (target_dbfs / 20.0))
+        gain = min(10.0, target_rms / rms, 32000.0 / peak)
+        if 0.85 <= gain <= 1.15:
+            out_samples = filtered
+        else:
+            out_samples = array.array(
+                "h", [max(-32767, min(32767, int(round(s * gain)))) for s in filtered]
+            )
+        if sys.byteorder != "little":
+            out_samples.byteswap()
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as writer:
+            writer.setnchannels(n_channels)
+            writer.setsampwidth(2)
+            writer.setframerate(framerate)
+            writer.writeframes(out_samples.tobytes())
+        return buf.getvalue()
+    except Exception:
+        return audio_bytes
+
+
 def reset_session_context(session_id: str) -> None:
     """Borra el contexto de una sesion sin necesidad de cargar el modelo Whisper."""
     cache.delete(_context_key(session_id))
+
 
 # FIX-TEC-007: Logging centralizado en settings.py LOGGING. Sin FileHandler manual duplicado.
 
@@ -118,7 +208,7 @@ class WhisperEngine:
     """
     Motor ASR de alta eficiencia basado en Faster-Whisper.
     Implementa patron Singleton con Thread Lock, contexto por sesion en cache compartida con TTL,
-    filtro de actividad de voz (VAD) de baja latencia y fallback seguro para host local.
+    hotwords clinicos, filtro de actividad de voz (VAD) de baja latencia y fallback escalonado GPU->CPU.
     """
     _instance = None
     _lock = threading.Lock()
@@ -147,7 +237,7 @@ class WhisperEngine:
         """
         Vuelve a cargar Whisper con el modelo configurado, sin reiniciar el worker. Se libera el modelo anterior
         antes de cargar el nuevo para no tener dos en memoria; si el nuevo falla, se aplican los mismos respaldos
-        que al arrancar (CPU int8 y luego 'small').
+        que al arrancar (CUDA int8_float16, CPU int8 y luego 'small').
         """
         with self._lock:
             self.model = None
@@ -162,16 +252,16 @@ class WhisperEngine:
         device = getattr(settings, 'WHISPER_DEVICE', 'auto')
         compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
         cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)
-        
+
         logger.info(f"Cargando modelo '{model_size}' en '{device}' (compute_type: {compute_type}, hilos: {cpu_threads})")
         start_time = time.perf_counter()
-        
+
         try:
             if WhisperModel is None:
                 raise RuntimeError('faster_whisper no disponible en entorno local')
             self.model = WhisperModel(
-                model_size, 
-                device=device, 
+                model_size,
+                device=device,
                 compute_type=compute_type,
                 cpu_threads=cpu_threads
             )
@@ -179,13 +269,32 @@ class WhisperEngine:
             self.compute_type_used = compute_type
             logger.info(f"Modelo cargado en {time.perf_counter() - start_time:.2f}s en '{device}' ({compute_type})")
         except Exception as e:
+            # Si fallo en CUDA por memoria/tipo (p. ej. float16 en GPU compartida de 8 GB), probar int8_float16 en CUDA antes de caer a CPU.
+            if device == 'cuda' and compute_type != 'int8_float16' and WhisperModel is not None:
+                try:
+                    self.model = WhisperModel(
+                        model_size,
+                        device='cuda',
+                        compute_type='int8_float16',
+                        cpu_threads=cpu_threads,
+                    )
+                    self.device_used = 'cuda'
+                    self.compute_type_used = 'int8_float16'
+                    self.model_size_used = model_size
+                    logger.info(
+                        f"Modelo cargado en CUDA (int8_float16) en {time.perf_counter() - start_time:.2f}s"
+                    )
+                    return
+                except Exception as cuda_int8_err:
+                    logger.warning(f"Fallo respaldo CUDA int8_float16 ({cuda_int8_err}).")
+
             logger.warning(f"Fallo carga con device='{device}' ({e}). Intentando fallback CPU int8.")
             try:
                 if WhisperModel is None:
                     raise RuntimeError('faster_whisper no disponible en entorno local')
                 self.model = WhisperModel(
-                    model_size, 
-                    device='cpu', 
+                    model_size,
+                    device='cpu',
                     compute_type='int8',
                     cpu_threads=cpu_threads
                 )
@@ -197,8 +306,8 @@ class WhisperEngine:
                     logger.warning(f"Fallo fallback con '{model_size}' ({cpu_err}). Intentando con modelo liviano 'small'.")
                     try:
                         self.model = WhisperModel(
-                            'small', 
-                            device='cpu', 
+                            'small',
+                            device='cpu',
                             compute_type='int8',
                             cpu_threads=cpu_threads
                         )
@@ -221,7 +330,7 @@ class WhisperEngine:
     def transcribe_chunk(self, audio_bytes: bytes, session_id: str) -> Dict[str, Any]:
         """
         Transcribe un chunk de audio asegurando baja latencia mediante VAD Silero ajustado
-        a 500ms y busqueda greedy beam_size=1 (o configurado).
+        a 500ms, hotwords clinicos y busqueda greedy beam_size=1 (o configurado).
         """
         if self.model is None:
             raise RuntimeError("Whisper Engine no disponible en entorno actual")
@@ -229,28 +338,34 @@ class WhisperEngine:
         logger.info(f"Procesando chunk de audio para sesion {session_id} ({len(audio_bytes)} bytes)")
         start_time = time.perf_counter()
         temp_file_path = ""
-        
+
         try:
-            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_file:
-                temp_file.write(audio_bytes)
+            processed_bytes = normalize_wav_bytes(audio_bytes) if getattr(settings, 'WHISPER_AUDIO_NORMALIZE', True) else audio_bytes
+            suffix = ".wav" if processed_bytes[:4] == b"RIFF" else ".webm"
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                temp_file.write(processed_bytes)
                 temp_file_path = temp_file.name
 
-            # Construir prompt con historial clinico reciente (ultimos 400 caracteres)
+            # Presupuesto de ventana de Whisper (448 tokens): hotwords + prompt + historial <= ~180 tokens
             previous_context = get_session_context(session_id)
-            history_slice = previous_context[-400:] if len(previous_context) > 400 else previous_context
+            history_slice = previous_context[-220:] if len(previous_context) > 220 else previous_context
             full_prompt = CLINICAL_INITIAL_PROMPT
             if history_slice:
                 full_prompt += "\nHistorial previo de la conversacion: " + history_slice
 
             # beam_size=1 para velocidad ultra-rapida en chunks; configurable via settings
             beam_size = getattr(settings, 'WHISPER_BEAM_SIZE', 1)
+            use_hotwords = getattr(settings, 'WHISPER_USE_HOTWORDS', True)
+            extra_decode = dict(DECODE_OPTIONS)
+            if use_hotwords and CLINICAL_HOTWORDS:
+                extra_decode["hotwords"] = CLINICAL_HOTWORDS
 
             # Transcripcion con VAD Silero optimizado y reintento por temperatura ante bucles
             segments, info = self.model.transcribe(
                 temp_file_path,
                 initial_prompt=full_prompt,
                 beam_size=beam_size,
-                **DECODE_OPTIONS,
+                **extra_decode,
             )
 
             text_segments = [segment.text for segment in segments]

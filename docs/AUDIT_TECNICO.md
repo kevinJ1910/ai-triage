@@ -1,6 +1,6 @@
 # Auditoría Técnica Integral — AI-Triage
 
-**Fecha de esta revisión:** 2026-10-05 (revisión 2)  
+**Fecha de esta revisión:** 2026-10-26 (revisión 3)  
 **Auditoría inicial:** 2026-09-10  
 **Rama auditada:** `develop`  
 **Alcance:** backend (Django/Python), frontend (Next.js/TypeScript), infraestructura Docker y nginx, modelo de datos, seguridad, validez de las métricas clínicas y deuda técnica.

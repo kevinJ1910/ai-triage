@@ -92,7 +92,41 @@ class TestBlindReviewCorpus:
         TriageSession.objects.create(patient=real, level=3, ai_level=3, final_level=3, justification='J')
         data = _clinician().get('/api/triage/sessions/evaluation_metrics/').data
         assert data['total_triages'] == 1
+        assert data['total_triages'] == 1
         assert all(not str(r['patient']).startswith(CORPUS_PREFIX) for r in data['recent_evaluations'])
+
+        admin = User.objects.create_user(email='admin_blind@hospital.com', password='Password123!', role='admin',
+                                         is_verified=True)
+        admin_client = APIClient()
+        admin_client.force_authenticate(user=admin)
+        history_data = admin_client.get('/api/triage/sessions/history/').data
+        assert len(history_data) == 1
+        assert history_data[0]['patientInfo']['documentId'] == 'CC-REAL-1'
+
+        emr_data = admin_client.get('/api/triage/sessions/emr_patients/').data
+        assert len(emr_data) == 1
+        assert emr_data[0]['document_id'] == 'CC-REAL-1'
+
+    def test_queue_tracks_adjudicated_and_rated_counters(self, frozen_run):
+        call_command('import_blind_review', '--run', str(frozen_run), '--per-level', '1', stdout=StringIO())
+        client = _clinician()
+        q0 = client.get('/api/triage/sessions/blind_review_queue/').data
+        assert q0['pending_total'] == 5
+        assert q0['adjudicated_by_me'] == 0
+        assert q0['rated_by_me'] == 0
+
+        first_id = q0['results'][0]['id']
+        assert client.post(f'/api/triage/sessions/{first_id}/reference_level/',
+                           {'reference_level': 2}, format='json').status_code == 200
+        q1 = client.get('/api/triage/sessions/blind_review_queue/').data
+        assert q1['pending_total'] == 4
+        assert q1['adjudicated_by_me'] == 1
+        assert q1['rated_by_me'] == 0
+
+        assert client.post(f'/api/triage/sessions/{first_id}/justification_rating/',
+                           {'clarity': 5, 'relevance': 4, 'fidelity': 5}, format='json').status_code == 200
+        q2 = client.get('/api/triage/sessions/blind_review_queue/').data
+        assert q2['rated_by_me'] == 1
 
     def test_purge_and_guards(self, frozen_run, tmp_path):
         call_command('import_blind_review', '--run', str(frozen_run), '--per-level', '1', stdout=StringIO())
