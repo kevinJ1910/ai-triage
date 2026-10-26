@@ -18,9 +18,9 @@ Solo cambia el LLM.
 | Reglas | Motor determinista | CPU | No aplica | 150 |
 | Qwen2.5-7B | `qwen2.5:7b-instruct-q4_K_M` (Ollama 0.12.6) | CPU AMD Ryzen, 12 hilos, Docker con 8 GB | No tiene | 150 |
 | Gemma 4 E4B | `gemma4:e4b-it-qat` (Ollama 0.34.4) | La misma CPU | Activado (por defecto) | 150 |
-| Gemini 2.5 Flash | `gemini-2.5-flash` (API, plan gratuito) | Nube | Activado (por defecto) | **32 de 150, en curso** |
+| Gemini 2.5 Flash | `gemini-2.5-flash` (API, plan gratuito) | Nube | Activado (por defecto) | **66 de 150, en curso** |
 
-Gemini avanza a 20 llamadas al día por la cuota gratuita. Sus cifras son **parciales**: los 32 casos son los primeros del lote 1, así que no se pueden comparar directamente con los 150 de los demás. En la sección 3 se comparan los cuatro motores sobre esos mismos 32 casos.
+Gemini avanza a 20 llamadas al día por la cuota gratuita. Sus cifras son **parciales**: los 66 casos evaluados cubren la mayor parte del lote 1, así que no se pueden comparar directamente con los 150 de los demás. En la sección 3 se comparan los cuatro motores sobre esos mismos 32 casos.
 
 ## 2. Triaje sobre los 150 casos de *dev*
 
