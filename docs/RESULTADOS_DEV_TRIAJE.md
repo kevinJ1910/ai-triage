@@ -1,6 +1,6 @@
 # Resultados de desarrollo del triaje inteligente (split *dev*)
 
-> **Son cifras de desarrollo, no la evaluación final.** Salen del split *dev* (150 casos), el mismo que se usa para tomar decisiones de diseño. Sirven para la metodología, para justificar decisiones y como resultados preliminares de la tesis. La cifra que responde al criterio del anteproyecto (exactitud mayor al 80 % frente a expertos, con Kappa) sale del split *test*, evaluado **una sola vez** y con la configuración congelada. El procedimiento está en [`EVALUACION_TRIAJE.md`](EVALUACION_TRIAJE.md).
+> **Registro histórico de la fase de desarrollo (*dev*).** Este documento conserva intactas las mediciones intermedias del split *dev* (150 casos, 21-10-2026) empleadas para elegir el modelo, el prompt (`v2`) y la política de combinación (`min_critico`) antes de congelar el sistema. **La evaluación definitiva sobre el split congelado *test* (100 casos en GPU NVIDIA RTX 3070: exactitud 73,0 %, Kappa 0,898, sensibilidad I–II 92,5 %) y la validación clínica ciega independiente (`BlindReview`, 50 casos: exactitud 80,0 %, Kappa 0,911) ya fueron ejecutadas y se documentan en [`EVALUACION_TRIAJE.md`](EVALUACION_TRIAJE.md).**
 
 Datos al 21-10-2026. Todas las cifras se pueden regenerar desde `backend/triage/benchmark/resultados/`: los JSON de resumen y los checkpoints `crudos/*.jsonl` con la salida cruda de cada modelo. Los intervalos son IC95 por bootstrap (1.000 remuestreos, semilla 0).
 
