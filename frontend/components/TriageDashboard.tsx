@@ -641,7 +641,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
       };
       const fhirBundle = generateFHIRBundle(tempSession);
       
-      const res = await fetchWithAuth('/api/fhir', {
+      const res = await fetchWithAuth('/api/fhir/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fhirBundle)

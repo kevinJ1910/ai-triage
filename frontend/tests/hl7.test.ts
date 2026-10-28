@@ -201,4 +201,114 @@ describe('HL7 Interoperability Standards Generator', () => {
       expect(names.indexOf('AL1')).toBeLessThan(names.indexOf('DG1'));
     });
   });
+
+  describe('Codificacion terminologica SNOMED CT, CIE-10 y ATC desde normalized_terms', () => {
+    const codedSession: TriageSession = {
+      ...mockSession,
+      analysisResult: {
+        ...mockSession.analysisResult,
+        entities: {
+          symptoms: ['Dolor torácico', 'Tos'],
+          diagnoses: ['Crisis hipertensiva'],
+          history: ['Hipertensión arterial'],
+          medications: ['Losartán 50mg'],
+          allergies: ['Penicilina'],
+          negated_findings: ['Disnea'],
+          vitals: ['PA: 190/120 mmHg'],
+        },
+        normalized_terms: [
+          {
+            raw_term: 'dolor en el pecho',
+            medical_term: 'Dolor torácico',
+            code: 'R07.4',
+            code_system: 'CIE-10',
+            code_snomed: '29857009',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'crisis hipertensiva',
+            medical_term: 'Crisis hipertensiva',
+            code: 'I16.9',
+            code_system: 'CIE-10',
+            code_snomed: '706882009',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'hipertension arterial',
+            medical_term: 'Hipertensión arterial',
+            code: 'I10',
+            code_system: 'CIE-10',
+            code_snomed: '38341003',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'losartan',
+            medical_term: 'Losartán',
+            code: 'C09CA01',
+            code_system: 'ATC',
+            code_snomed: '373567002',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'penicilina',
+            medical_term: 'Penicilina',
+            code_snomed: '764146007',
+            snomed_valid: true,
+            valid: false,
+          },
+          {
+            raw_term: 'medicamentos',
+            medical_term: 'Medicamentos generales',
+            code: 'Z79.899',
+            code_system: 'CIE-10',
+            valid: false,
+          },
+        ],
+      },
+    };
+
+    it('attaches verified SNOMED CT, ICD-10 and ATC codes across Condition, Encounter, MedicationStatement and AllergyIntolerance', () => {
+      const bundle = generateFHIRBundle(codedSession);
+      const resources = bundle.entry.map((e: any) => e.resource);
+
+      const encounter = resources.find((r: any) => r.resourceType === 'Encounter');
+      expect(encounter.reasonCode[0].coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '29857009', display: 'Dolor torácico' },
+        { system: 'http://hl7.org/fhir/sid/icd-10', code: 'R07.4', display: 'Dolor torácico' },
+      ]);
+      // "Tos" must NOT falsely match substring inside "medicamentos"
+      expect(encounter.reasonCode[1].coding).toEqual([
+        { system: 'http://snomed.info/sct', display: 'Tos' },
+      ]);
+
+      const dxCond = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Crisis hipertensiva');
+      expect(dxCond.code.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '706882009', display: 'Crisis hipertensiva' },
+        { system: 'http://hl7.org/fhir/sid/icd-10', code: 'I16.9', display: 'Crisis hipertensiva' },
+      ]);
+
+      const medStmt = resources.find((r: any) => r.resourceType === 'MedicationStatement');
+      expect(medStmt.medicationCodeableConcept.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '373567002', display: 'Losartán' },
+        { system: 'http://www.whocc.no/atc', code: 'C09CA01', display: 'Losartán' },
+      ]);
+
+      const allergy = resources.find((r: any) => r.resourceType === 'AllergyIntolerance');
+      expect(allergy.code.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '764146007', display: 'Penicilina' },
+      ]);
+    });
+
+    it('emits ICD-10 and SNOMED CT codes in HL7 v2.5.1 DG1 and AL1 segments when normalized', () => {
+      const segments = generateHL7v2Message(codedSession).split('\r');
+      expect(segments).toContain('AL1|1||764146007^Penicilina^SNOMED-CT');
+      expect(segments.some((s: string) => s.startsWith('DG1|1|I10|I16.9^Crisis hipertensiva^ICD-10|'))).toBe(true);
+      expect(segments.some((s: string) => s.startsWith('DG1|2|I10|R07.4^Dolor torácico^ICD-10|'))).toBe(true);
+    });
+  });
+
 });

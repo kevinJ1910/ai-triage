@@ -29,6 +29,7 @@ import {
   generateFHIRBundle,
   generateHL7v2Message,
   TRIAGE_LEVEL_METADATA,
+  type NormalizedClinicalTerm,
   type TriageSession as HL7TriageSession,
 } from '@/lib/hl7';
 
@@ -62,6 +63,7 @@ export interface EMRPatient {
   transcript?: string;
   engine_used?: string;
   entities: ClinicalEntities;
+  coding_terms?: NormalizedClinicalTerm[];
   fhir_synced?: boolean;
   fhir_resource_id?: string;
   fhir_synced_at?: string | null;
@@ -205,6 +207,7 @@ function buildHL7Session(patient: EMRPatient): HL7TriageSession {
         negated_findings: patient.entities?.negated_findings || [],
       },
       engine_used: patient.engine_used || '',
+      coding_terms: patient.coding_terms,
     },
   };
 }
