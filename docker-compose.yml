@@ -17,9 +17,14 @@ x-backend-env: &backend-env
   CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://localhost}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  # Configuracion clinica congelada validada en la particion de prueba (prompt v2 + suelo min_critico)
+  TRIAGE_PROMPT_VERSION: ${TRIAGE_PROMPT_VERSION:-v2}
+  TRIAGE_COMBINE_POLICY: ${TRIAGE_COMBINE_POLICY:-min_critico}
+  ASR_STATUS_TTL: ${ASR_STATUS_TTL:-90}
+  ASR_HEARTBEAT_INTERVAL: ${ASR_HEARTBEAT_INTERVAL:-30}
   # LLM local (perfil llm-local). Sin el perfil activo el estado lo muestra como no disponible.
   LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://llm-local:11434}
-  LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-qwen2.5:7b-instruct-q4_K_M}
+  LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-gemma4:e4b-it-qat}
   LOCAL_LLM_TIMEOUT_SECONDS: ${LOCAL_LLM_TIMEOUT_SECONDS:-300}
   EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
   EMAIL_HOST: mailpit
@@ -153,10 +158,10 @@ services:
     environment:
       <<: *backend-env
       RUN_STARTUP_TASKS: "False"
-      # Carpeta del modelo exportado por ml/ner (o id de un repo privado de Hugging Face con HF_TOKEN).
-      # Si la carpeta no existe, el triaje sigue con el catalogo y las reglas.
-      NER_MODEL_PATH: ${NER_MODEL_PATH:-/models/ner/ai_triage_ner_roberta}
-      NER_MODEL_REVISION: ${NER_MODEL_REVISION:-}
+      # Por defecto descarga y cachea el modelo publico congelado de la tesis desde Hugging Face Hub;
+      # tambien admite ruta local montada (/models/ner/ai_triage_ner_roberta).
+      NER_MODEL_PATH: ${NER_MODEL_PATH:-HoraYMedia/ai-triage-ner-roberta}
+      NER_MODEL_REVISION: ${NER_MODEL_REVISION:-v1}
       NER_PRELOAD: "True"
       NER_CPU_THREADS: ${NER_CPU_THREADS:-2}
       HF_TOKEN: ${HF_TOKEN:-}
@@ -186,7 +191,7 @@ services:
 
   # LLM local opcional (segundo motor de triaje): Ollama con API compatible con OpenAI.
   #   docker compose --profile llm-local up -d
-  #   docker compose exec llm-local ollama pull qwen2.5:7b-instruct-q4_K_M
+  #   docker compose exec llm-local ollama pull gemma4:e4b-it-qat
   # Sin puertos al host: solo lo alcanzan backend y worker-llm por la red interna. Con GPU NVIDIA,
   # docker-compose.gpu.yml le reserva la GPU.
   llm-local:
@@ -209,8 +214,8 @@ services:
     deploy:
       resources:
         limits:
-          # Qwen2.5-7B Q4_K_M ocupa unos 5 GB en memoria.
-          memory: 8G
+          # Gemma 4 E4B QAT ocupa ~7 GB en memoria (Qwen2.5-7B Q4_K_M ~5 GB).
+          memory: ${OLLAMA_MEMORY_LIMIT:-10G}
 
   frontend:
     build:

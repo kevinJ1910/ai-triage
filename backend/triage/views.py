@@ -23,12 +23,27 @@ from .metrics import (
     triage_safety_metrics_from_matrix, reference_agreement_from_matrix,
 )
 from core.task_runner import TaskUnavailable
+from transcription.normalizer import concept_mappings
 from transcription.tasks import transcribe_audio
 from transcription.whisper_engine import reset_session_context
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _derive_coding_terms(entities: dict, transcript_text: str = '') -> list:
+    """Reconstruye de forma determinista los codigos SNOMED CT, CIE-10 y ATC para sesiones persistidas."""
+    parts = []
+    if isinstance(entities, dict):
+        for key in ('symptoms', 'diagnoses', 'medications', 'allergies', 'history', 'negated_findings'):
+            vals = entities.get(key)
+            if isinstance(vals, list):
+                parts.extend(str(v) for v in vals if v)
+    if transcript_text:
+        parts.append(transcript_text)
+    combined = ', '.join(parts)
+    return concept_mappings(combined) if combined.strip() else []
 
 
 class TriageSessionViewSet(viewsets.GenericViewSet):
@@ -257,10 +272,11 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                         "symptoms": s.final_symptoms or entities.get('symptoms', []),
                     },
                     "confidence": s.confidence_score,
-                    # Explicabilidad que se conserva: criterios del protocolo y motor. Los terminos normalizados
-                    # y las menciones del NER no se guardan en la sesion.
+                    # Explicabilidad que se conserva: criterios del protocolo y motor. coding_terms habilita
+                    # codificacion SNOMED CT / CIE-10 / ATC en FHIR sin alterar el indicador de historial en UI.
                     "engine_used": transcription.model_used if transcription else None,
                     "rag_criteria": ClinicalKnowledgeRAG.describe(s.rag_context if isinstance(s.rag_context, list) else []),
+                    "coding_terms": _derive_coding_terms(entities, transcription.full_text if transcription else ''),
                 },
             })
         return Response(results)
@@ -531,6 +547,7 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
                 "transcript": transcription.full_text if transcription else "",
                 "engine_used": transcription.model_used if transcription else "",
                 "entities": entities,
+                "coding_terms": _derive_coding_terms(entities, transcription.full_text if transcription else ""),
                 "fhir_synced": bool(fhir_rec),
                 "fhir_resource_id": fhir_rec.fhir_resource_id if fhir_rec else "",
                 "fhir_synced_at": local_strftime(fhir_rec.created_at, '%Y-%m-%d %H:%M:%S') if fhir_rec else None,

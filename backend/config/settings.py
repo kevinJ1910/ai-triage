@@ -259,6 +259,9 @@ ASR_TASK_TIMEOUT = int(os.getenv('ASR_TASK_TIMEOUT', '90'))
 LLM_TASK_TIMEOUT = int(os.getenv('LLM_TASK_TIMEOUT', '100'))
 # Vida del contexto de transcripcion por sesion (prompt de continuidad de Whisper).
 ASR_SESSION_TTL = int(os.getenv('ASR_SESSION_TTL', '1800'))
+# TTL y latido periodico en Redis para el estado publicado por worker-asr (mitiga P-05 ante muerte abrupta).
+ASR_STATUS_TTL = int(os.getenv('ASR_STATUS_TTL', '90'))
+ASR_HEARTBEAT_INTERVAL = int(os.getenv('ASR_HEARTBEAT_INTERVAL', '30'))
 
 # --- Whisper ASR Configuration ---
 WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'small')
