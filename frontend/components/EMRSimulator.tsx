@@ -229,6 +229,15 @@ export default function EMRSimulator() {
   const [savingEvolution, setSavingEvolution] = useState(false);
   const [syncingFhir, setSyncingFhir] = useState(false);
 
+  const syncPatientForm = useCallback((patient: EMRPatient | null | undefined) => {
+    if (!patient) return;
+    const normalized = CARE_STATUS_OPTIONS.some((o) => o.value === patient.status)
+      ? patient.status
+      : 'Pendiente de Recepcion';
+    setCareStatusInput(normalized);
+    setEvolutionNotes(patient.entities?.evolution_notes || '');
+  }, []);
+
   const fetchPatients = useCallback(async () => {
     setLoading(true);
     try {
@@ -240,8 +249,14 @@ export default function EMRSimulator() {
       const data: EMRPatient[] = await response.json();
       setPatients(data);
       setSelectedId((prev) => {
-        if (prev && data.some((p) => p.id === prev)) return prev;
-        return data.length > 0 ? data[0].id : null;
+        const chosen =
+          prev && data.some((p) => p.id === prev)
+            ? data.find((p) => p.id === prev) || null
+            : data.length > 0
+              ? data[0]
+              : null;
+        syncPatientForm(chosen);
+        return chosen ? chosen.id : null;
       });
     } catch (error) {
       console.error('Error cargando admisiones HCE:', error);
@@ -249,7 +264,7 @@ export default function EMRSimulator() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [syncPatientForm]);
 
   useEffect(() => {
     fetchPatients();
@@ -259,16 +274,6 @@ export default function EMRSimulator() {
     () => patients.find((p) => p.id === selectedId) || null,
     [patients, selectedId]
   );
-
-  useEffect(() => {
-    if (selectedPatient) {
-      const normalized = CARE_STATUS_OPTIONS.some((o) => o.value === selectedPatient.status)
-        ? selectedPatient.status
-        : 'Pendiente de Recepcion';
-      setCareStatusInput(normalized);
-      setEvolutionNotes(selectedPatient.entities?.evolution_notes || '');
-    }
-  }, [selectedPatient]);
 
   const filteredPatients = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -560,6 +565,7 @@ export default function EMRSimulator() {
                     type="button"
                     onClick={() => {
                       setSelectedId(patient.id);
+                      syncPatientForm(patient);
                       setMobileDetailOpen(true);
                     }}
                     className={`w-full text-left p-3 rounded-xl border border-l-4 transition-all ${levelStyle.border} ${
