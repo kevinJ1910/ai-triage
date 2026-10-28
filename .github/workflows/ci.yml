@@ -35,8 +35,10 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
         env:
           SECRET_KEY: ci-only-secret-key
-      - name: Tests
+      - name: Tests Backend
         run: python -m pytest --create-db
+      - name: Tests ML (NER)
+        run: python -m pytest ../ml/ner/tests -p no:django
 
   frontend:
     runs-on: ubuntu-latest
