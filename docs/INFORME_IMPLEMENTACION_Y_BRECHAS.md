@@ -1,9 +1,9 @@
 # Informe Técnico de Implementación, Arquitectura y Estado del Sistema
 
-**Fecha:** 2026-10-27 (Versión 4 — Cierre Experimental)  
+**Fecha:** 2026-10-28 (Versión 5 — Cierre Integral de Implementación y Memoria)  
 **Proyecto:** AI-Triage Hospitalario (Sistema de Soporte a la Decisión Clínica por Voz)  
 **Rama:** `feat/optimizacion-rag-asr-metricas` (convergente a `develop`)  
-**Versión anterior del informe:** 2026-10-26 (Versión 3)
+**Versión anterior del informe:** 2026-10-27 (Versión 4)
 
 ---
 
@@ -17,7 +17,8 @@ Principales hitos cerrados en esta versión definitiva:
 - **Extracción biomédica y normalización auditada:** El flujo híbrido alcanzó un **micro-F1 de 0,888** en `dev` (150 casos) y **0,789** IC95 `[0,750, 0,828]` en `test` (100 casos, con `0,963` en medicamentos y `97,2 %` de exactitud en negación), respaldado por doble anotación ciega inter-anotador de **0,979 micro-F1** y validación externa sobre **CodiEsp** (`73,3 %` de precisión a 3 caracteres CIE-10). El catálogo local reúne **315 conceptos** (`1.337` variantes, `302` mapeados a `299` códigos SNOMED CT únicos verificados contra `tx.fhir.org`, `208` a `188` códigos CIE-10 únicos y `76` a códigos ATC).
 - **Soberanía de datos con LLM local en GPU y política `min_critico`:** En la corrida única sobre el split congelado `test` (100 casos), el flujo local `gemma4:e4b-it-qat` en GPU NVIDIA RTX 3070 (prompt `v2`, política `min_critico`) obtuvo **73,0 % de exactitud** IC95 `[64,0, 81,0]`, **Kappa ponderado cuadrático de 0,898** IC95 `[0,828, 0,945]`, **sensibilidad crítica en niveles I–II del 92,5 %** IC95 `[83,0, 100,0]` e **infratriaje de 12,0 %** (`-44,0 pp` respecto al motor de reglas aisladas), con latencia mediana de **15,2 s** y sin salida de datos del servidor hospitalario.
 - **Validación clínica ciega (`BlindReview`):** Un médico independiente evaluó a ciegas 50 casos estratificados de `test` (10 por nivel), registrando **80,0 % de exactitud clínico-IA**, **Kappa ponderado de 0,911** IC95 `[0,793, 0,975]` y calificaciones medias Likert (1–5) de **4,80** en claridad, **4,58** en pertinencia clínica y **4,58** en fidelidad al protocolo.
-- **Calidad de software e integración continua:** **731 pruebas automatizadas** en verde (`597` en `backend` + `43` en `ml` bajo Pytest, más `1 xfail` documentado, y `91` en `14` suites bajo Vitest en `frontend`), ejecutadas automáticamente en GitHub Actions (`.github/workflows/ci.yml`).
+- **Interoperabilidad semántica completa y observabilidad ASR:** Los Bundles **HL7 FHIR R4** y los mensajes **HL7 v2.5.1 (`ADT^A08`)** inyectan ahora los códigos verificados **SNOMED CT**, **CIE-10** y **ATC** además de **LOINC/UCUM**, y el worker ASR mantiene un latido periódico con expiración TTL en Redis (`ASR_HEARTBEAT_INTERVAL = 30 s`, `ASR_STATUS_TTL = 90 s`).
+- **Calidad de software e integración continua:** **738 pruebas automatizadas** (`602` en `backend` [`601` pasan + `1 xfail`] + `43` en `ml` bajo Pytest, y `93` en `14` suites bajo Vitest en `frontend`), ejecutadas automáticamente en GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 
@@ -28,11 +29,11 @@ Principales hitos cerrados en esta versión definitiva:
 | `nginx` | Terminación TLS 1.2/1.3 en puerto 443 (redirección desde 80), cabeceras de seguridad (CSP, HSTS, COOP, `Permissions-Policy`) y enrutamiento inverso hacia `frontend` y `backend`. |
 | `frontend` | Next.js 15 (App Router, React 19, TypeScript) en modo `standalone` sin privilegios de root. |
 | `backend` | Django 5.2+ / DRF sobre Gunicorn: autenticación JWT + OTP, RBAC en servidor, persistencia atómica, auditoría y encolamiento Celery. |
-| `worker-asr` | Celery (`--pool solo`, cola `asr`): `WhisperEngine` con acondicionamiento acústico (pasa-altos 80 Hz + RMS −20 dBFS), *hotwords* médicas y soporte CPU (`small`, `int8`) o GPU CUDA (`large-v3-turbo`, `int8_float16`). |
-| `worker-llm` | Celery (cola `llm`): inferencia RoBERTa NER (`HoraYMedia/ai-triage-ner-roberta@v1`), normalización clínica, RAG híbrido (`pgvector` + BM25) y clasificación con Gemini o LLM local, con degradación garantizada a reglas. |
+| `worker-asr` | Celery (`--pool solo`, cola `asr`): `WhisperEngine` con acondicionamiento acústico (pasa-altos 80 Hz + RMS −20 dBFS), *hotwords* médicas, latido de salud con TTL en Redis y soporte CPU (`small`, `int8`) o GPU CUDA (`large-v3-turbo`, `int8_float16`). |
+| `worker-llm` | Celery (cola `llm`): inferencia RoBERTa NER (`HoraYMedia/ai-triage-ner-roberta@v1`), normalización clínica, RAG híbrido (`pgvector` + BM25) y clasificación con Gemini o LLM local (`TRIAGE_PROMPT_VERSION=v2`, `TRIAGE_COMBINE_POLICY=min_critico`), con degradación garantizada a reglas. |
 | `llm-local` | Contenedor Ollama (perfil `llm-local`, CPU o GPU NVIDIA) para ejecución *on-premise* de `gemma4:e4b-it-qat` y `qwen2.5:7b-instruct-q4_K_M`. |
 | `postgres` | PostgreSQL 16 + `pgvector` (aislado sin puerto expuesto al host): persistencia relacional y tabla vectorial `triage_clinical_rag_vectors` (61 criterios). |
-| `redis` | Redis 7 Alpine: broker Celery (`db 0`), caché clínica canónica SHA-256, contexto ASR por sesión y contadores de *throttling* (`db 1`). |
+| `redis` | Redis 7 Alpine: broker Celery (`db 0`), caché clínica canónica SHA-256, contexto ASR por sesión, latido `asr:engine_status` con TTL y contadores de *throttling* (`db 1`). |
 | `mailpit` | Servidor SMTP local y visor web para códigos OTP de verificación y recuperación. |
 
 ---
@@ -47,20 +48,20 @@ Principales hitos cerrados en esta versión definitiva:
    - Caché canónica `clinical_cache.py` (huella SHA-256 de texto normalizado + signos vitales, sin almacenar datos identificativos del paciente).
    - Recuperador `clinical_rag.py` sobre **61 criterios institucionales** combinando similitud coseno en `pgvector` (`triage_clinical_rag_vectors`) con puntuación léxica Okapi BM25 y expansión ontológica.
    - Extractor `ner_model.py` (`HoraYMedia/ai-triage-ner-roberta@v1`, consolidado mediante *Uniform Model Soup* en `ml/ner/model_soup.py`) fusionado con el catálogo determinista (`backend/transcription/terminology/`).
-   - Clasificador estructurado en `ai_analyzer.py` / `local_llm.py` validado con Pydantic v2 (`TriageOutputSchema`) bajo la política `min_critico` (cuando las reglas detectan un criterio de nivel I–II, el nivel final nunca puede ser menos urgente).
-4. **Interoperabilidad dual y Simulador HCE (`frontend/lib/hl7.ts`, `backend/triage/fhir_validation.py`):** Exportación de Bundles **HL7 FHIR R4** (`Patient`, `Encounter`, `Observation` LOINC/UCUM, `Condition` con `refuted` para negaciones, `AllergyIntolerance` y `MedicationStatement`) y tramas **HL7 v2.5.1 ER7 (`ADT^A08`)** con segmentos `MSH`, `EVN`, `PID`, `PV1`, `PV2`, `OBX`, `AL1` y `DG1`. El endpoint `POST /api/fhir/` valida la conformidad estructural R4 (`201` / `422`), persiste `FHIRRecord` + `FHIRMessageLog` y sincroniza el estado en `EMRSimulator` (`update_care_status`).
+   - Clasificador estructurado en `ai_analyzer.py` / `local_llm.py` validado con Pydantic v2 (`TriageOutputSchema`) bajo el prompt `v2` y la política `min_critico` (cuando las reglas detectan un criterio de nivel I–II, el nivel final nunca puede ser menos urgente).
+4. **Interoperabilidad dual codificada y Simulador HCE (`frontend/lib/hl7.ts`, `backend/triage/fhir_validation.py`, `backend/triage/views.py`):** Exportación de Bundles **HL7 FHIR R4** (`Patient`, `Encounter` con `reasonCode` codificado, `Observation` LOINC/UCUM, `Condition` con códigos SNOMED CT/CIE-10 y estado `refuted` para negaciones, `AllergyIntolerance` con códigos SNOMED CT/ATC y `MedicationStatement` con códigos ATC/SNOMED CT) y tramas **HL7 v2.5.1 ER7 (`ADT^A08`)** con segmentos `MSH`, `EVN`, `PID`, `PV1`, `PV2`, `OBX`, `AL1` y `DG1` codificados. El endpoint `POST /api/fhir/` valida la conformidad estructural R4 (`201` / `422`), persiste `FHIRRecord` + `FHIRMessageLog` y sincroniza el estado en `EMRSimulator` (`update_care_status`).
 
 ---
 
 ## 4. Limitaciones Conocidas y Trabajo Futuro
 
-Las brechas críticas de iteraciones previas (ausencia de umbrales de signos vitales, falta de NegEx, dependencia exclusiva de nube, falta de pruebas en GPU NVIDIA real y ausencia de adjudicación médica ciega) quedaron resueltas. Las limitaciones residuales que delimitan la transferencia a operación asistencial real son:
+Las brechas críticas y de integración del alcance del proyecto quedaron cerradas al 100 %. Las limitaciones que delimitan la transferencia a operación asistencial hospitalaria real son:
 
-1. **Piloto prospectivo multicéntrico con pacientes reales:** El corpus de 250 casos y los 40 audios se construyeron sobre relatos sintéticos para cumplir estrictamente con la Ley 1581 de 2012 sin exponer historias clínicas reales, y la validación ciega contó con un médico adjudicador independiente sobre 50 casos. Antes de cualquier uso asistencial directo se requiere un estudio prospectivo multicéntrico aprobado por comité de ética institucional, con panel de múltiples evaluadores, cronometraje asistencial y aplicación presencial de la escala SUS.
-2. **Codificación semántica dentro de recursos FHIR y transporte externo:** Aunque el normalizador resuelve códigos SNOMED CT, CIE-10 y ATC verificados y los signos vitales ya se exportan con códigos LOINC y unidades UCUM, los recursos `Condition`, `AllergyIntolerance` y `MedicationStatement` del Bundle FHIR exportan actualmente la descripción textual clínica sin inyectar aún los códigos en `coding[].code`, y `/api/fhir/` opera como receptor validador local sin retransmisión automática SMART on FHIR o MLLP hacia un HIS externo.
+1. **Piloto prospectivo multicéntrico con pacientes reales:** El corpus de 250 casos y los 40 audios se construyeron sobre relatos sintéticos para cumplir estrictamente con la Ley 1581 de 2012 sin exponer historias clínicas reales, y la validación ciega contó con un médico adjudicador independiente sobre 50 casos de prueba (`100` en total sumando `dev`). Antes de cualquier uso asistencial directo se requiere un estudio prospectivo multicéntrico aprobado por comité de ética institucional, con panel de múltiples evaluadores, cronometraje asistencial y aplicación presencial de la escala SUS.
+2. **Conectores externos hacia HIS comerciales (SMART on FHIR y MLLP):** Aunque el sistema exporta y valida localmente Bundles HL7 FHIR R4 y mensajes HL7 v2.5.1 con códigos LOINC, SNOMED CT, CIE-10 y ATC verificados, `/api/fhir/` actúa como receptor simulado dentro del alcance del trabajo de grado; su puesta en producción requiere conectores OAuth2 SMART on FHIR y transporte TCP/MLLP hacia el HIS hospitalario.
 3. **Servidor terminológico SNOMED CT RF2 completo:** El catálogo local cubre los 315 conceptos más frecuentes de urgencias adultas (verificados contra `tx.fhir.org`), pero no embebe la edición completa SNOMED CT RF2 (>350.000 conceptos) mediante Snowstorm u Ontoserver.
-4. **Población pediátrica y obstétrica especializada:** Los umbrales de signos vitales implementados en `vital_signs.py` aplican exclusivamente a adultos; su extensión a pediatría requiere tablas fisiológicas estratificadas por edad.
-5. **Deuda técnica menor de frontend e infraestructura:** `TriageDashboard.tsx` concentra múltiples subpaneles en un único componente (~1.890 líneas); la cabecera CSP mantiene `'unsafe-inline'` en `script-src` por los scripts de hidratación sin *nonce* de Next.js; y la clave `asr:engine_status` en Redis se limpia en apagados ordenados pero carece aún de *heartbeat* con TTL ante caídas abruptas del proceso.
+4. **Población pediátrica y obstétrica especializada:** Los umbrales de signos vitales implementados en `vital_signs.py` aplican exclusivamente a adultos; su extensión a pediatría y obstetricia requiere tablas fisiológicas estratificadas por edad/gestación y trámite regulatorio SaMD ante el INVIMA.
+5. **Deuda técnica menor de mantenimiento evolutivo:** `TriageDashboard.tsx` (~1.890 líneas) admite extracción adicional de subcomponentes internos, y la cabecera CSP mantiene `'unsafe-inline'` en `script-src` por los scripts de hidratación estáticos de Next.js 15 (mitigable con middleware de *nonces*).
 
 ---
 
@@ -73,7 +74,7 @@ Las brechas críticas de iteraciones previas (ausencia de umbrales de signos vit
 | `POST` | `/api/auth/logout/` | Cierre de sesión e inclusión del refresh en lista negra | — | JWT |
 | `POST` | `/api/auth/register/` | Registro de personal asistencial y envío de OTP | `RegisterSchema` | Público (10/min) |
 | `POST` | `/api/auth/verify/` · `/api/auth/resend-code/` | Verificación y reenvío de código OTP | `VerifyCodeSchema` | Público (5/min) |
-| `POST` | `/api/auth/password-reset/request/` · `/confirm/` | Solicitud y confirmación de restablecimiento de contraseña | Pydantic | Público (10/min · 5/min) |
+| `POST` | `/api/auth/password-reset/` · `/confirm/` | Solicitud y confirmación de restablecimiento de contraseña | Pydantic | Público (10/min · 5/min) |
 | `GET` | `/api/auth/me/` | Perfil autenticado y matriz de permisos | — | JWT |
 | `GET` | `/api/security/users/` | Directorio de usuarios registrados | — | Admin |
 | `PATCH` | `/api/security/users/<id>/permissions/` | Actualización de matriz RBAC por usuario | `UserPermissionUpdateSchema` | Admin |
@@ -97,4 +98,4 @@ Las brechas críticas de iteraciones previas (ausencia de umbrales de signos vit
 | `POST` | `/api/triage/sessions/<id>/justification_rating/` | Calificación Likert (1–5) de claridad, pertinencia y fidelidad | `JustificationRatingSchema` | Adjudicador de la sesión |
 | `GET` | `/api/triage/sessions/fhir_logs/` | Bitácora auditada de mensajes HL7 FHIR R4 | — | `can_view_fhir` |
 | `POST` | `/api/fhir/` | Validación estructural e ingestión de Bundles HL7 FHIR R4 | `FHIRSyncSchema` | JWT |
-| `GET` | `/api/health_check/` | Estado integral del backend y del worker ASR | — | Público |
+| `GET` | `/api/health_check/` | Estado integral del backend y del worker ASR (con TTL) | — | Público |

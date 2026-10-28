@@ -72,7 +72,7 @@ ai-triage/
 │   │                                     # NormalizationMonitor, BlindReview, SecurityPanel, ConfigPanel
 │   ├── hooks/useWhisperASR.ts            # Captura de audio por fragmentos con hotwords y VU meter
 │   ├── lib/api.ts                        # fetchWithAuth: token en memoria y refresh por cookie
-│   └── tests/                            # Vitest + Testing Library (14 suites, 91 tests)
+│   └── tests/                            # Vitest + Testing Library (14 suites, 93 tests)
 │
 ├── ml/                                   # Modelos y scripts de Machine Learning
 │   └── ner/
@@ -415,7 +415,7 @@ Todas las rutas requieren `Authorization: Bearer <access token>` salvo las marca
 | `POST` | `/api/auth/logout/` | Cierre de sesión e invalidación del refresh | JWT |
 | `POST` | `/api/auth/register/` | Registro de personal y envío de OTP | Público (10/min) |
 | `POST` | `/api/auth/verify/` · `/api/auth/resend-code/` | Verificación y reenvío del código OTP | Público (5/min) |
-| `POST` | `/api/auth/password-reset/request/` · `/confirm/` | Recuperación de contraseña | Público |
+| `POST` | `/api/auth/password-reset/` · `/confirm/` | Recuperación de contraseña | Público |
 | `GET` | `/api/auth/me/` | Perfil y permisos del usuario | JWT |
 | `GET` | `/api/security/users/` | Directorio de usuarios | Admin |
 | `PATCH` | `/api/security/users/<id>/permissions/` | Matriz de permisos de un usuario | Admin |
@@ -446,19 +446,20 @@ Todas las rutas requieren `Authorization: Bearer <access token>` salvo las marca
 
 ## Ejecución de Pruebas Automatizadas
 
-### Backend y ML (Django + Pytest): 640 pruebas pasadas (597 backend + 43 ML, 1 xfail)
+### Backend y ML (Django + Pytest): 645 pruebas (602 backend [601 pasadas + 1 xfail] + 43 ML)
 
 El conjunto cubre exhaustivamente autenticación, OTP, RBAC, cifrado, pacientes, sesiones de triaje, protocolo clínico (un caso por criterio y regresiones), compresión, RAG híbrido (`pgvector` + BM25), caché SHA-256, métricas y validación ciega, interoperabilidad dual FHIR R4 / HL7 v2.5.1, tareas Celery (en modo en línea), motor ASR (con Whisper simulado), configuración de seguridad y comandos de benchmark.
 
 ```bash
 backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
 backend/.venv/Scripts/python.exe -m pytest --create-db backend
+backend/.venv/Scripts/python.exe -m pytest ml/ner/tests -p no:django
 docker compose exec backend pytest --create-db
 ```
 
 En pytest las tareas Celery se ejecutan en línea y la caché es local al proceso: no hace falta Redis.
 
-### Frontend (Next.js + Vitest + Testing Library): 91 pruebas pasadas (14 suites)
+### Frontend (Next.js + Vitest + Testing Library): 93 pruebas pasadas (14 suites)
 
 ```bash
 pnpm --dir frontend test

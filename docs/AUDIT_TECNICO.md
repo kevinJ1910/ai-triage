@@ -1,6 +1,6 @@
 # Auditoría Técnica Integral — AI-Triage
 
-**Fecha de esta revisión:** 2026-10-27 (revisión 4 — cierre experimental y verificación en GPU/CI)  
+**Fecha de esta revisión:** 2026-10-28 (revisión 5 — cierre integral de implementación, interoperabilidad semántica y latido ASR)  
 **Auditoría inicial:** 2026-09-10  
 **Rama auditada:** `feat/optimizacion-rag-asr-metricas` / `develop`  
 **Alcance:** backend (`Django/Python`), modelos ML (`ml/ner`), frontend (`Next.js/TypeScript`), infraestructura (`Docker Compose`, `CUDA`, `Ollama`, `nginx`), modelo de datos (`PostgreSQL 16 + pgvector`), seguridad, validez metodológica y deuda técnica.
@@ -24,14 +24,15 @@
 | :--- | ---: | ---: |
 | Auditoría inicial (`A-01 … A-34`) | 33 | 1 (`A-20`) |
 | Hallazgos de iteraciones intermedias (`N-01 … N-22`) | 22 | 0 |
-| Riesgos de seguimiento (`P-01 … P-08`) | 5 | 3 (`P-04`, `P-05`, `P-06`) |
+| Riesgos de seguimiento (`P-01 … P-08`) | 6 | 2 (`P-04`, `P-06`) |
 
-Hitos técnicos verificados en la revisión 4:
+Hitos técnicos verificados en la revisión 5:
 
 1. **Mitigación de infratriaje y reglas fisiológicas (`P-01` -> Resuelto):** Se incorporaron 18 reglas cuantitativas de signos vitales adultos (`backend/triage/vital_signs.py`), detección determinista de negaciones en español (`backend/triage/negation.py`), recuperación híbrida `pgvector` + Okapi BM25 sobre 61 criterios (`backend/triage/clinical_rag.py`) y la política de piso de seguridad `min_critico`, elevando la sensibilidad en niveles críticos I–II al **92,5 %** en la partición congelada `test`.
 2. **Evaluación congelada y adjudicación médica ciega (`P-02` -> Mitigado):** Se consolidó el corpus de 250 relatos (`150 dev` + `100 test` con doble anotación ciega e IAA `0,865` en triaje / `0,979` en NER) y se completó la revisión ciega independiente sobre 50 casos estratificados de `test` (`80,0 %` de exactitud clínico-IA, `Kappa = 0,911`, Likert `4,80 / 4,58 / 4,58`).
 3. **Soberanía de datos con LLM local en GPU (`P-03` -> Resuelto):** Se integró `backend/triage/local_llm.py` y el servicio `llm-local` (Ollama GPU con `gemma4:e4b-it-qat`), garantizando operación 100 % *on-premise* sin transferencia externa de relatos clínicos y sin degradar jamás a nube cuando se selecciona el modo local.
-4. **Verificación empírica en GPU NVIDIA real y CI en GitHub (`P-07` -> Resuelto):** Tanto `faster-whisper` (`large-v3-turbo`, `WER 2,39 %`, `RTF 0,044`) como `gemma4:e4b-it-qat` (`15,2 s` p50) fueron medidos sobre GPU NVIDIA GeForce RTX 3070 real, y el flujo `.github/workflows/ci.yml` ejecuta y aprueba las suites de `backend` y `frontend` en GitHub Actions.
+4. **Latido periódico con TTL en Redis para `worker-asr` (`P-05` -> Resuelto):** `backend/transcription/tasks.py` publica y renueva `asr:engine_status` mediante un hilo demonio cada `ASR_HEARTBEAT_INTERVAL` (`30 s`) con expiración `ASR_STATUS_TTL` (`90 s`), garantizando detección automática en `/api/health_check/` incluso ante terminación abrupta (`SIGKILL`).
+5. **Verificación empírica en GPU NVIDIA real, codificación semántica FHIR/HL7 y CI completa (`P-07` -> Resuelto):** Tanto `faster-whisper` (`large-v3-turbo`, `WER 2,39 %`, `RTF 0,044`) como `gemma4:e4b-it-qat` (`15,2 s` p50) fueron medidos sobre GPU NVIDIA GeForce RTX 3070 real; `frontend/lib/hl7.ts` y `backend/triage/views.py` inyectan códigos verificados SNOMED CT, CIE-10 y ATC en Bundles HL7 FHIR R4 y mensajes HL7 v2.5.1; y `.github/workflows/ci.yml` ejecuta las 3 suites (`backend`, `ml/ner/tests` y `frontend`).
 
 ---
 
@@ -58,7 +59,7 @@ Hitos técnicos verificados en la revisión 4:
 | A-17 | MEDIO | `db.sqlite3` versionado | **Resuelto** | Excluido en `.gitignore`. |
 | A-18 | BAJO | Logging duplicado con `FileHandler` manual | **Resuelto** | Centralizado en `settings.LOGGING`. |
 | A-19 | ALTO | `useState<any>` en datos clínicos | **Resuelto** | Interfaces TypeScript estrictas en componentes clínicos. |
-| A-20 | MEDIO | `TriageDashboard.tsx` monolítico | **Pendiente** | Mantiene ~1.890 líneas; candidato a extracción en subcomponentes (ver `P-06`). |
+| A-20 | MEDIO | `TriageDashboard.tsx` monolítico | **Pendiente** | Mantiene ~1.890 líneas (los módulos `BlindReview`, `EMRSimulator`, `FHIRMonitor`, `MetricsDashboard` y `NormalizationMonitor` ya están desacoplados; ver `P-06`). |
 | A-21 | MEDIO | `fetchWithAuth` sin renovación concurrente | **Resuelto** | Promesa única compartida de refresh ante respuestas `401`. |
 | A-22 | BAJO | Perfil leído de `localStorage` | **Resuelto** | Verificado contra `/api/auth/me/` en `AppNavigation` e inyectado por props; autorización real en servidor. |
 | A-23 | BAJO | Validación de frontend parcial | **Mitigado** | `frontend/lib/validation.ts` centraliza cédula, fecha y teléfono; el backend valida todos los payloads con Pydantic v2. |
@@ -84,9 +85,9 @@ Hitos técnicos verificados en la revisión 4:
 | P-02 | ALTO | Ausencia de partición congelada `test` y validación médica ciega | **Mitigado** | Corpus de 250 casos (`150 dev` / `100 test` congelado), doble anotación ciega y adjudicación médica independiente sobre 50 casos en `BlindReview` (`Kappa = 0,911`, exactitud `80,0 %`). Queda como trabajo futuro un piloto prospectivo con pacientes reales. |
 | P-03 | MEDIO | Salida de relatos seudonimizados hacia API externa en nube | **Resuelto** | Integración de `llm-local` (Ollama GPU `gemma4:e4b-it-qat`) con aislamiento estricto: cero tráfico externo y respaldo local a reglas. |
 | P-04 | MEDIO | Cabecera CSP con `'unsafe-inline'` en `script-src` | **Pendiente** | Requerido por los scripts de hidratación estáticos de Next.js 15; mitigable en el futuro mediante middleware de *nonces* por petición. |
-| P-05 | BAJO | Clave `asr:engine_status` en Redis sin TTL ante muerte abrupta (`SIGKILL`) | **Pendiente** | `/api/health_check/` detecta indisponibilidad real de `worker-asr`; añadir *heartbeat* periódico es una mejora menor recomendada. |
-| P-06 | BAJO | Tamaño de `frontend/components/TriageDashboard.tsx` (~1.890 líneas) | **Pendiente** | Funcional y cubierto por pruebas de regresión en Vitest; refactorización modular diferida para mantenimiento evolutivo. |
-| P-07 | BAJO | Modo GPU NVIDIA y pipeline GitHub Actions pendientes de corrida real | **Resuelto** | Verificado empíricamente sobre NVIDIA GeForce RTX 3070 (`docker-compose.gpu.yml`) y con jobs `backend` + `frontend` en verde en GitHub Actions. |
+| P-05 | BAJO | Clave `asr:engine_status` en Redis sin TTL ante muerte abrupta (`SIGKILL`) | **Resuelto** | `publish_asr_status()` y hilo periódico `start_asr_heartbeat` (`ASR_HEARTBEAT_INTERVAL = 30 s`, `ASR_STATUS_TTL = 90 s`) en `backend/transcription/tasks.py`. |
+| P-06 | BAJO | Tamaño de `frontend/components/TriageDashboard.tsx` (~1.890 líneas) | **Pendiente** | Funcional y cubierto por pruebas de regresión en Vitest; refactorización interna adicional diferida para mantenimiento evolutivo. |
+| P-07 | BAJO | Modo GPU NVIDIA y pipeline GitHub Actions pendientes de corrida real | **Resuelto** | Verificado empíricamente sobre NVIDIA GeForce RTX 3070 (`docker-compose.gpu.yml`) y con jobs `backend` (incluyendo `ml/ner/tests`) + `frontend` en `.github/workflows/ci.yml`. |
 | P-08 | BAJO | Perfil de usuario cacheado en `localStorage` | **Resuelto** | Hidratado desde `/api/auth/me/` en `AppNavigation` y pasado como prop tipada. |
 
 ---
@@ -95,7 +96,7 @@ Hitos técnicos verificados en la revisión 4:
 
 | Suite | Comando de verificación | Alcance principal | Total |
 | :--- | :--- | :--- | ---: |
-| **Backend (`Django + DRF`)** | `pytest --create-db backend` | Autenticación, OTP, cookies JWT, throttling, RBAC, cifrado `MultiFernet`, motor Christus Sinergia (criterio por criterio), umbrales de signos vitales, NegEx, RAG híbrido (`pgvector` + BM25), caché SHA-256 sin fuga entre pacientes, LLM local/nube, métricas Kappa/bootstrap, `BlindReview`, validación FHIR R4, ASR simulado y comandos de benchmark. | **597** (`+ 1 xfail`) |
-| **Machine Learning (`ml/ner`)** | `pytest ml` | Alineación BIO de subtokens RoBERTa, fusión de corpus públicos (SympTEMIST, DisTEMIST, DrugTEMIST), aumentación controlada, *Uniform/Greedy Model Soup* sobre `safetensors`, postprocesado y auditoría de spans. | **43** |
-| **Frontend (`Next.js + Vitest`)** | `pnpm --dir frontend test` | Navegación por permisos, `TriageDashboard`, `BlindReview`, `MetricsDashboard`, `EvaluationResults`, `EMRSimulator`, `FHIRMonitor`, exportación dual FHIR R4 / HL7 v2.5.1, `NormalizationMonitor`, `SecurityPanel`, `ConfigPanel`, `fetchWithAuth` y validadores. | **91** (`14` suites) |
-| **Total del repositorio** | `.github/workflows/ci.yml` | Verificación continua de migraciones, tests, linter ESLint y build de producción Next.js. | **731** |
+| **Backend (`Django + DRF`)** | `pytest --create-db backend` | Autenticación, OTP, cookies JWT, throttling, RBAC, cifrado `MultiFernet`, motor Christus Sinergia (criterio por criterio), umbrales de signos vitales, NegEx, RAG híbrido (`pgvector` + BM25), caché SHA-256 sin fuga entre pacientes, LLM local/nube, métricas Kappa/bootstrap, `BlindReview`, validación FHIR R4 con códigos SNOMED CT/CIE-10/ATC, ASR simulado con heartbeat TTL y comandos de benchmark. | **602** (`601` pasan + `1 xfail`) |
+| **Machine Learning (`ml/ner`)** | `pytest ml/ner/tests -p no:django` | Alineación BIO de subtokens RoBERTa, fusión de corpus públicos (SympTEMIST, DisTEMIST, DrugTEMIST), aumentación controlada, *Uniform/Greedy Model Soup* sobre `safetensors`, postprocesado y auditoría de spans. | **43** |
+| **Frontend (`Next.js + Vitest`)** | `pnpm --dir frontend test` | Navegación por permisos, `TriageDashboard`, `BlindReview`, `MetricsDashboard`, `EvaluationResults`, `EMRSimulator`, `FHIRMonitor`, exportación dual FHIR R4 / HL7 v2.5.1 con códigos clínicos verificados, `NormalizationMonitor`, `SecurityPanel`, `ConfigPanel`, `fetchWithAuth` y validadores. | **93** (`14` suites) |
+| **Total del repositorio** | `.github/workflows/ci.yml` | Verificación continua de migraciones, tests `backend` + `ml` + `frontend`, linter ESLint y build de producción Next.js. | **738** (`737` pasan + `1 xfail`) |
