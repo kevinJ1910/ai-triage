@@ -6,6 +6,8 @@ normalize_clinical_text_task va a la cola 'llm' (ver CELERY_TASK_ROUTES).
 import base64
 import logging
 import os
+import threading
+from typing import Optional
 
 from celery import shared_task
 from celery.signals import worker_ready, worker_shutdown
@@ -20,11 +22,61 @@ logger = logging.getLogger(__name__)
 
 # Estado del motor publicado por el worker ASR para que el health check web lo lea sin cargar el modelo.
 ASR_STATUS_KEY = "asr:engine_status"
+_heartbeat_stop = threading.Event()
+_heartbeat_thread: Optional[threading.Thread] = None
+
+
+def publish_asr_status(status: Optional[dict] = None, timeout: Optional[int] = None) -> dict:
+    """Publica el estado actual del motor ASR en Redis con expiracion TTL."""
+    payload = status if status is not None else WhisperEngine().get_status()
+    ttl = timeout if timeout is not None else int(getattr(settings, "ASR_STATUS_TTL", 90))
+    cache.set(ASR_STATUS_KEY, payload, timeout=ttl)
+    return payload
+
+
+def _heartbeat_loop(stop_event: threading.Event, interval: float) -> None:
+    """Renueva periodicamente el TTL de asr:engine_status mientras el worker ASR siga vivo."""
+    while not stop_event.wait(interval):
+        try:
+            current = cache.get(ASR_STATUS_KEY)
+            if isinstance(current, dict) and current.get("loading"):
+                continue
+            publish_asr_status()
+        except Exception as exc:
+            logger.warning(f"Fallo al renovar latido del worker ASR: {exc}")
+
+
+def start_asr_heartbeat() -> None:
+    """Inicia el hilo demonio de latido periodico en el proceso del worker ASR."""
+    global _heartbeat_thread
+    if _heartbeat_thread is not None and _heartbeat_thread.is_alive():
+        return
+    interval = max(1.0, float(getattr(settings, "ASR_HEARTBEAT_INTERVAL", 30)))
+    _heartbeat_stop.clear()
+    _heartbeat_thread = threading.Thread(
+        target=_heartbeat_loop,
+        args=(_heartbeat_stop, interval),
+        name="asr-redis-heartbeat",
+        daemon=True,
+    )
+    _heartbeat_thread.start()
+
+
+def stop_asr_heartbeat() -> None:
+    """Detiene el hilo de latido periodico al apagar el worker ASR."""
+    global _heartbeat_thread
+    _heartbeat_stop.set()
+    if _heartbeat_thread is not None and _heartbeat_thread.is_alive():
+        _heartbeat_thread.join(timeout=2.0)
+    _heartbeat_thread = None
 
 
 @shared_task
 def transcribe_audio_chunk(audio_b64: str, session_id: str) -> dict:
-    return WhisperEngine().transcribe_chunk(base64.b64decode(audio_b64), session_id)
+    result = WhisperEngine().transcribe_chunk(base64.b64decode(audio_b64), session_id)
+    if worker_mode():
+        publish_asr_status()
+    return result
 
 
 @shared_task
@@ -37,10 +89,13 @@ def reload_asr_model() -> dict:
         # En linea y sin modelo cargado todavia: se cargara con la configuracion nueva al primer uso.
         return {"model_loaded": False, "detail": "modelo aun no cargado"}
     previous = cache.get(ASR_STATUS_KEY) or {}
-    cache.set(ASR_STATUS_KEY, {**previous, "loading": True, "model_size": WhisperEngine.configured_model_size()},
-              timeout=None)
+    loading_ttl = max(int(getattr(settings, "ASR_STATUS_TTL", 90)), 300)
+    publish_asr_status(
+        {**previous, "loading": True, "model_size": WhisperEngine.configured_model_size()},
+        timeout=loading_ttl,
+    )
     status = WhisperEngine().reload()
-    cache.set(ASR_STATUS_KEY, status, timeout=None)
+    publish_asr_status(status)
     logger.info(f"Modelo ASR recargado: {status}")
     return status
 
@@ -89,12 +144,13 @@ def _preload_whisper(**_kwargs):
     # Solo el worker ASR (WHISPER_PRELOAD=True) carga el modelo; el worker LLM no lo necesita.
     if os.getenv('WHISPER_PRELOAD', 'False') != 'True':
         return
-    status = WhisperEngine().get_status()
-    cache.set(ASR_STATUS_KEY, status, timeout=None)
+    status = publish_asr_status()
+    start_asr_heartbeat()
     logger.info(f"Worker ASR listo: {status}")
 
 
 @worker_shutdown.connect
 def _clear_whisper_status(**_kwargs):
     if os.getenv('WHISPER_PRELOAD', 'False') == 'True':
+        stop_asr_heartbeat()
         cache.delete(ASR_STATUS_KEY)
