@@ -168,6 +168,8 @@ Split **dev**. Intervalos de confianza al 95 % por bootstrap (1.000 remuestreos)
 
 | Motor | n | Exactitud | Kappa ponderado | Sensibilidad I–II | Infratriaje | Sobretriaje | Latencia p50 / p95 | Costo por 1.000 | Privacidad |
 | :--- | ---: | :--- | :--- | :--- | :--- | ---: | :--- | ---: | :--- |
+| Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, NER) | 150 | 78,7 % [72,0–85,3] | 0,923 [0,877–0,956] | 91,7 % [83,9–98,2] | 18,7 % [12,7–25,3] | 2,7 % | 6575 / 13308 ms (Docker CPU (AMD Ryzen, equipo de Kevin)) | 3,52 USD | nube (texto seudonimizado) |
+| Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, política min_critico, NER) | 150 | 78,0 % [70,7–84,7] | 0,922 [0,873–0,954] | 91,7 % [83,9–98,2] | 18,7 % [12,7–25,3] | 3,3 % | 6575 / 13308 ms (AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD) | 3,52 USD | nube (texto seudonimizado) |
 | LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, NER) | 150 | 65,3 % [57,3–72,7] | 0,766 [0,667–0,846] | 75,0 % [62,9–85,9] | 30,0 % [23,3–38,0] | 4,7 % | 114941 / 178835 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), Ollama 0.34.4, razonamiento activado; solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
 | LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, política min_critico, NER) | 150 | 65,3 % [57,3–72,7] | 0,766 [0,667–0,846] | 75,0 % [62,9–85,9] | 30,0 % [23,3–38,0] | 4,7 % | 114941 / 178835 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), Ollama 0.34.4, razonamiento activado; solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 50,0 % [41,3–58,0] | 0,487 [0,357–0,609] | 50,0 % [36,8–62,5] | 46,7 % [38,0–54,7] | 3,3 % | 45150 / 55070 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
@@ -182,6 +184,8 @@ Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor 
 
 | Motor | n | Exactitud (pp) | Kappa | Sensibilidad I–II (pp) | Infratriaje (pp) |
 | :--- | ---: | :--- | :--- | :--- | :--- |
+| Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, NER) | 150 | 35,4 [27,4–43,3] | 0,668 [0,542–0,786] | 61,7 [48,5–73,8] | -35,3 [-43,3–-27,3] |
+| Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, política min_critico, NER) | 150 | 34,7 [26,7–42,7] | 0,667 [0,542–0,784] | 61,7 [48,5–73,8] | -35,3 [-43,3–-27,3] |
 | LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, NER) | 150 | 22,0 [16,0–28,7] | 0,511 [0,395–0,630] | 45,0 [32,4–58,2] | -24,0 [-30,7–-17,3] |
 | LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, política min_critico, NER) | 150 | 22,0 [16,0–28,7] | 0,511 [0,395–0,630] | 45,0 [32,4–58,2] | -24,0 [-30,7–-17,3] |
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 6,7 [2,0–11,4] | 0,232 [0,125–0,344] | 20,0 [8,4–31,5] | -7,3 [-12,6–-2,0] |
@@ -193,6 +197,8 @@ Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor 
 
 Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
 
+- Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, NER): 5 casos: B026 (tipico; ref. 2, pred. 5), N017 (coloquial; ref. 2, pred. 3), N087 (coloquial; ref. 2, pred. 3), N093 (coloquial; ref. 2, pred. 3), N095 (tipico; ref. 2, pred. 3)
+- Híbrido: reglas + RAG + Gemini 2.5 Flash (prompt v1, política min_critico, NER): 5 casos: B026 (tipico; ref. 2, pred. 5), N017 (coloquial; ref. 2, pred. 3), N087 (coloquial; ref. 2, pred. 3), N093 (coloquial; ref. 2, pred. 3), N095 (tipico; ref. 2, pred. 3)
 - LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, NER): 15 casos: N061 (coloquial; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5), N107 (signos_vitales; ref. 2, pred. 5), B006 (coloquial; ref. 1, pred. 3), N017 (coloquial; ref. 2, pred. 4), N071 (tipico; ref. 1, pred. 3), N093 (coloquial; ref. 2, pred. 4), B024 (coloquial; ref. 2, pred. 3), N085 (coloquial; ref. 2, pred. 3), N095 (tipico; ref. 2, pred. 3), N100 (negacion; ref. 2, pred. 3), N102 (negacion; ref. 2, pred. 3)
 - LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, política min_critico, NER): 15 casos: N061 (coloquial; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5), N107 (signos_vitales; ref. 2, pred. 5), B006 (coloquial; ref. 1, pred. 3), N017 (coloquial; ref. 2, pred. 4), N071 (tipico; ref. 1, pred. 3), N093 (coloquial; ref. 2, pred. 4), B024 (coloquial; ref. 2, pred. 3), N085 (coloquial; ref. 2, pred. 3), N095 (tipico; ref. 2, pred. 3), N100 (negacion; ref. 2, pred. 3), N102 (negacion; ref. 2, pred. 3)
 - LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER): 30 casos: B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N072 (tipico; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), N077 (negacion; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N088 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5) y 15 más
