@@ -632,7 +632,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     setSyncStatus('syncing');
     try {
       const tempSession: TriageSession = {
-        id: selectedSessionId || Date.now().toString(),
+        id: String(activeSessionId || selectedSessionId || Date.now()),
         date: new Date().toISOString(),
         patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
         patientInfo: { ...patientInfo },
@@ -641,7 +641,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
       };
       const fhirBundle = generateFHIRBundle(tempSession);
       
-      const res = await fetchWithAuth('/api/fhir', {
+      const res = await fetchWithAuth('/api/fhir/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fhirBundle)

@@ -384,6 +384,38 @@ class TestAIAnalyzerEndToEnd:
         diab_res = ClinicalKnowledgeRAG.retrieve(diab_query, top_k=3)
         assert any(c["id"] == "c2_diabetes_decompensation" for c in diab_res)
 
+        # 4. BM25 sin contaminacion por stopwords y parafrasis coloquiales criticas
+        birth_res = ClinicalKnowledgeRAG.retrieve(
+            "Embarazada de 39 semanas, ya se le ve la cabeza del bebe y esta pujando", top_k=4
+        )
+        assert birth_res[0]["id"] == "c1_imminent_birth"
+
+        abdomen_res = ClinicalKnowledgeRAG.retrieve(
+            "Tengo la barriga durisima desde esta manana y no se deja tocar", top_k=4
+        )
+        assert abdomen_res[0]["id"] == "c2_acute_abdomen"
+
+        bleed_res = ClinicalKnowledgeRAG.retrieve(
+            "Vomite oscuro como cuncho de cafe dos veces hoy", top_k=4
+        )
+        assert bleed_res[0]["id"] == "c2_gastro_bleeding_high"
+
+        abuse_res = ClinicalKnowledgeRAG.retrieve(
+            "Consulta por abuso sexual ocurrido hace una semana", top_k=4
+        )
+        assert abuse_res[0]["id"] == "c2_sexual_abuse_subacute"
+
+    def test_hashed_embedding_is_unit_normalized_and_discriminative(self):
+        from triage.clinical_rag import compute_hashed_embedding
+        v_birth = compute_hashed_embedding("parto expulsivo coronando cabeza del bebe pujando")
+        v_birth_q = compute_hashed_embedding("embarazada ya se le ve la cabeza del bebe y esta pujando")
+        v_skin = compute_hashed_embedding("dermatitis cronica hongos en las unas")
+        norm = sum(x * x for x in v_birth) ** 0.5
+        assert abs(norm - 1.0) < 1e-3
+        sim_related = sum(a * b for a, b in zip(v_birth, v_birth_q))
+        sim_unrelated = sum(a * b for a, b in zip(v_birth, v_skin))
+        assert sim_related > sim_unrelated + 0.25
+
     def test_cache_semantic_canonicalization_hits_across_synonyms(self):
         ClinicalQueryCache.clear()
         # Dos consultas con redaccion coloquial distinta pero significado clinico identico
@@ -535,3 +567,16 @@ class TestPromptVersionAndTelemetry:
         res = analyze_triage_transcript("dolor de cabeza leve", use_cache=True, prompt_version="v2")
         assert res["cached"] is False
         assert generate.call_count == 2
+
+    def test_prompt_v2_marks_unmatched_rule_baseline_without_anchoring_level_5(self, mocker):
+        generate = self._mock_gemini(mocker, level=2)
+        unmatched = "Tengo la barriga durísima desde esta mañana y no me puedo ni mover"
+        analyze_triage_transcript(unmatched, use_cache=False, prompt_version="v1")
+        prompt_v1 = generate.call_args.kwargs["contents"]
+        assert "Motivo de consulta sin compromiso de estado general" in prompt_v1
+
+        analyze_triage_transcript(unmatched, use_cache=False, prompt_version="v2")
+        prompt_v2 = generate.call_args.kwargs["contents"]
+        assert "SUELO DE URGENCIA" in prompt_v2
+        assert "Sin coincidencia léxica directa en el motor de reglas" in prompt_v2
+        assert "Motivo de consulta sin compromiso de estado general" not in prompt_v2

@@ -18,6 +18,19 @@ export interface PatientInfo {
   insurance: string;
 }
 
+export interface NormalizedClinicalTerm {
+  raw_term?: string;
+  medical_term?: string;
+  code?: string | null;
+  code_system?: string | null;
+  code_snomed?: string | null;
+  snomed_valid?: boolean;
+  valid?: boolean;
+  category?: string;
+  negated?: boolean;
+  allergy?: boolean;
+}
+
 export interface TriageSession {
   id: string;
   date: string;
@@ -25,6 +38,101 @@ export interface TriageSession {
   patientInfo?: PatientInfo;
   transcript: { speaker: string; text: string }[];
   analysisResult: any;
+}
+
+function foldTerm(value?: string | null): string {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsWholeTerm(haystack: string, needle: string): boolean {
+  if (!haystack || !needle || needle.length < 3) return false;
+  const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(needle)}([^a-z0-9]|$)`);
+  return re.test(haystack);
+}
+
+export function extractCodingTerms(analysisResult: any): NormalizedClinicalTerm[] {
+  if (Array.isArray(analysisResult?.normalized_terms)) return analysisResult.normalized_terms;
+  if (Array.isArray(analysisResult?.coding_terms)) return analysisResult.coding_terms;
+  return [];
+}
+
+export function findMatchingNormalizedTerm(
+  label: string,
+  terms: NormalizedClinicalTerm[],
+): NormalizedClinicalTerm | null {
+  const foldedLabel = foldTerm(label);
+  if (!foldedLabel || !terms.length) return null;
+
+  for (const term of terms) {
+    if (foldTerm(term.medical_term) === foldedLabel || foldTerm(term.raw_term) === foldedLabel) {
+      return term;
+    }
+  }
+
+  let best: NormalizedClinicalTerm | null = null;
+  let bestLen = 0;
+  for (const term of terms) {
+    for (const candidate of [foldTerm(term.medical_term), foldTerm(term.raw_term)]) {
+      if (!candidate || candidate.length < 3) continue;
+      if (containsWholeTerm(foldedLabel, candidate) || containsWholeTerm(candidate, foldedLabel)) {
+        if (candidate.length > bestLen) {
+          best = term;
+          bestLen = candidate.length;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+export function buildCodeableConcept(
+  label: string,
+  terms: NormalizedClinicalTerm[],
+  defaultSnomedDisplay: boolean = false,
+): Record<string, any> {
+  const matched = findMatchingNormalizedTerm(label, terms);
+  const coding: Record<string, string>[] = [];
+
+  if (matched?.code_snomed && matched.snomed_valid !== false) {
+    coding.push({
+      system: 'http://snomed.info/sct',
+      code: String(matched.code_snomed),
+      display: matched.medical_term || label,
+    });
+  } else if (defaultSnomedDisplay) {
+    coding.push({
+      system: 'http://snomed.info/sct',
+      display: label,
+    });
+  }
+
+  if (matched?.code && matched.valid !== false) {
+    if (matched.code_system === 'CIE-10') {
+      coding.push({
+        system: 'http://hl7.org/fhir/sid/icd-10',
+        code: String(matched.code),
+        display: matched.medical_term || label,
+      });
+    } else if (matched.code_system === 'ATC') {
+      coding.push({
+        system: 'http://www.whocc.no/atc',
+        code: String(matched.code),
+        display: matched.medical_term || label,
+      });
+    }
+  }
+
+  return coding.length > 0 ? { coding, text: label } : { text: label };
 }
 
 export interface ParsedVital {
@@ -290,17 +398,12 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
     }
   };
 
+  const codingTerms = extractCodingTerms(session.analysisResult);
   const symptoms = session.analysisResult?.entities?.symptoms || [];
   if (symptoms.length > 0) {
-    encounterResource.reasonCode = symptoms.map((symptom: string) => ({
-      coding: [
-        {
-          system: "http://snomed.info/sct",
-          display: symptom
-        }
-      ],
-      text: symptom
-    }));
+    encounterResource.reasonCode = symptoms.map((symptom: string) =>
+      buildCodeableConcept(symptom, codingTerms, true)
+    );
   }
 
   const entries: any[] = [
@@ -407,15 +510,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
             ]
           }
         ],
-        code: {
-          coding: [
-            {
-              system: "http://snomed.info/sct",
-              display: symptom
-            }
-          ],
-          text: symptom
-        },
+        code: buildCodeableConcept(symptom, codingTerms, true),
         subject: {
           reference: `Patient/${patientId}`
         },
@@ -454,15 +549,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
             ]
           }
         ],
-        code: {
-          coding: [
-            {
-              system: "http://snomed.info/sct",
-              display: hist
-            }
-          ],
-          text: hist
-        },
+        code: buildCodeableConcept(hist, codingTerms, true),
         subject: {
           reference: `Patient/${patientId}`
         }
@@ -487,7 +574,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
         category: [{
           coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }]
         }],
-        code: { text: dx },
+        code: buildCodeableConcept(dx, codingTerms, false),
         subject: { reference: `Patient/${patientId}` },
         encounter: { reference: `Encounter/${encounterId}` },
         recordedDate: new Date(session.date).toISOString()
@@ -509,7 +596,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
         category: [{
           coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }]
         }],
-        code: { text: finding },
+        code: buildCodeableConcept(finding, codingTerms, false),
         subject: { reference: `Patient/${patientId}` },
         encounter: { reference: `Encounter/${encounterId}` },
         recordedDate: new Date(session.date).toISOString()
@@ -531,7 +618,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
         verificationStatus: {
           coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", code: "unconfirmed", display: "Unconfirmed" }]
         },
-        code: { text: allergen },
+        code: buildCodeableConcept(allergen, codingTerms, false),
         patient: { reference: `Patient/${patientId}` },
         encounter: { reference: `Encounter/${encounterId}` },
         recordedDate: new Date(session.date).toISOString()
@@ -598,9 +685,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
         subject: {
           reference: `Patient/${patientId}`
         },
-        medicationCodeableConcept: {
-          text: med
-        },
+        medicationCodeableConcept: buildCodeableConcept(med, codingTerms, false),
         dateAsserted: new Date(session.date).toISOString()
       }
     });
@@ -733,14 +818,28 @@ export function generateHL7v2Message(session: TriageSession): string {
     }
   });
 
+  const codingTerms = extractCodingTerms(session.analysisResult);
+
   // AL1: Alergias referidas (en ADT^A08 va antes de DG1)
   allergies.forEach((allergen: string, idx: number) => {
-    segments.push(`AL1|${idx + 1}||^${escapeHL7v2Text(allergen)}^L`);
+    const matched = findMatchingNormalizedTerm(allergen, codingTerms);
+    if (matched?.code_snomed && matched.snomed_valid !== false) {
+      segments.push(`AL1|${idx + 1}||${escapeHL7v2Text(String(matched.code_snomed))}^${escapeHL7v2Text(allergen)}^SNOMED-CT`);
+    } else {
+      segments.push(`AL1|${idx + 1}||^${escapeHL7v2Text(allergen)}^L`);
+    }
   });
 
   // DG1: Diagnostico provisional / Motivo de consulta. Los hallazgos negados no se exportan como diagnostico.
   [...diagnoses, ...symptoms].forEach((dx: string, idx: number) => {
-    segments.push(`DG1|${idx + 1}|SCT|TRIAGE_DX^${escapeHL7v2Text(dx)}^SNOMED-CT||${timestamp}|A`);
+    const matched = findMatchingNormalizedTerm(dx, codingTerms);
+    if (matched?.code && matched.valid !== false && matched.code_system === 'CIE-10') {
+      segments.push(`DG1|${idx + 1}|I10|${escapeHL7v2Text(String(matched.code))}^${escapeHL7v2Text(dx)}^ICD-10||${timestamp}|A`);
+    } else if (matched?.code_snomed && matched.snomed_valid !== false) {
+      segments.push(`DG1|${idx + 1}|SCT|${escapeHL7v2Text(String(matched.code_snomed))}^${escapeHL7v2Text(dx)}^SNOMED-CT||${timestamp}|A`);
+    } else {
+      segments.push(`DG1|${idx + 1}|SCT|TRIAGE_DX^${escapeHL7v2Text(dx)}^SNOMED-CT||${timestamp}|A`);
+    }
   });
 
   // Estándar HL7 v2 utiliza Retorno de Carro (\r = ASCII 13) como terminador obligatorio de segmento

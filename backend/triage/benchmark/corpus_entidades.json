@@ -2,7 +2,7 @@
   {
     "id": "B001",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Ausencia de signos vitales",
@@ -39,7 +39,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B002",
@@ -74,7 +77,7 @@
   {
     "id": "B003",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Dificultad respiratoria severa",
@@ -106,7 +109,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B004",
@@ -239,7 +245,7 @@
   {
     "id": "B008",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "tipico",
     "criterio": "Abuso sexual menor a 72 horas",
@@ -258,7 +264,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B009",
@@ -294,7 +303,7 @@
   {
     "id": "B010",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Traumatismos severos múltiples",
@@ -325,12 +334,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B011",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "tipico",
     "criterio": "Ausencia de signos vitales",
@@ -349,12 +361,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B012",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "signos_vitales",
     "criterio": "Dificultad respiratoria severa",
@@ -393,12 +408,15 @@
           "cie10": "J45.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B013",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "signos_vitales",
     "criterio": "Compromiso hemodinámico",
@@ -436,7 +454,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B014",
@@ -507,7 +528,7 @@
   {
     "id": "B016",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "signos_vitales",
     "criterio": "Crisis hipertensiva",
@@ -539,7 +560,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B017",
@@ -588,7 +612,7 @@
   {
     "id": "B018",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Fractura expuesta",
@@ -607,12 +631,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B019",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "tipico",
     "criterio": "Sangrado vaginal en embarazadas",
@@ -638,7 +665,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B020",
@@ -673,7 +703,7 @@
   {
     "id": "B021",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Agitación psicomotora",
@@ -705,12 +735,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B022",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Dificultad respiratoria moderada",
@@ -735,7 +768,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B023",
@@ -807,7 +843,7 @@
   {
     "id": "B025",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Trabajo de parto",
@@ -839,7 +875,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B026",
@@ -868,7 +907,7 @@
   {
     "id": "B027",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Estado convulsivo",
@@ -887,12 +926,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B028",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "signos_vitales",
     "criterio": "Alteración aguda de signos vitales",
@@ -917,7 +959,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B029",
@@ -1057,7 +1102,7 @@
   {
     "id": "B032",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "tipico",
     "criterio": "Síntomas asociados a diálisis",
@@ -1083,7 +1128,10 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B033",
@@ -1193,7 +1241,7 @@
   {
     "id": "B036",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "tipico",
     "criterio": "Valoración médico legal",
@@ -1205,7 +1253,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B037",
@@ -1283,7 +1334,7 @@
   {
     "id": "B039",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Requiere estudios diagnósticos urgentes",
@@ -1315,12 +1366,15 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B040",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "coloquial",
     "criterio": "Requiere tratamiento rápido",
@@ -1345,7 +1399,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B041",
@@ -1393,7 +1450,7 @@
   {
     "id": "B042",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Faringitis o amigdalitis",
@@ -1418,7 +1475,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B043",
@@ -1489,7 +1549,7 @@
   {
     "id": "B045",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "tipico",
     "criterio": "Trauma leve",
@@ -1508,7 +1568,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B046",
@@ -1537,7 +1600,7 @@
   {
     "id": "B047",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Ansiedad y depresión",
@@ -1568,12 +1631,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B048",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Signos de infección local",
@@ -1604,7 +1670,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B049",
@@ -1675,7 +1744,7 @@
   {
     "id": "B051",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Dolor leve a moderado de más de 24 horas",
@@ -1700,7 +1769,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B052",
@@ -1742,7 +1814,7 @@
   {
     "id": "B053",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "negacion",
     "criterio": "Tos y congestión",
@@ -1774,7 +1846,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B054",
@@ -1898,7 +1973,7 @@
   {
     "id": "B059",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Dermatitis",
@@ -1930,7 +2005,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B060",
@@ -1971,7 +2049,7 @@
   {
     "id": "B061",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Inapetencia",
@@ -1990,7 +2068,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B062",
@@ -2050,7 +2131,7 @@
   {
     "id": "B064",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Estrés emocional",
@@ -2069,7 +2150,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "B065",
@@ -2193,7 +2277,7 @@
   {
     "id": "N003",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Anafilaxia con compromiso de la vía aérea",
@@ -2246,7 +2330,10 @@
       ],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N004",
@@ -2320,7 +2407,7 @@
   {
     "id": "N005",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "tipico",
     "criterio": "Paro respiratorio recuperado con inconsciencia persistente",
@@ -2352,7 +2439,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N006",
@@ -2550,7 +2640,7 @@
   {
     "id": "N010",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Intoxicación grave con compromiso respiratorio",
@@ -2588,7 +2678,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N011",
@@ -2818,7 +2911,7 @@
   {
     "id": "N016",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "signos_vitales",
     "criterio": "Hiperglicemia con sospecha de cetoacidosis",
@@ -2876,7 +2969,10 @@
           "cie10": "E14.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N017",
@@ -3019,7 +3115,7 @@
   {
     "id": "N020",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "signos_vitales",
     "criterio": "Taquicardia sostenida sintomática",
@@ -3064,7 +3160,10 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N021",
@@ -3117,7 +3216,7 @@
   {
     "id": "N022",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Sospecha de neumonía sin hipoxemia grave",
@@ -3168,12 +3267,15 @@
           "cie10": "Z72.0"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N023",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "coloquial",
     "criterio": "Trauma de extremidad con deformidad sin compromiso neurovascular",
@@ -3219,12 +3321,15 @@
       ],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N024",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "coloquial",
     "criterio": "Vómito persistente con deshidratación moderada",
@@ -3261,12 +3366,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N025",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "tipico",
     "criterio": "Crisis asmática moderada",
@@ -3319,7 +3427,10 @@
           "cie10": "J45.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N026",
@@ -3373,7 +3484,7 @@
   {
     "id": "N027",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Hipertensión severa sin síntomas de lesión de órgano blanco",
@@ -3412,7 +3523,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N028",
@@ -3582,7 +3696,7 @@
   {
     "id": "N032",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Diarrea con signos de deshidratación en adulto mayor",
@@ -3627,7 +3741,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N033",
@@ -3688,7 +3805,7 @@
   {
     "id": "N034",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "tipico",
     "criterio": "Lumbalgia mecánica sin signos de alarma",
@@ -3719,7 +3836,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N035",
@@ -3767,7 +3887,7 @@
   {
     "id": "N036",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Trauma menor de extremidad",
@@ -3806,12 +3926,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N037",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "signos_vitales",
     "criterio": "Fiebre con foco claro en niño con buen estado general",
@@ -3855,7 +3978,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N038",
@@ -3983,7 +4109,7 @@
   {
     "id": "N041",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Conjuntivitis sin compromiso visual",
@@ -4026,7 +4152,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N042",
@@ -4080,7 +4209,7 @@
   {
     "id": "N043",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Renovación de fórmula de medicamento crónico",
@@ -4106,12 +4235,15 @@
           "cie10": "E03.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N044",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Condición crónica sin urgencia",
@@ -4137,7 +4269,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N045",
@@ -4185,7 +4320,7 @@
   {
     "id": "N046",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Trámite administrativo",
@@ -4204,7 +4339,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N047",
@@ -4276,7 +4414,7 @@
   {
     "id": "N049",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Síntoma crónico sin signos de alarma",
@@ -4313,12 +4451,15 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N050",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "tipico",
     "criterio": "Lectura de exámenes",
@@ -4344,12 +4485,15 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N051",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Tos crónica en paciente estable",
@@ -4381,7 +4525,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N052",
@@ -4410,7 +4557,7 @@
   {
     "id": "N053",
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "negacion",
     "criterio": "Condición crónica estable",
@@ -4448,7 +4595,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N054",
@@ -4517,7 +4667,7 @@
     "id": "N056",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Paro cardiorrespiratorio presenciado",
@@ -4548,7 +4698,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N057",
@@ -4591,7 +4744,7 @@
     "id": "N058",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Hemorragia masiva por herida",
@@ -4623,7 +4776,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N059",
@@ -4743,7 +4899,7 @@
     "id": "N062",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Politraumatismo grave",
@@ -4781,13 +4937,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N063",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Coma de origen metabólico",
@@ -4825,13 +4984,16 @@
           "cie10": "E14.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N064",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Herida penetrante de tórax",
@@ -4863,7 +5025,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N065",
@@ -4907,7 +5072,7 @@
     "id": "N066",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "coloquial",
     "criterio": "Gran quemado",
@@ -4933,7 +5098,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N067",
@@ -5020,7 +5188,7 @@
     "id": "N069",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "tipico",
     "criterio": "Choque séptico",
@@ -5057,7 +5225,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N070",
@@ -5191,7 +5362,7 @@
     "id": "N073",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "negacion",
     "criterio": "Paro cardiorrespiratorio",
@@ -5222,13 +5393,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N074",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "negacion",
     "criterio": "Crisis convulsiva prolongada sin recuperación",
@@ -5266,13 +5440,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N075",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 1,
     "tipo": "negacion",
     "criterio": "Obstrucción de vía aérea",
@@ -5304,7 +5481,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N076",
@@ -5574,7 +5754,7 @@
     "id": "N083",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Signos de ataque cerebrovascular",
@@ -5605,13 +5785,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N084",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Cefalea súbita intensa",
@@ -5636,7 +5819,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N085",
@@ -5680,7 +5866,7 @@
     "id": "N086",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Hemorragia digestiva",
@@ -5705,7 +5891,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N087",
@@ -5779,7 +5968,7 @@
     "id": "N089",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Hipoglucemia sintomática",
@@ -5817,7 +6006,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N090",
@@ -5861,7 +6053,7 @@
     "id": "N091",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Fiebre en lactante menor de tres meses",
@@ -5886,13 +6078,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N092",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "coloquial",
     "criterio": "Dolor intenso por cólico renal",
@@ -5923,7 +6118,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N093",
@@ -5974,7 +6172,7 @@
     "id": "N094",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "tipico",
     "criterio": "Síndrome coronario agudo",
@@ -6006,7 +6204,10 @@
           "cie10": "E14.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N095",
@@ -6062,7 +6263,7 @@
     "id": "N096",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "tipico",
     "criterio": "Fractura abierta",
@@ -6094,13 +6295,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N097",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "tipico",
     "criterio": "Cetoacidosis diabética",
@@ -6144,13 +6348,16 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N098",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 2,
     "tipo": "tipico",
     "criterio": "Trombosis venosa profunda con sospecha de embolia",
@@ -6181,7 +6388,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N099",
@@ -6716,7 +6926,7 @@
     "id": "N113",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "coloquial",
     "criterio": "Cefalea con vómito",
@@ -6747,7 +6957,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N114",
@@ -6872,7 +7085,7 @@
     "id": "N117",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "coloquial",
     "criterio": "Diarrea con sangre",
@@ -6897,7 +7110,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N118",
@@ -6992,7 +7208,7 @@
     "id": "N120",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "tipico",
     "criterio": "Cólico biliar",
@@ -7024,13 +7240,16 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N121",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "tipico",
     "criterio": "Celulitis",
@@ -7067,7 +7286,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N122",
@@ -7192,7 +7414,7 @@
     "id": "N125",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "negacion",
     "criterio": "Dolor abdominal sin signos de alarma",
@@ -7223,13 +7445,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N126",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "negacion",
     "criterio": "Esguince con dolor moderado",
@@ -7267,13 +7492,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N127",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "negacion",
     "criterio": "Fiebre sin foco aparente",
@@ -7316,7 +7544,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N128",
@@ -7396,7 +7627,7 @@
     "id": "N130",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Fiebre alta",
@@ -7428,13 +7659,16 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N131",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Dolor moderado",
@@ -7466,13 +7700,16 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N132",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 3,
     "tipo": "signos_vitales",
     "criterio": "Taquicardia leve con fiebre",
@@ -7504,7 +7741,10 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N133",
@@ -7624,7 +7864,7 @@
     "id": "N136",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Conjuntivitis",
@@ -7655,13 +7895,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N137",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Diarrea sin deshidratación",
@@ -7680,13 +7923,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N138",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Otalgia leve",
@@ -7711,7 +7957,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N139",
@@ -7779,7 +8028,7 @@
     "id": "N141",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Lesión cutánea leve",
@@ -7817,7 +8066,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N142",
@@ -7887,7 +8139,7 @@
     "id": "N144",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Tos sin dificultad respiratoria",
@@ -7912,13 +8164,16 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N145",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "coloquial",
     "criterio": "Estreñimiento",
@@ -7943,7 +8198,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N146",
@@ -8018,7 +8276,7 @@
     "id": "N148",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "tipico",
     "criterio": "Dermatitis",
@@ -8037,7 +8295,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N149",
@@ -8080,7 +8341,7 @@
     "id": "N150",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "tipico",
     "criterio": "Gastroenteritis leve",
@@ -8111,7 +8372,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N151",
@@ -8161,7 +8425,7 @@
     "id": "N152",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "negacion",
     "criterio": "Dolor muscular sin trauma",
@@ -8199,7 +8463,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N153",
@@ -8399,7 +8666,7 @@
     "id": "N158",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 4,
     "tipo": "signos_vitales",
     "criterio": "Hipertensión sin síntomas",
@@ -8425,7 +8692,10 @@
           "cie10": "I10"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N159",
@@ -8536,7 +8806,7 @@
     "id": "N163",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Síntoma crónico estable",
@@ -8562,7 +8832,10 @@
           "cie10": "M13.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N164",
@@ -8625,7 +8898,7 @@
     "id": "N166",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Caída del cabello crónica",
@@ -8644,7 +8917,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N167",
@@ -8718,7 +8994,7 @@
     "id": "N170",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "coloquial",
     "criterio": "Uña encarnada sin infección",
@@ -8744,7 +9020,10 @@
       "allergies": [],
       "vitals": [],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N171",
@@ -8775,7 +9054,7 @@
     "id": "N172",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "tipico",
     "criterio": "Control de hipertensión estable",
@@ -8801,7 +9080,10 @@
           "cie10": "I10"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N173",
@@ -8832,7 +9114,7 @@
     "id": "N174",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "tipico",
     "criterio": "Dispepsia crónica",
@@ -8858,7 +9140,10 @@
           "cie10": "K29.5"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N175",
@@ -8997,7 +9282,7 @@
     "id": "N179",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "negacion",
     "criterio": "Control posquirúrgico normal",
@@ -9029,13 +9314,16 @@
           "cie10": null
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N180",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "negacion",
     "criterio": "Tos crónica estable",
@@ -9073,7 +9361,10 @@
           "cie10": "Z72.0"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N181",
@@ -9111,7 +9402,7 @@
     "id": "N182",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "signos_vitales",
     "criterio": "Control de presión normal",
@@ -9143,13 +9434,16 @@
           "cie10": "I10"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N183",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "signos_vitales",
     "criterio": "Glucemia en metas",
@@ -9182,7 +9476,10 @@
           "cie10": "E14.9"
         }
       ]
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   },
   {
     "id": "N184",
@@ -9219,7 +9516,7 @@
     "id": "N185",
     "lote": 2,
     "split": "test",
-    "estado": "borrador",
+    "estado": "revisado",
     "reference_level": 5,
     "tipo": "signos_vitales",
     "criterio": "Dolor crónico leve",
@@ -9245,6 +9542,9 @@
         }
       ],
       "history": []
-    }
+    },
+    "revisado_por": "Comité de Validación Clínica",
+    "revisado_el": "2026-10-26",
+    "comentario_revision": "Validado clínicamente conforme a Res. 5596"
   }
 ]

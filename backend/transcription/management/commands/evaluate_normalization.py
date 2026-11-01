@@ -7,6 +7,7 @@ codigos del corpus propio, cuyos codigos se prerrellenaron desde el mismo catalo
     python manage.py evaluate_normalization --split dev
     python manage.py evaluate_normalization --split test --output resultados.json
     python manage.py evaluate_normalization --engine llm --split dev --limit 20 --pause 13
+    python manage.py evaluate_normalization --engine llm --model local:gemma4:e4b-it-qat --split dev --limit 20
 
 Metricas (solo diagnosticos: el catalogo no codifica procedimientos):
   documento  P/R/F1 de los codigos del caso (pista D) a nivel de categoria (3 caracteres, p. ej. R07) y de
@@ -109,7 +110,9 @@ class Command(BaseCommand):
         parser.add_argument('--download', action='store_true', help='Descarga y verifica el ZIP de Zenodo.')
         parser.add_argument('--split', choices=SPLITS, default='dev')
         parser.add_argument('--engine', choices=('catalogo', 'llm'), default='catalogo',
-                            help='catalogo: capas deterministas; llm: tambien Gemini Flash-Lite para lo residual.')
+                            help='catalogo: capas deterministas; llm: tambien Gemini o LLM local para lo residual.')
+        parser.add_argument('--model', default=None,
+                            help="Modelo explicito cuando --engine llm (p. ej. 'local:gemma4:e4b-it-qat').")
         parser.add_argument('--limit', type=int)
         parser.add_argument('--pause', type=float, default=0.0, help='Segundos entre llamadas al LLM.')
         parser.add_argument('--output', type=Path)
@@ -120,8 +123,10 @@ class Command(BaseCommand):
         split = options['split']
         docs = load_split(find_split_dir(options['codiesp_dir'], split), split)
         ids = sorted(docs)[:options['limit']] if options.get('limit') else sorted(docs)
+        explicit_model = options.get('model')
         if options['engine'] == 'llm':
-            from transcription.normalizer import normalize_clinical_text as normalize
+            from transcription.normalizer import normalize_clinical_text
+            normalize = lambda text: normalize_clinical_text(text, model=explicit_model)  # noqa: E731
         else:
             from transcription.normalizer import normalize_with_rules as normalize
 
@@ -160,7 +165,7 @@ class Command(BaseCommand):
             per_doc.append({'id': doc_id, 'gold': sorted(gold3), 'predicted': sorted(pred3)})
 
         summary = {
-            'engine': options['engine'], 'split': split, 'documentos': len(ids),
+            'engine': options['engine'], 'model': explicit_model, 'split': split, 'documentos': len(ids),
             'categoria_3': _prf(counts['tp3'], counts['fp3'], counts['fn3']),
             'subcategoria_4': _prf(counts['tp4'], counts['fp4'], counts['fn4']),
             'cobertura_catalogo': round(counts['covered_categories'] / counts['gold_categories'], 3)
@@ -183,7 +188,8 @@ class Command(BaseCommand):
             self.stdout.write(f"Detalle guardado en {options['output']}")
 
     def _report(self, s):
-        self.stdout.write(f"CodiEsp {s['split']} | {s['documentos']} documentos | motor: {s['engine']}")
+        model_tag = f" ({s['model']})" if s.get('model') else ""
+        self.stdout.write(f"CodiEsp {s['split']} | {s['documentos']} documentos | motor: {s['engine']}{model_tag}")
         for key, label in (('categoria_3', 'Categoria (3)'), ('subcategoria_4', 'Subcategoria (4)')):
             v = s[key]
             self.stdout.write(f"  {label:<17} P {v['precision']} / R {v['recall']} / F1 {v['f1']} "

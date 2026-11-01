@@ -58,3 +58,8 @@ class TestVitalSignsInRulesEngine:
 
     def test_accented_transcript_is_parsed(self):
         assert evaluate_christus_sinergia_triage("Tensión arterial de 85 sobre 50, pulso de 128")["level"] == 1
+
+    def test_colloquial_glucometry_phrases_escalate_to_level_2(self):
+        res = evaluate_christus_sinergia_triage("La glucometría salió en 480, tiene mucha sed y dolor de barriga")
+        assert res["level"] == 2
+        assert "Glucemia" in res["justification"]

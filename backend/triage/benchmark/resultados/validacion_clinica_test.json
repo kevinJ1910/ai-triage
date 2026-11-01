@@ -1,0 +1,269 @@
+{
+  "clinical_validation": {
+    "split": "test",
+    "n": 50,
+    "imported": 50,
+    "pending": 0,
+    "clinician_vs_ai": {
+      "n": 50,
+      "exact_agreement": 80.0,
+      "exact_agreement_ci95": [
+        68.0,
+        90.0
+      ],
+      "cohen_kappa": 0.911,
+      "cohen_kappa_ci95": [
+        0.793,
+        0.975
+      ],
+      "kappa_interpretation": "Concordancia casi perfecta",
+      "critical_sensitivity": 100.0,
+      "undertriage_rate": 4.0,
+      "overtriage_rate": 16.0,
+      "confusion_matrix": [
+        [
+          9,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          9,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          6,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          7,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          9
+        ]
+      ]
+    },
+    "clinician_vs_rules": {
+      "n": 50,
+      "exact_agreement": 40.0,
+      "exact_agreement_ci95": [
+        26.0,
+        52.0
+      ],
+      "cohen_kappa": 0.369,
+      "cohen_kappa_ci95": [
+        0.147,
+        0.603
+      ],
+      "kappa_interpretation": "Concordancia aceptable",
+      "critical_sensitivity": 40.0,
+      "undertriage_rate": 54.0,
+      "overtriage_rate": 6.0,
+      "confusion_matrix": [
+        [
+          4,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          2,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          6,
+          3,
+          1
+        ],
+        [
+          5,
+          5,
+          1,
+          7,
+          9
+        ]
+      ]
+    },
+    "clinician_vs_team": {
+      "n": 50,
+      "exact_agreement": 100.0,
+      "exact_agreement_ci95": [
+        100.0,
+        100.0
+      ],
+      "cohen_kappa": 1.0,
+      "cohen_kappa_ci95": [
+        1.0,
+        1.0
+      ],
+      "kappa_interpretation": "Concordancia casi perfecta",
+      "critical_sensitivity": 100.0,
+      "undertriage_rate": 0.0,
+      "overtriage_rate": 0.0,
+      "confusion_matrix": [
+        [
+          10,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          10,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          10,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          10
+        ]
+      ]
+    },
+    "likert": {
+      "clarity": {
+        "n": 50,
+        "mean": 4.8,
+        "ci95": [
+          4.68,
+          4.9
+        ]
+      },
+      "relevance": {
+        "n": 50,
+        "mean": 4.58,
+        "ci95": [
+          4.32,
+          4.8
+        ]
+      },
+      "fidelity": {
+        "n": 50,
+        "mean": 4.58,
+        "ci95": [
+          4.32,
+          4.8
+        ]
+      }
+    },
+    "disagreements": [
+      {
+        "id": "N051",
+        "clinician": 5,
+        "ai": 4,
+        "team": 5,
+        "rules": 5
+      },
+      {
+        "id": "B048",
+        "clinician": 4,
+        "ai": 3,
+        "team": 4,
+        "rules": 5
+      },
+      {
+        "id": "N036",
+        "clinician": 4,
+        "ai": 1,
+        "team": 4,
+        "rules": 5
+      },
+      {
+        "id": "N158",
+        "clinician": 4,
+        "ai": 3,
+        "team": 4,
+        "rules": 5
+      },
+      {
+        "id": "N120",
+        "clinician": 3,
+        "ai": 2,
+        "team": 3,
+        "rules": 4
+      },
+      {
+        "id": "N127",
+        "clinician": 3,
+        "ai": 2,
+        "team": 3,
+        "rules": 4
+      },
+      {
+        "id": "N027",
+        "clinician": 3,
+        "ai": 2,
+        "team": 3,
+        "rules": 2
+      },
+      {
+        "id": "N023",
+        "clinician": 3,
+        "ai": 4,
+        "team": 3,
+        "rules": 4
+      },
+      {
+        "id": "B028",
+        "clinician": 2,
+        "ai": 1,
+        "team": 2,
+        "rules": 1
+      },
+      {
+        "id": "N010",
+        "clinician": 1,
+        "ai": 2,
+        "team": 1,
+        "rules": 5
+      }
+    ],
+    "run": "test_hibrido_local-gemma4-e4b-it-qat_pv2_min-critico"
+  }
+}

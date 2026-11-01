@@ -145,3 +145,53 @@ class TestFHIRIntegration:
             content_type="application/json"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_fhir_sync_handles_millisecond_timestamp_id_without_integer_overflow(self):
+        bundle_payload = {
+            "resourceType": "Bundle",
+            "type": "transaction",
+            "entry": [
+                {
+                    "resource": {
+                        "resourceType": "Encounter",
+                        "id": "enc-1792980000000",
+                        "status": "arrived",
+                        "class": {"code": "EMER", "display": "Emergencia"},
+                    }
+                }
+            ],
+        }
+        response = self.client.post(
+            "/api/fhir/",
+            data=json.dumps(bundle_payload),
+            content_type="application/json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        log_entry = FHIRMessageLog.objects.order_by("-id").first()
+        assert log_entry is not None
+        assert log_entry.session is None
+        assert log_entry.status_code == 201
+
+    def test_history_and_emr_patients_include_verified_coding_terms_without_touching_normalized_terms(self):
+        self.session.user = self.user
+        self.session.clinical_entities = {
+            "symptoms": ["Dolor torácico", "Disnea"],
+            "medications": ["Losartán"],
+            "history": ["Hipertensión arterial"],
+        }
+        self.session.final_symptoms = ["Dolor torácico", "Disnea"]
+        self.session.save()
+
+        hist_res = self.client.get("/api/triage/sessions/history/")
+        assert hist_res.status_code == status.HTTP_200_OK
+        item = next(r for r in hist_res.json() if r["id"] == str(self.session.id))
+        assert "normalized_terms" not in item["analysisResult"]
+        coding_terms = item["analysisResult"]["coding_terms"]
+        assert any(t["code_system"] == "CIE-10" and t["valid"] is True for t in coding_terms)
+        assert any(t["code_snomed"] and t["snomed_valid"] is True for t in coding_terms)
+        assert any(t["code_system"] == "ATC" and t["valid"] is True for t in coding_terms)
+
+        emr_res = self.client.get("/api/triage/sessions/emr_patients/")
+        assert emr_res.status_code == status.HTTP_200_OK
+        emr_item = next(r for r in emr_res.json() if r["id"] == self.session.id)
+        assert len(emr_item["coding_terms"]) >= 3

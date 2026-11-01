@@ -16,34 +16,34 @@ FILLER_PATTERNS = [
 # Signos vitales: patrones para extraccion y normalizacion compacta
 VITAL_PATTERNS = {
     "blood_pressure": [
-        (r"\b(?:tension|presion|pa|ta)\s*(?:arterial)?\s*(?:de)?\s*([0-9]{2,3})\s*(?:sobre|\/|\s)\s*([0-9]{2,3})\b", "PA: {0}/{1} mmHg"),
+        (r"\b(?:tension|presion|pa|ta)\s*(?:arterial)?\s*(?:de|en|esta en|salio en|dio|marco)?\s*([0-9]{2,3})\s*(?:sobre|\/|\s)\s*([0-9]{2,3})\b", "PA: {0}/{1} mmHg"),
         (r"\b([0-9]{2,3})\s*\/\s*([0-9]{2,3})\s*(?:de tension|de presion|mmhg)?\b", "PA: {0}/{1} mmHg"),
     ],
     "heart_rate": [
-        (r"\b(?:frecuencia cardiaca|fc|pulso)\s*(?:de)?\s*([0-9]{2,3})\s*(?:lpm|latidos|por minuto)?\b", "FC: {0} lpm"),
+        (r"\b(?:frecuencia cardiaca|fc|pulso)\s*(?:de|en|esta en|salio en|dio|marco)?\s*([0-9]{2,3})\s*(?:lpm|latidos|por minuto)?\b", "FC: {0} lpm"),
         (r"\b([0-9]{2,3})\s*(?:latidos por minuto|lpm)\b", "FC: {0} lpm"),
     ],
     "oxygen_saturation": [
-        (r"\b(?:saturacion|saturando|sat|spo2)\s*(?:al|en|de)?\s*([0-9]{2,3})\s*(?:%|por ciento)?\b", "SpO2: {0}%"),
+        (r"\b(?:saturacion|saturando|sat|spo2)\s*(?:al|en|de|esta en|salio en|dio|marco)?\s*([0-9]{2,3})\s*(?:%|por ciento)?\b", "SpO2: {0}%"),
         (r"\b([0-9]{2,3})\s*%\s*(?:de saturacion|sat)?\b", "SpO2: {0}%"),
     ],
     "temperature": [
-        (r"\b(?:temperatura|temp|t|fiebre)\s*(?:de)?\s*([0-9]{2}(?:[\.,][0-9])?)\s*(?:grados|c|°c)?\b", "T: {0}°C"),
+        (r"\b(?:(?:temperatura|temp|fiebre)\s*(?:de|en|esta en|salio en|dio|marco)?|t\s*(?:de)?)\s*([0-9]{2}(?:[\.,][0-9])?)\s*(?:grados|c|°c)?\b", "T: {0}°C"),
         (r"\b([0-9]{2}(?:[\.,][0-9])?)\s*(?:grados|°c)\b", "T: {0}°C"),
         (r"\b([0-9]{2})\s*y\s*medio\s*(?:de fiebre|de temperatura|grados)?\b", "T: {0}.5°C"),
     ],
     "respiratory_rate": [
-        (r"\b(?:frecuencia respiratoria|fr|respiraciones)\s*(?:de)?\s*([0-9]{1,2})\s*(?:rpm|respiraciones|por minuto)?\b", "FR: {0} rpm"),
+        (r"\b(?:frecuencia respiratoria|fr|respiraciones)\s*(?:de|en|esta en|salio en|dio|marco)?\s*([0-9]{1,2})\s*(?:rpm|respiraciones|por minuto)?\b", "FR: {0} rpm"),
         (r"\b([0-9]{1,2})\s*(?:respiraciones por minuto|rpm|respiraciones)\b", "FR: {0} rpm"),
     ],
     "glucose": [
-        (r"\b(?:glucometria|azucar|glucemia|dextrostix)\s*(?:de)?\s*([0-9]{2,3})\s*(?:mg\/dl)?\b", "GLU: {0} mg/dL"),
+        (r"\b(?:glucometria|azucar|glucemia|glicemia|glucosa|dextrostix)\s*(?:de|en|salio en|esta en|dio|marco|mayor a|>)?\s*([0-9]{2,3})\s*(?:mg\/dl)?\b", "GLU: {0} mg/dL"),
     ],
     "pain_scale": [
-        (r"\b(?:dolor|eva)\s*(?:de)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*10\b", "EVA: {0}/10"),
+        (r"\b(?:dolor|eva)\s*(?:de|en)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*10\b", "EVA: {0}/10"),
     ],
     "glasgow": [
-        (r"\b(?:glasgow|gcs)\s*(?:de)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*15\b", "GCS: {0}/15"),
+        (r"\b(?:glasgow|gcs)\s*(?:de|en)?\s*([0-9]{1,2})\s*(?:\/|\s*sobre\s*)\s*15\b", "GCS: {0}/15"),
     ]
 }
 

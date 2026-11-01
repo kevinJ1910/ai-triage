@@ -173,6 +173,10 @@ Split **dev**. Intervalos de confianza al 95 % por bootstrap (1.000 remuestreos)
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 50,0 % [41,3–58,0] | 0,487 [0,357–0,609] | 50,0 % [36,8–62,5] | 46,7 % [38,0–54,7] | 3,3 % | 45150 / 55070 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER) | 150 | 51,3 % [42,7–59,3] | 0,497 [0,365–0,619] | 51,7 % [39,0–64,0] | 44,7 % [36,7–53,3] | 4,0 % | 45150 / 55070 ms (CPU AMD Ryzen (12 hilos, Docker 8 GB), solo por lotes) | 0,00 USD | local (los datos no salen del servidor) |
 | Reglas (Christus Sinergia / Res. 5596) | 150 | 43,3 % [35,3–51,3] | 0,255 [0,134–0,373] | 30,0 % [18,3–41,5] | 54,0 % [46,0–62,0] | 2,7 % | 3 / 6 ms (AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD) | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 41,4 % | 0,130 [-0,005–0,303] | 21,4 % [6,7–37,9] | 54,3 % | 4,3 % | 2 / 4 ms | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 47,1 % | 0,331 [0,147–0,532] | 39,3 % [20,7–57,7] | 48,6 % | 4,3 % | 5 / 6 ms | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 47,1 % | 0,331 [0,147–0,532] | 39,3 % [20,7–57,7] | 48,6 % | 4,3 % | 3 / 4 ms | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 38,6 % | 0,107 [-0,033–0,288] | 21,4 % [6,7–37,9] | 54,3 % | 7,1 % | 2 / 3 ms | 0,00 USD | local (los datos no salen del servidor) |
 
 Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor − referencia, IC95):
 
@@ -182,6 +186,10 @@ Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor 
 | LLM local (gemma4:e4b-it-qat) + reglas (prompt v1, política min_critico, NER) | 150 | 22,0 [16,0–28,7] | 0,511 [0,395–0,630] | 45,0 [32,4–58,2] | -24,0 [-30,7–-17,3] |
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER) | 150 | 6,7 [2,0–11,4] | 0,232 [0,125–0,344] | 20,0 [8,4–31,5] | -7,3 [-12,6–-2,0] |
 | LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER) | 150 | 8,0 [4,0–12,7] | 0,242 [0,137–0,355] | 21,7 [11,7–32,7] | -9,3 [-14,0–-5,3] |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | -5,7 [-11,4–-1,4] | -0,201 [-0,367–-0,051] | -17,9 [-33,4–-4,3] | 5,7 [1,4–11,4] |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 0,0 [0,0–0,0] | 0,000 [0,000–0,000] | 0,0 [0,0–0,0] | 0,0 [0,0–0,0] |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | 0,0 [0,0–0,0] | 0,000 [0,000–0,000] | 0,0 [0,0–0,0] | 0,0 [0,0–0,0] |
+| Reglas (Christus Sinergia / Res. 5596) | 70 | -8,5 [-15,7–-2,8] | -0,224 [-0,401–-0,072] | -17,9 [-33,4–-4,3] | 5,7 [1,4–11,4] |
 
 Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
 
@@ -190,12 +198,32 @@ Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
 - LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, NER): 30 casos: B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N072 (tipico; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), N077 (negacion; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N088 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5) y 15 más
 - LLM local (qwen2.5:7b-instruct-q4_K_M) + reglas (prompt v1, política min_critico, NER): 29 casos: B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N072 (tipico; ref. 1, pred. 5), N076 (negacion; ref. 1, pred. 5), N077 (negacion; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N087 (coloquial; ref. 2, pred. 5), N088 (coloquial; ref. 2, pred. 5), N101 (negacion; ref. 2, pred. 5) y 14 más
 - Reglas (Christus Sinergia / Res. 5596): 42 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N011 (negacion; ref. 1, pred. 5), N057 (coloquial; ref. 1, pred. 5), N059 (coloquial; ref. 1, pred. 5), N060 (coloquial; ref. 1, pred. 5), N061 (coloquial; ref. 1, pred. 5), N065 (coloquial; ref. 1, pred. 5), N067 (coloquial; ref. 1, pred. 5), N068 (tipico; ref. 1, pred. 5), N070 (tipico; ref. 1, pred. 5) y 27 más
+- Reglas (Christus Sinergia / Res. 5596): 22 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), B009 (signos_vitales; ref. 1, pred. 5), B017 (signos_vitales; ref. 2, pred. 5), B020 (coloquial; ref. 2, pred. 5), B023 (coloquial; ref. 2, pred. 5), B024 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N001 (signos_vitales; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N004 (signos_vitales; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N009 (signos_vitales; ref. 1, pred. 5) y 7 más
+- Reglas (Christus Sinergia / Res. 5596): 17 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B023 (coloquial; ref. 2, pred. 5), B024 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N002 (coloquial; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N011 (negacion; ref. 1, pred. 5), N013 (coloquial; ref. 2, pred. 5), N014 (signos_vitales; ref. 2, pred. 4), N015 (coloquial; ref. 2, pred. 5), N017 (coloquial; ref. 2, pred. 4) y 2 más
+- Reglas (Christus Sinergia / Res. 5596): 17 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), B020 (coloquial; ref. 2, pred. 5), B023 (coloquial; ref. 2, pred. 5), B024 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N002 (coloquial; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N011 (negacion; ref. 1, pred. 5), N013 (coloquial; ref. 2, pred. 5), N014 (signos_vitales; ref. 2, pred. 4), N015 (coloquial; ref. 2, pred. 5), N017 (coloquial; ref. 2, pred. 4) y 2 más
+- Reglas (Christus Sinergia / Res. 5596): 22 casos: B004 (coloquial; ref. 1, pred. 5), B005 (coloquial; ref. 1, pred. 5), B006 (coloquial; ref. 1, pred. 5), B007 (coloquial; ref. 1, pred. 5), B009 (signos_vitales; ref. 1, pred. 5), B017 (signos_vitales; ref. 2, pred. 5), B020 (coloquial; ref. 2, pred. 5), B023 (coloquial; ref. 2, pred. 5), B024 (coloquial; ref. 2, pred. 5), B026 (tipico; ref. 2, pred. 5), N001 (signos_vitales; ref. 1, pred. 5), N002 (coloquial; ref. 1, pred. 5), N004 (signos_vitales; ref. 1, pred. 5), N007 (coloquial; ref. 1, pred. 5), N009 (signos_vitales; ref. 1, pred. 5) y 7 más
 <!-- comparativa:dev:fin -->
 
 ### Evaluación final (*test*)
 
 <!-- comparativa:test:inicio -->
-Pendiente de la evaluación final.
+Split **test**. Intervalos de confianza al 95 % por bootstrap (1.000 remuestreos).
+
+| Motor | n | Exactitud | Kappa ponderado | Sensibilidad I–II | Infratriaje | Sobretriaje | Latencia p50 / p95 | Costo por 1.000 | Privacidad |
+| :--- | ---: | :--- | :--- | :--- | :--- | ---: | :--- | ---: | :--- |
+| LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER) | 100 | 73,0 % [64,0–81,0] | 0,898 [0,828–0,945] | 92,5 % [83,0–100,0] | 12,0 % [6,0–19,0] | 15,0 % | 15220 / 19695 ms (NVIDIA GeForce RTX 3070 8GB (Ollama GPU)) | 0,00 USD | local (los datos no salen del servidor) |
+| Reglas (Christus Sinergia / Res. 5596) | 100 | 39,0 % [29,0–49,0] | 0,339 [0,189–0,511] | 37,5 % [22,5–54,5] | 56,0 % [46,0–66,0] | 5,0 % | 5 / 8 ms (x86_64) | 0,00 USD | local (los datos no salen del servidor) |
+
+Diferencias pareadas frente a «Reglas (Christus Sinergia / Res. 5596)» (motor − referencia, IC95):
+
+| Motor | n | Exactitud (pp) | Kappa | Sensibilidad I–II (pp) | Infratriaje (pp) |
+| :--- | ---: | :--- | :--- | :--- | :--- |
+| LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER) | 100 | 34,0 [22,0–46,0] | 0,559 [0,371–0,717] | 55,0 [38,9–70,0] | -44,0 [-54,0–-34,0] |
+
+Infratriaje crítico (referencia I–II clasificada como III–V), por motor:
+
+- LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER): 3 casos: N092 (coloquial; ref. 2, pred. 3), N097 (tipico; ref. 2, pred. 3), N098 (tipico; ref. 2, pred. 3)
+- Reglas (Christus Sinergia / Res. 5596): 25 casos: B010 (coloquial; ref. 1, pred. 5), N003 (coloquial; ref. 1, pred. 5), N005 (tipico; ref. 1, pred. 5), N010 (coloquial; ref. 1, pred. 5), N056 (coloquial; ref. 1, pred. 5), N058 (coloquial; ref. 1, pred. 5), N062 (coloquial; ref. 1, pred. 5), N063 (coloquial; ref. 1, pred. 5), N064 (coloquial; ref. 1, pred. 5), N066 (coloquial; ref. 1, pred. 5), N075 (negacion; ref. 1, pred. 5), B018 (coloquial; ref. 2, pred. 5), B021 (coloquial; ref. 2, pred. 5), B022 (coloquial; ref. 2, pred. 5), N069 (tipico; ref. 1, pred. 4) y 10 más
 <!-- comparativa:test:fin -->
 
 ## 9. Texto para la tesis

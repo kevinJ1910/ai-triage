@@ -12,7 +12,7 @@ from google.genai import types
 
 from transcription.normalizer import concept_mappings
 
-from .clinical_protocol import evaluate_christus_sinergia_triage
+from .clinical_protocol import evaluate_christus_sinergia_triage, is_rule_fallback
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
@@ -59,15 +59,21 @@ PROMPT_TEMPLATES = {
     },
     'v2': {
         'system': _SYSTEM_INSTRUCTION_V1 + (
-            " La pauta del motor de reglas es un suelo de urgencia: puedes asignar un nivel más urgente cuando el "
-            "relato lo justifique, pero solo asignas uno menos urgente si citas en la justificación el criterio del "
-            "protocolo que lo permite. El motor de reglas es léxico y no reconoce paráfrasis coloquiales: valora "
-            "siempre el relato completo."
+            " La pauta del motor de reglas es un suelo de urgencia cuando hay coincidencia léxica o vital: puedes "
+            "asignar un nivel más urgente cuando el relato lo justifique, pero solo asignas uno menos urgente si citas "
+            "en la justificación el criterio del protocolo que lo permite. Cuando el motor de reglas no tiene "
+            "coincidencia léxica (descarte por defecto), clasifica según el relato completo y los criterios "
+            "institucionales sin anclarte en Nivel 4 o 5."
         ),
         'guideline': (
             "PAUTA CLÍNICA BASE (CHRISTUS SINERGIA / RES. 5596, SUELO DE URGENCIA):\n"
             "Nivel {level} ({name}) | Ventana: {attention_time}\n"
             "Criterio: {justification}"
+        ),
+        'unmatched_guideline': (
+            "PAUTA CLÍNICA BASE (CHRISTUS SINERGIA / RES. 5596, SUELO DE URGENCIA):\n"
+            "Sin coincidencia léxica directa en el motor de reglas (posible paráfrasis coloquial; descarte léxico Nivel {level}).\n"
+            "Criterio: Evalúa los criterios institucionales recuperados, signos vitales y gravedad real sin asumir Nivel 4 o 5 por defecto."
         ),
     },
 }
@@ -229,9 +235,12 @@ def _resolve_gemini_api_key() -> str:
 def prompt_sha256(version: str = PROMPT_VERSION, rule_hint: bool = True, rag: bool = True) -> str:
     """Huella del prompt (instruccion de sistema + plantillas + opciones), para registrarla en las evaluaciones."""
     template = PROMPT_TEMPLATES[version]
-    canonical = json.dumps({"system": template['system'], "guideline": template['guideline'],
-                            "user": _USER_TEMPLATE, "rule_hint": rule_hint, "rag": rag,
-                            "temperature": LLM_TEMPERATURE}, ensure_ascii=False, sort_keys=True)
+    payload = {"system": template['system'], "guideline": template['guideline'],
+               "user": _USER_TEMPLATE, "rule_hint": rule_hint, "rag": rag,
+               "temperature": LLM_TEMPERATURE}
+    if 'unmatched_guideline' in template:
+        payload['unmatched_guideline'] = template['unmatched_guideline']
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
 
@@ -257,7 +266,9 @@ def build_triage_prompt(
     template = PROMPT_TEMPLATES[version]
     guideline = ""
     if rule_hint:
-        guideline = template['guideline'].format(
+        use_unmatched = 'unmatched_guideline' in template and is_rule_fallback(rule_baseline)
+        guideline_tpl = template['unmatched_guideline'] if use_unmatched else template['guideline']
+        guideline = guideline_tpl.format(
             level=rule_baseline['level'], name=rule_baseline['name'],
             attention_time=rule_baseline['attention_time'], justification=rule_baseline['justification'],
         ) + "\n\n"

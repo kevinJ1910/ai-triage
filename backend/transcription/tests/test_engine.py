@@ -355,3 +355,100 @@ class TestNormalizerGemini:
 
         config = client_cls.return_value.models.generate_content.call_args.kwargs["config"]
         assert "mappings" in config["response_schema"]["properties"]
+
+    def test_local_llm_normalizer_uses_ollama_and_never_calls_gemini(self, mocker):
+        from system_settings.models import SystemConfiguration
+        from transcription import normalizer
+        from triage import local_llm
+
+        cfg = SystemConfiguration.get_solo()
+        cfg.active_llm_engine = "local"
+        cfg.local_llm_model = "gemma4:e4b-it-qat"
+        cfg.save()
+
+        gemini_cls = mocker.patch("google.genai.Client")
+        mocker.patch.object(local_llm, "configured", return_value=True)
+        chat = mocker.patch.object(
+            local_llm,
+            "chat_json",
+            return_value={
+                "text": json.dumps({
+                    "normalized_text": "Paciente con disnea y otalgia.",
+                    "summary": "Disnea con otalgia asociada.",
+                    "mappings": [
+                        {
+                            "raw_term": "punzada en el oído",
+                            "medical_term": "otalgia",
+                            "code": "H92.0",
+                            "code_snomed": "",
+                            "category": "Sintoma",
+                        }
+                    ],
+                })
+            },
+        )
+
+        result = normalizer.normalize_clinical_text("Tengo falta de aire y punzada en el oído")
+        gemini_cls.assert_not_called()
+        chat.assert_called_once()
+        assert "LLM local (gemma4:e4b-it-qat)" in result["engine"]
+        assert any(m["medical_term"] == "otalgia" and m["source"] == "llm" for m in result["mappings"])
+
+
+@pytest.mark.django_db
+class TestAsrWorkerHeartbeatAndTTL:
+    def setup_method(self):
+        cache.clear()
+        self.client = APIClient()
+
+    @override_settings(ASR_STATUS_TTL=75, CELERY_TASK_ALWAYS_EAGER=False)
+    def test_publish_asr_status_always_sets_redis_ttl(self, mocker):
+        from transcription.tasks import publish_asr_status
+        spy = mocker.spy(cache, "set")
+        payload = {"model_loaded": True, "device": "cuda", "model_size": "large-v3-turbo"}
+        result = publish_asr_status(payload)
+        assert result == payload
+        assert spy.call_args.kwargs["timeout"] == 75
+        assert cache.get(ASR_STATUS_KEY) == payload
+
+    @override_settings(ASR_STATUS_TTL=1, CELERY_TASK_ALWAYS_EAGER=False)
+    def test_expired_worker_heartbeat_degrades_both_health_endpoints(self):
+        import time
+        from transcription.tasks import publish_asr_status
+        publish_asr_status({"model_loaded": True, "device": "cuda", "model_size": "large-v3-turbo"}, timeout=1)
+        assert self.client.get("/api/health_check/").json()["status"] == "healthy"
+        assert self.client.get("/api/transcribe/health/").json()["status"] == "healthy"
+        time.sleep(1.15)
+        assert self.client.get("/api/health_check/").json()["status"] == "degraded"
+        assert self.client.get("/api/transcribe/health/").json()["status"] == "degraded"
+
+    def test_heartbeat_loop_refreshes_status_and_stops_cleanly(self, mocker):
+        import threading
+        from transcription.tasks import _heartbeat_loop
+        published = []
+        stop_ev = threading.Event()
+
+        def fake_publish():
+            published.append(True)
+            stop_ev.set()
+            return {"model_loaded": True}
+
+        mocker.patch("transcription.tasks.publish_asr_status", side_effect=fake_publish)
+        _heartbeat_loop(stop_ev, interval=0.01)
+        assert len(published) == 1
+
+    def test_worker_signals_manage_heartbeat_lifecycle(self, monkeypatch, mocker):
+        from transcription.tasks import _clear_whisper_status, _preload_whisper, stop_asr_heartbeat
+        monkeypatch.setenv("WHISPER_PRELOAD", "True")
+        mocker.patch("transcription.tasks.WhisperEngine.get_status", return_value={"model_loaded": True, "device": "cpu"})
+        start_spy = mocker.patch("transcription.tasks.start_asr_heartbeat")
+        stop_spy = mocker.patch("transcription.tasks.stop_asr_heartbeat")
+        try:
+            _preload_whisper()
+            start_spy.assert_called_once()
+            assert cache.get(ASR_STATUS_KEY)["model_loaded"] is True
+            _clear_whisper_status()
+            stop_spy.assert_called_once()
+            assert cache.get(ASR_STATUS_KEY) is None
+        finally:
+            stop_asr_heartbeat()
