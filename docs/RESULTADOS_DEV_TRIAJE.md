@@ -2,6 +2,8 @@
 
 > **Registro histórico de la fase de desarrollo (*dev*).** Este documento conserva intactas las mediciones intermedias del split *dev* (150 casos, 21-10-2026) empleadas para elegir el modelo, el prompt (`v2`) y la política de combinación (`min_critico`) antes de congelar el sistema. **La evaluación definitiva sobre el split congelado *test* (100 casos en GPU NVIDIA RTX 3070: exactitud 73,0 %, Kappa 0,898, sensibilidad I–II 92,5 %) y la validación clínica ciega independiente (`BlindReview`, 50 casos: exactitud 80,0 %, Kappa 0,911) ya fueron ejecutadas y se documentan en [`EVALUACION_TRIAJE.md`](EVALUACION_TRIAJE.md).**
 
+> **Gemini 2.5 Flash en *dev* ya está completo (150 de 150):** 78,7 % de exactitud [72,0–85,3], Kappa ponderado 0,923 [0,877–0,956] y sensibilidad I–II de 91,7 % [83,9–98,2]. Lo que este documento dice de Gemini (66 casos, «en curso») es el avance intermedio; la tabla completa está en [`EVALUACION_TRIAJE.md`](EVALUACION_TRIAJE.md).
+
 Datos al 21-10-2026. Todas las cifras se pueden regenerar desde `backend/triage/benchmark/resultados/`: los JSON de resumen y los checkpoints `crudos/*.jsonl` con la salida cruda de cada modelo. Los intervalos son IC95 por bootstrap (1.000 remuestreos, semilla 0).
 
 ## 1. Qué se comparó
