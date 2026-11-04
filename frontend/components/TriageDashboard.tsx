@@ -500,7 +500,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Sincronizar la transcripción en tiempo real del backend al estado local
+  // Sincronizar la transcripción incremental del backend al estado local
   useEffect(() => {
     if (isRecording || isTranscribing) {
       setTranscript(liveTranscript);
@@ -1024,7 +1024,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                           Esperando Entrada de Audio
                         </h4>
                         <p className="text-[11px] text-slate-400 max-w-xs mt-1 leading-relaxed">
-                          Inicie la grabación para capturar el diálogo médico en tiempo real con transcripción continua.
+                          Inicie la grabación para capturar el diálogo médico con transcripción incremental por fragmentos (4 s).
                         </p>
                         <button
                           onClick={handleToggleRecording}
@@ -1419,7 +1419,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
                           {/* Stepper controls */}
                           <div className="flex items-center justify-between w-full px-1 py-1">
-                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top">
+                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top" align="left">
                               <button
                                 type="button"
                                 onClick={() => handleRequestTriageLevelChange(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
@@ -1430,7 +1430,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                               </button>
                             </Tooltip>
                             
-                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top">
+                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top" align="center">
                               <div className="flex flex-col items-center cursor-help">
                                 <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
                                   {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
@@ -1441,7 +1441,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                               </div>
                             </Tooltip>
 
-                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top">
+                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top" align="right">
                               <button
                                 type="button"
                                 onClick={() => handleRequestTriageLevelChange(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
@@ -1789,18 +1789,40 @@ function getAttentionTime(level?: number) {
   }
 }
 
-function Tooltip({ children, text, position = 'top' }: { children: React.ReactNode; text: string; position?: 'top' | 'bottom' | 'left' | 'right' }) {
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  }[position];
+function Tooltip({
+  children,
+  text,
+  position = 'top',
+  align = 'center',
+}: {
+  children: React.ReactNode;
+  text: string;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
+}) {
+  const getPositionClasses = () => {
+    switch (position) {
+      case 'top':
+        if (align === 'left') return 'bottom-full left-0 mb-2';
+        if (align === 'right') return 'bottom-full right-0 mb-2';
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+      case 'bottom':
+        if (align === 'left') return 'top-full left-0 mt-2';
+        if (align === 'right') return 'top-full right-0 mt-2';
+        return 'top-full left-1/2 -translate-x-1/2 mt-2';
+      case 'left':
+        return 'right-full top-1/2 -translate-y-1/2 mr-2';
+      case 'right':
+        return 'left-full top-1/2 -translate-y-1/2 ml-2';
+      default:
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+    }
+  };
 
   return (
-    <div className="relative group/tooltip inline-flex items-center">
+    <div className="relative group/tooltip inline-flex items-center hover:z-30">
       {children}
-      <div className={`absolute ${positionClasses} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
+      <div className={`absolute ${getPositionClasses()} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
         {text}
       </div>
     </div>

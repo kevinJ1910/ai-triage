@@ -120,7 +120,7 @@ describe('AppNavigation Component', () => {
     });
 
     // Switch to Metrics tab
-    const metricsTab = screen.getByRole('button', { name: /Metricas y Evaluacion/i });
+    const metricsTab = screen.getByRole('button', { name: /Telemetria Operativa/i });
     fireEvent.click(metricsTab);
 
     await waitFor(() => {

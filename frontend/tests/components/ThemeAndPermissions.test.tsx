@@ -42,7 +42,7 @@ describe('Menú según permisos', () => {
 
     await waitFor(() => expect(screen.getAllByText('Modulo de Triaje').length).toBeGreaterThan(0));
     expect(screen.getAllByText('Monitor Normalizacion').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Resultados de Evaluacion').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Benchmarks de Investigacion').length).toBeGreaterThan(0);
     for (const hidden of ['Simulador HCE', 'Validacion Ciega', 'Monitor FHIR/HL7', 'Seguridad y RBAC', 'Configuracion']) {
       expect(screen.queryByText(hidden)).not.toBeInTheDocument();
     }

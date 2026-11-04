@@ -29,7 +29,7 @@ Protocolo de captura acústica:
 docker compose exec backend python manage.py evaluate_asr --manifest data/asr/manifest.json \
     --output triage/benchmark/resultados/asr_small_cpu_int8.json
 
-# Streaming por fragmentos de 4 s con contexto previo en Redis
+# Captura incremental por micro-lotes de 4 s (cuasi tiempo real) con contexto previo en Redis
 docker compose exec backend python manage.py evaluate_asr --manifest data/asr/manifest.json \
     --model-size large-v3-turbo --device cuda --compute-type int8_float16 --chunk-seconds 4 \
     --output triage/benchmark/resultados/asr_large_v3_turbo_cuda_stream4s.json
@@ -62,7 +62,7 @@ La evaluación se ejecutó sobre **40 grabaciones clínicas reales** en español
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
 | **Producción GPU (Recomendada)** | `large-v3-turbo` (`int8_float16` / `float16`) | NVIDIA RTX 3070 (CUDA) | Mixta (40 audios, completo) | **2,39 %** | **1,87 %** | **2,90 %** | **3,33 %** (5/150) | **0,044** | **1,26 s** | `asr_large_v3_turbo_cuda.json` |
 | **Ablación sin ayudas léxicas** | `large-v3-turbo` (sin prompt ni *hotwords*) | NVIDIA RTX 3070 (CUDA) | Mixta (40 audios, completo) | 2,47 % | 2,05 % | 2,90 % | 4,67 % (ruido: 6,67 %) | 0,043 | 1,21 s | `asr_large_v3_turbo_cuda_ablacion_sin_ayudas.json` |
-| **Streaming concurrente** | `large-v3-turbo` (`int8_float16`) | NVIDIA RTX 3070 (CUDA) | Mixta (40 audios, chunks 4 s) | 12,81 % | 10,62 % | 15,00 % | 8,67 % | 0,139 | 3,96 s | `asr_large_v3_turbo_cuda_stream4s.json` |
+| **Captura incremental (micro-lotes 4 s)** | `large-v3-turbo` (`int8_float16`) | NVIDIA RTX 3070 (CUDA) | Mixta (40 audios, chunks 4 s) | 12,81 % | 10,62 % | 15,00 % | 8,67 % | 0,139 | 3,96 s | `asr_large_v3_turbo_cuda_stream4s.json` |
 | **Respaldo local CPU** | `small` (`int8`) | CPU x86_64 | Mixta (40 audios, completo) | 7,53 % | 5,11 % | 9,94 % | 10,67 % (16/150) | 0,142 | 4,04 s | `asr_small_cpu_int8.json` |
 
 ### Conclusiones técnicas

@@ -13,7 +13,7 @@ con la misma configuracion que la aplicacion (idioma, prompt clinico, hotwords, 
 2. Evaluar:
 
     python manage.py evaluate_asr --manifest data/asr/manifest.json --output data/asr/resultado_small_cpu.json
-    python manage.py evaluate_asr --manifest data/asr/manifest.json --chunk-seconds 4      # como el streaming
+    python manage.py evaluate_asr --manifest data/asr/manifest.json --chunk-seconds 4      # micro-lotes de 4 s (cuasi tiempo real)
     python manage.py evaluate_asr --manifest data/asr/manifest.json --no-prompt            # ablacion del prompt
     python manage.py evaluate_asr --manifest data/asr/manifest.json --no-hotwords          # ablacion hotwords
     python manage.py evaluate_asr --manifest data/asr/manifest.json --model-size large-v3-turbo --device cuda --compute-type int8_float16
@@ -147,7 +147,7 @@ class Transcriber:
         return text, info.duration, repeated
 
     def transcribe(self, path: Path, chunk_seconds: float = 0):
-        """(texto, duracion del audio). Con chunk_seconds emula el streaming: fragmentos con el contexto previo."""
+        """(texto, duracion del audio). Con chunk_seconds emula la captura incremental por micro-lotes con contexto previo."""
         if not chunk_seconds:
             text, duration, _ = self._run(str(path), self.prompt)
             return text, duration

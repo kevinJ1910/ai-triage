@@ -128,8 +128,8 @@ export default function AppNavigation() {
   ].filter(item => canSee(item.id));
 
   const qualityItems = [
-    { id: 'metrics', icon: <BarChart className="w-4 h-4"/>, label: 'Metricas y Evaluacion' },
-    { id: 'results', icon: <FlaskConical className="w-4 h-4"/>, label: 'Resultados de Evaluacion' },
+    { id: 'metrics', icon: <BarChart className="w-4 h-4"/>, label: 'Telemetria Operativa' },
+    { id: 'results', icon: <FlaskConical className="w-4 h-4"/>, label: 'Benchmarks de Investigacion' },
     { id: 'normalization', icon: <RefreshCw className="w-4 h-4"/>, label: 'Monitor Normalizacion' },
     { id: 'fhir', icon: <Server className="w-4 h-4"/>, label: 'Monitor FHIR/HL7' },
   ].filter(item => canSee(item.id));

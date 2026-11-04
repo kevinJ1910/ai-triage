@@ -1,10 +1,10 @@
 # AI-Triage: Frontend Web App (Next.js 15)
 
-Aplicación cliente en **Next.js 15** (App Router), **React 19**, **Tailwind CSS 4** y **TypeScript** para la asistencia de triaje clínico en tiempo real.
+Aplicación cliente en **Next.js 15** (App Router), **React 19**, **Tailwind CSS 4** y **TypeScript** para la asistencia de triaje clínico con captura progresiva de voz en cuasi tiempo real (*near real-time*) y estructuración asíncrona.
 
 ## Características Principales
 
-* **Triaje clínico interactivo:** Transcripción ASR en vivo, entidades clínicas, nivel sugerido (I a V) con ratificación o ajuste médico y justificación editable.
+* **Triaje clínico interactivo:** Transcripción ASR incremental por micro-lotes de 4 s, entidades clínicas, nivel sugerido (I a V) con ratificación o ajuste médico y justificación editable.
 * **Priorización Christus Sinergia Salud:** Escala con tiempos máximos de espera según la Resolución 5596 de Minsalud.
 * **Validación ciega (`BlindReview`):** Cola de casos para que un clínico distinto al tratante asigne el nivel de referencia viendo solo la transcripción, sin el nivel de la IA ni el del médico.
 * **Métricas:** Concordancia, Kappa ponderado, infratriaje / sobretriaje, sensibilidad en niveles I–II, comparación contra la referencia ciega y gobernanza de tokens.
@@ -25,7 +25,7 @@ Aplicación cliente en **Next.js 15** (App Router), **React 19**, **Tailwind CSS
 ```bash
 pnpm install          # dependencias
 pnpm dev              # servidor de desarrollo (requiere el backend detrás de nginx)
-pnpm test             # Vitest + Testing Library (67 pruebas)
+pnpm test             # Vitest + Testing Library (93 pruebas en 14 suites)
 pnpm lint             # ESLint
 pnpm build            # compilación de producción y validación de tipos
 ```
@@ -33,7 +33,7 @@ pnpm build            # compilación de producción y validación de tipos
 ## Estructura de Componentes
 
 * `components/AppNavigation.tsx`: Shell de la app; verifica la sesión con `/api/auth/me/` y conmuta entre paneles.
-* `components/TriageDashboard.tsx`: Triaje interactivo, ASR en tiempo real, modales y exportaciones.
+* `components/TriageDashboard.tsx`: Triaje interactivo, ASR incremental por fragmentos (4 s), modales y exportaciones.
 * `components/BlindReview.tsx`: Adjudicación ciega del nivel de referencia.
 * `components/MetricsDashboard.tsx`: Concordancia clínica, seguridad, referencia ciega y gobernanza de tokens.
 * `components/EMRSimulator.tsx`: Simulador de Historia Clínica Electrónica y asignación de box.

@@ -159,7 +159,7 @@ export default function SecurityPanel() {
     {
       key: 'can_use_transcriber',
       label: 'Transcriptor ASR en Vivo',
-      desc: 'Habilita la captura y transcripcion de voz con Faster-Whisper en tiempo real.',
+      desc: 'Habilita la captura progresiva y transcripcion incremental de voz con Faster-Whisper.',
       icon: <Mic className="w-3.5 h-3.5 text-blue-400" />,
     },
     {

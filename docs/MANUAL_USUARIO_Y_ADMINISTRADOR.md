@@ -31,8 +31,8 @@ La barra lateral adapta automáticamente las vistas visibles según los permisos
 | **Módulo de Triaje** | `can_register_patients` / `can_use_transcriber` | Sí | Sí | Sí |
 | **Simulador HCE** | `can_view_emr` | Según asignación | Sí | Sí |
 | **Validación Ciega** | `can_edit_symptoms` | Según asignación | Sí | Sí |
-| **Métricas y Evaluación** | Autenticado (identidad HCE protegida) | Agregado | Completo | Completo |
-| **Resultados de Evaluación** | Autenticado | Sí | Sí | Sí |
+| **Telemetría Operativa** | Autenticado (identidad HCE protegida) | Agregado | Completo | Completo |
+| **Benchmarks de Investigación** | Autenticado | Sí | Sí | Sí |
 | **Monitor Normalización** | `can_use_transcriber` | Sí | Sí | Sí |
 | **Monitor FHIR / HL7** | `can_view_fhir` | Según asignación | Sí | Sí |
 | **Seguridad y RBAC** | Rol `admin` | No | No | Sí |
@@ -86,9 +86,9 @@ En la esquina inferior de la barra lateral se visualiza de forma permanente el i
    - Presenta al médico evaluador una cola de casos pendientes mostrando **únicamente** edad, sexo y transcripción clínica cruda (ocultando el nivel sugerido por la IA, el nivel del médico tratante y la justificación, y excluyendo automáticamente cualquier caso atendido por el propio evaluador).
    - El evaluador selecciona el nivel de referencia (`1` a `5`) según el protocolo institucional y confirma. Esta adjudicación es **inmutable** (`TRIAGE_REFERENCE`).
    - Solo **después** de fijar el nivel ciego, la interfaz revela la justificación generada por la IA para que el mismo evaluador la califique por única vez en tres dimensiones Likert (`1` a `5`): **Claridad**, **Pertinencia clínica** y **Fidelidad al protocolo**.
-2. **Métricas operativas y científicas (`Métricas y Evaluación` y `Resultados de Evaluación`):**
-   - `Métricas y Evaluación` calcula en vivo la matriz de confusión 5x5, el Kappa de Cohen con ponderación cuadrática, las tasas de infratriaje/sobretriaje, la sensibilidad en niveles críticos I–II, el ahorro de tokens por caché clínica SHA-256 y la comparación separada entre acuerdo en vivo y validación contra referencia ciega.
-   - `Resultados de Evaluación` expone las corridas experimentales reproducibles del corpus (`dev` y `test`) en ASR, extracción NER y clasificación de triaje.
+2. **Métricas operativas y científicas (`Telemetría Operativa` y `Benchmarks de Investigación`):**
+   - `Telemetría Operativa` calcula en vivo la matriz de confusión 5x5, el Kappa de Cohen con ponderación cuadrática, las tasas de infratriaje/sobretriaje, la sensibilidad en niveles críticos I–II, el ahorro de tokens por caché clínica SHA-256 y la comparación separada entre acuerdo en vivo y validación contra referencia ciega.
+   - `Benchmarks de Investigación` expone las corridas experimentales reproducibles del corpus (`dev` y `test`) en ASR, extracción NER y clasificación de triaje.
 3. **Monitor de Normalización (`Monitor Normalización`):** Permite introducir cualquier texto clínico libre y contrastar la extracción y codificación estandarizada en **SNOMED CT**, **CIE-10** y **ATC**.
 
 ---
