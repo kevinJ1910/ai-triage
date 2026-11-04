@@ -455,6 +455,8 @@ backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
 backend/.venv/Scripts/python.exe -m pytest --create-db backend
 backend/.venv/Scripts/python.exe -m pytest ml/ner/tests -p no:django
 docker compose exec backend pytest --create-db
+# Pruebas de humo de inferencia neuronal real sin mocks (requiere pesos/servicios activos):
+docker compose exec -e RUN_REAL_INFERENCE=1 worker-llm pytest -m real_inference --create-db
 ```
 
 En pytest las tareas Celery se ejecutan en línea y la caché es local al proceso: no hace falta Redis.

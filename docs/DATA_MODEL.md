@@ -110,7 +110,7 @@ erDiagram
     TRANSCRIPTION {
         int id PK
         int triage_session_id FK
-        string session_uuid "UUID de sesión de streaming ASR"
+        string session_uuid "UUID de sesión de captura incremental ASR"
         text full_text "Transcripción clínica consolidada"
         string model_used "Identificador del motor empleado"
         datetime created_at
@@ -187,7 +187,7 @@ erDiagram
 ### 2.3. Dominio Clínico de Triaje e Interoperabilidad (`triage`)
 1. **`TriageSession`**: Entidad central que separa el nivel sugerido por la IA (`ai_level`, `ai_symptoms`) del dictamen médico (`final_level`, `final_symptoms`, `is_level_modified`, `agreement_score`). Almacena telemetría de tokens (`prompt_tokens`, `completion_tokens`, `total_tokens`, `is_cached`), trazabilidad de criterios recuperados (`rag_context`), estado operativo HCE en columnas dedicadas (`assigned_box`, `care_status`, migración `0006`) y los campos inmutables de adjudicación ciega (`reference_level`, `reference_by`, `reference_at`) junto con la evaluación Likert 1–5 de explicabilidad (`justification_clarity`, `justification_relevance`, `justification_fidelity`, `justification_rated_at`).
 2. **`triage_clinical_rag_vectors` (`CLINICALKNOWLEDGEVECTOR`)**: Tabla vectorial gestionada por `ClinicalKnowledgeRAG.index_pgvector` sobre PostgreSQL 16 + `pgvector`. Indexa los **61 criterios institucionales** del protocolo Christus Sinergia Salud / Resolución 5596 mediante distancia coseno (`<=>`), combinada en tiempo de consulta con ranking léxico Okapi BM25 y expansión sinónima del catálogo terminológico.
-3. **`Transcription`**: Relación `OneToOne` con `TriageSession` que conserva la transcripción íntegra, el `session_uuid` de streaming y el motor empleado.
+3. **`Transcription`**: Relación `OneToOne` con `TriageSession` que conserva la transcripción íntegra, el `session_uuid` de captura incremental por micro-lotes y el motor empleado.
 4. **`FHIRRecord` y `FHIRMessageLog`**: `FHIRRecord` persiste el último Bundle HL7 FHIR R4 válido asociado a la sesión (sincronizando automáticamente `care_status` a `Recibido en HCE`), mientras que `FHIRMessageLog` audita todos los envíos válidos (`201`) o rechazados (`422` por `fhir_validation.py`).
 
 ### 2.4. Dominio de Configuración y Bóveda Criptográfica (`system_settings`)
