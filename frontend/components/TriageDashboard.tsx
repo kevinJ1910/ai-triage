@@ -500,7 +500,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Sincronizar la transcripción en tiempo real del backend al estado local
+  // Sincronizar la transcripción incremental del backend al estado local
   useEffect(() => {
     if (isRecording || isTranscribing) {
       setTranscript(liveTranscript);
@@ -1024,7 +1024,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                           Esperando Entrada de Audio
                         </h4>
                         <p className="text-[11px] text-slate-400 max-w-xs mt-1 leading-relaxed">
-                          Inicie la grabación para capturar el diálogo médico en tiempo real con transcripción continua.
+                          Inicie la grabación para capturar el diálogo médico con transcripción incremental por fragmentos (4 s).
                         </p>
                         <button
                           onClick={handleToggleRecording}
