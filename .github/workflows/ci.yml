@@ -37,8 +37,14 @@ jobs:
           SECRET_KEY: ci-only-secret-key
       - name: Tests Backend
         run: python -m pytest --create-db
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
       - name: Tests ML (NER)
         run: python -m pytest ../ml/ner/tests -p no:django
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
 
   frontend:
     runs-on: ubuntu-latest

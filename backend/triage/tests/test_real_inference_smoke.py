@@ -72,7 +72,7 @@ class TestRealInferencePipelines:
         engine = WhisperEngine()
         status_info = engine.get_status()
         if not status_info.get("model_loaded"):
-            engine._load_model()
+            engine.reload()
         assert engine.get_status()["model_loaded"] is True
 
         session_id = "real-asr-smoke"
