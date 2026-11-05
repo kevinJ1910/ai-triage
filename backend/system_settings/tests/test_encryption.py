@@ -41,8 +41,23 @@ class TestSystemSettingsAndEncryption:
         assert masked.endswith(secret[-4:])
 
         assert detect_key_provider("AIzaSyExampleKey") == "gemini"
-        assert detect_key_provider("sk-ant-api03-example") == "anthropic"
-        assert detect_key_provider("sk-example-openai-key-long-enough-35-chars") == "openai"
+        assert detect_key_provider("sk-ant-api03-example") == "custom"
+        assert detect_key_provider("sk-example-openai-key-long-enough-35-chars") == "custom"
+
+    def test_dedicated_encryption_key_keeps_legacy_ciphertexts_readable(self, settings):
+        from cryptography.fernet import Fernet
+        settings.FIELD_ENCRYPTION_KEY = ''
+        legacy_cipher = encrypt_secret("AIzaSyLegacyKey000")
+
+        settings.FIELD_ENCRYPTION_KEY = Fernet.generate_key().decode()
+        new_cipher = encrypt_secret("AIzaSyNewKey111")
+        # Las llaves antiguas (derivadas de SECRET_KEY) siguen descifrandose
+        assert decrypt_secret(legacy_cipher) == "AIzaSyLegacyKey000"
+        assert decrypt_secret(new_cipher) == "AIzaSyNewKey111"
+
+        # Rotar SECRET_KEY ya no afecta a lo cifrado con la clave dedicada
+        settings.SECRET_KEY = "otra-secret-key-rotada"
+        assert decrypt_secret(new_cipher) == "AIzaSyNewKey111"
 
     def test_api_key_credential_model(self):
         key_cred = APIKeyCredential(name="Test Gemini Prod")
@@ -62,16 +77,46 @@ class TestSystemSettingsAndEncryption:
         assert "config" in response.data
         assert "available_options" in response.data
 
+    @pytest.mark.parametrize("published, label", [
+        ({"model_loaded": True, "device": "cuda", "compute_type": "float16", "model_size": "large-v3-turbo"}, "GPU CUDA (NVIDIA)"),
+        ({"model_loaded": True, "device": "cpu", "compute_type": "int8", "model_size": "small"}, "CPU (INT8)"),
+        (None, "ASR sin iniciar"),
+    ])
+    def test_runtime_status_reports_asr_worker_device(self, published, label):
+        from django.core.cache import cache
+        from django.test import override_settings
+        from transcription.tasks import ASR_STATUS_KEY
+        cache.delete(ASR_STATUS_KEY)
+        if published:
+            cache.set(ASR_STATUS_KEY, published)
+        self.client.force_authenticate(user=self.admin)
+        with override_settings(CELERY_TASK_ALWAYS_EAGER=False):
+            response = self.client.get("/api/config/")
+        runtime = response.data["runtime_status"]
+        assert runtime["hardware_device"] == label
+        assert runtime["cuda_available"] is (label.startswith("GPU"))
+        assert runtime["asr_model_in_use"] == (published or {}).get("model_size")
+        cache.delete(ASR_STATUS_KEY)
+
+    def test_vocabulary_sync_requires_config_permission(self):
+        self.client.force_authenticate(user=self.nurse)
+        denied = self.client.post("/api/config/vocabulary/sync/", {"type": "snomed"}, format="json")
+        assert denied.status_code == status.HTTP_403_FORBIDDEN
+
+        self.client.force_authenticate(user=self.admin)
+        allowed = self.client.post("/api/config/vocabulary/sync/", {"type": "snomed"}, format="json")
+        assert allowed.status_code == status.HTTP_200_OK
+
     def test_system_config_update_admin_allowed(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post("/api/config/", {
             "active_asr_model": "large-v3",
-            "active_llm_engine": "gemini-1.5-pro"
+            "active_llm_engine": "gemini-3.5-flash-lite"
         }, format="json")
         assert response.status_code == status.HTTP_200_OK
         config = SystemConfiguration.get_solo()
         assert config.active_asr_model == "large-v3"
-        assert config.active_llm_engine == "gemini-1.5-pro"
+        assert config.active_llm_engine == "gemini-3.5-flash-lite"
 
     def test_system_config_update_non_admin_forbidden(self):
         self.client.force_authenticate(user=self.nurse)
@@ -83,9 +128,9 @@ class TestSystemSettingsAndEncryption:
     def test_create_and_delete_api_key_endpoint(self):
         self.client.force_authenticate(user=self.admin)
         post_res = self.client.post("/api/config/keys/", {
-            "name": "OpenAI Backup",
+            "name": "Servidor local",
             "api_key": "sk-proj-1234567890abcdef1234567890abcdef12",
-            "provider": "openai"
+            "provider": "custom"
         }, format="json")
         assert post_res.status_code == status.HTTP_201_CREATED
         key_id = post_res.data["credential"]["id"]
@@ -113,6 +158,40 @@ class TestSystemSettingsAndEncryption:
         }, format="json")
         assert post_res.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_engine_status_reports_motors_without_secrets(self, monkeypatch):
+        monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyEngineStatusKey1234567890")
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/config/engines/")
+        assert response.status_code == status.HTTP_200_OK
+        assert set(response.data) == {"inference_mode", "asr", "ner", "llm", "local_llm"}
+        assert response.data["llm"]["configured"] is True
+        assert "AIzaSyEngineStatusKey1234567890" not in str(response.data)
+
+        self.client.force_authenticate(user=None)
+        assert self.client.get("/api/config/engines/").status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_engine_status_reflects_catalog_mode_and_asr_reload(self, mocker):
+        from django.core.cache import cache
+        from transcription.tasks import ASR_STATUS_KEY
+        mocker.patch("triage.ner_model.get_ner_status", return_value={"model_loaded": True, "source": "/m/ai_triage_ner"})
+        self.client.force_authenticate(user=self.admin)
+        assert self.client.get("/api/config/engines/").data["ner"]["active"] is True
+
+        reload_request = mocker.patch("transcription.tasks.request_asr_reload", return_value=True)
+        response = self.client.post("/api/config/", {"active_ner_model": "catalogo"}, format="json")
+        assert response.data["asr_reload"] is None  # el NER no necesita recargar nada
+        reload_request.assert_not_called()
+        ner = self.client.get("/api/config/engines/").data["ner"]
+        assert ner["model_loaded"] is True and ner["active"] is False and ner["mode"] == "catalogo"
+
+        response = self.client.post("/api/config/", {"active_asr_model": "base"}, format="json")
+        assert response.data["asr_reload"] == "encolada"
+        reload_request.assert_called_once()
+        cache.set(ASR_STATUS_KEY, {"model_loaded": True, "model_size": "small", "device": "cpu", "loading": True})
+        mocker.patch("transcription.tasks.worker_mode", return_value=True)
+        asr = self.client.get("/api/config/engines/").data["asr"]
+        assert asr["loading"] is True and asr["configured"] == "base"
+
     def test_sync_environment_api_keys_registers_env_vars(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "AIzaSyTestFromEnv1234567890")
         monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-TestFromEnv1234567890abcdef")
@@ -125,7 +204,7 @@ class TestSystemSettingsAndEncryption:
         api_keys = get_res.data["api_keys"]
         key_names = [k["name"] for k in api_keys]
         assert any("Google Gemini (Entorno .env)" in name for name in key_names)
-        assert any("OpenAI (Entorno .env)" in name for name in key_names)
+        assert any("Openai (Entorno .env)" in name for name in key_names)
         assert any("Groq (Entorno .env)" in name for name in key_names)
 
         gemini_cred = APIKeyCredential.objects.filter(provider="gemini").first()

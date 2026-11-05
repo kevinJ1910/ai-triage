@@ -1,0 +1,5 @@
+# NER clinico (triage/ner_model.py): PyTorch solo para CPU, tambien en la imagen con GPU, porque la GPU
+# la usa Whisper (CTranslate2) y RoBERTa-base corre bien en CPU. transformers y tokenizers ya estan en
+# requirements.txt. Se instala en Docker (Python 3.12); en local es opcional: sin torch no hay NER.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu

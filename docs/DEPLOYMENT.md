@@ -1,147 +1,173 @@
-# Guía Exhaustiva de Despliegue en Producción (AI-Triage)
+# Guía de Despliegue y Mantenimiento en Producción (AI-Triage)
 
-Este documento detalla los requerimientos, consideraciones arquitectónicas y configuraciones de variables de entorno necesarias para desplegar de forma exitosa y segura el ecosistema AI-Triage en un entorno de producción hospitalaria u *on-premise*.
+Este documento describe la topología de contenedores, los requisitos de hardware (CPU y GPU NVIDIA), las variables de entorno y los procedimientos operativos para desplegar y mantener **AI-Triage** en infraestructura hospitalaria *on-premise* o en servidores dedicados.
 
 ---
 
 ## 1. Topología del Despliegue (Docker Compose)
 
-El sistema se distribuye en 6 componentes interconectados mediante una red *bridge* aislada de Docker (`ai_triage_network`):
+La arquitectura se distribuye en **9 servicios** conectados sobre una red *bridge* interna aislada (`ai_triage_network`):
 
-*   **`nginx` (Proxy Inverso):** Puerta de enlace unificada que expone el puerto 80 (y 443 en despliegues con terminación SSL/TLS). Dirige el tráfico a Next.js o Django según el prefijo de la ruta.
-*   **`frontend` (Next.js 15 Standalone):** Servidor Node.js 20 Alpine ejecutado con usuario sin privilegios `nextjs` (UID 1001), sirviendo la interfaz reactiva optimizada.
-*   **`backend` (Django 5.2.8 / DRF):** Procesamiento clínico central ejecutado bajo usuario no-root `appuser` (UID 10001). Contiene la inferencia acústica de *faster-whisper* (ASR), análisis semántico con LLM (Gemini), validación Pydantic v2 y bóveda de claves AES-256.
-*   **`postgres` (PostgreSQL 16 Alpine):** Persistencia ACID relacional con esquemas optimizados e índices compuestos.
-*   **`redis` (Redis 7 Alpine):** Gestión de caché, colas y control de estado volátil.
-*   **`mailpit` (Servidor SMTP Transaccional):** Servidor SMTP (puerto 1025) y panel web de inspección de correos (puerto 8025) para captura local de OTPs y alertas; reemplazable en producción por relé SMTP corporativo o SendGrid/SES.
+| Servicio | Contenedor | Puertos expuestos | Función técnica |
+| :--- | :--- | :--- | :--- |
+| `nginx` | `ai_triage_nginx` | `80`, `443` | Punto único de entrada: terminación TLS 1.2/1.3, redirección HTTP -> HTTPS, cabeceras de seguridad (CSP, HSTS, `X-Frame-Options`, `Permissions-Policy`) y proxy inverso hacia `frontend` y `backend`. |
+| `frontend` | `ai_triage_frontend` | `3000` (interno) | Next.js 15 (App Router, React 19) en modo `standalone` bajo usuario sin privilegios `nextjs` (UID 1001). |
+| `backend` | `ai_triage_backend` | `8000` (interno) | Gunicorn + Django REST Framework bajo `appuser` (UID 10001). Gestiona autenticación, RBAC, persistencia atómica y auditoría; delega la inferencia a Celery (`ASR_TASK_TIMEOUT`, `LLM_TASK_TIMEOUT`). |
+| `worker-asr` | `ai_triage_worker_asr` | — | Worker Celery (`--pool solo`, cola `asr`) que precarga `faster-whisper` una única vez y procesa el acondicionamiento acústico (80 Hz + −20 dBFS) en CPU (`int8`) o GPU CUDA (`int8_float16`). |
+| `worker-llm` | `ai_triage_worker_llm` | — | Worker Celery (cola `llm`) que ejecuta el extractor biomédico RoBERTa (`HoraYMedia/ai-triage-ner-roberta@v1`), el normalizador clínico, el RAG híbrido (`pgvector` + BM25) y la llamada al LLM (local o nube) con respaldo determinista automático. |
+| `llm-local` | `ai_triage_llm_local` | `11434` (interno) | Servicio opcional (perfil `llm-local`) basado en Ollama (`>= 0.34.4`) para inferencia soberana *on-premise* con `gemma4:e4b-it-qat` o `qwen2.5:7b-instruct-q4_K_M` sin salida de datos del hospital. |
+| `postgres` | `ai_triage_postgres` | `5432` (interno) | PostgreSQL 16 (`pgvector/pgvector:pg16`) sin exposición al host; aloja el esquema transaccional y los vectores de criterios clínicos (`triage_clinical_rag_vectors`). |
+| `redis` | `ai_triage_redis` | `6379` (interno) | Redis 7 Alpine con persistencia AOF: broker/resultados de Celery (`db 0`) y caché compartida (`db 1`: caché clínica SHA-256, contexto ASR por sesión y contadores de *throttling*). |
+| `mailpit` | `ai_triage_mailpit` | `1025`, `8025` | Captura SMTP local y visor web de códigos OTP en desarrollo; sustituible en producción por el relé SMTP institucional. |
+
+Volúmenes persistentes: `postgres_data`, `redis_data`, `nginx_certs`, `asr_model_cache`, `ner_model_cache`, `ollama_models` y `audio_uploads`.
 
 ---
 
 ## 2. Requerimientos de Hardware
 
-Dado que el procesamiento acústico de transcripción requiere inferencias neuronales y la inferencia clínica opera con modelos densos, se recomiendan los siguientes recursos para el servidor anfitrión (*Host*):
-
-| Componente | Requerimiento Mínimo | Requerimiento Recomendado |
+| Componente | Mínimo (Modo CPU / Respaldo) | Recomendado (Producción GPU + LLM Local) |
 | :--- | :--- | :--- |
-| **CPU** | 4 Cores / 8 Hilos | 8 Cores / 16 Hilos |
-| **RAM (Sistema)** | 16 GB DDR4 | 32 GB DDR4 o superior |
-| **Almacenamiento** | 50 GB SSD | 100 GB NVMe (logs y audios) |
-| **GPU (NVIDIA)** | No requerida (Fallback CPU) | NVIDIA RTX 3060 (12GB VRAM) o superior |
+| **CPU** | 4 núcleos / 8 hilos x86_64 | 8 núcleos / 16 hilos x86_64 |
+| **Memoria RAM** | 12 GB DDR4 (16 GB si corre Ollama en CPU) | 32 GB DDR4/DDR5 |
+| **GPU** | No requerida (`small` `int8` en CPU) | NVIDIA RTX 3070 (8 GB VRAM) o superior (RTX 3060 12 GB / A10 / L4) |
+| **Almacenamiento** | 20 GB SSD libres | 80 GB NVMe (modelos cacheados, base de datos y auditoría) |
 
-> **Passthrough de GPU:** Si se cuenta con una GPU NVIDIA, el host debe tener instalados los controladores oficiales y el **NVIDIA Container Toolkit** para que Docker pueda delegar el acelerador al contenedor del backend. La configuración de reserva de GPU se encuentra parametrizada en el bloque `deploy.resources.reservations.devices` de `docker-compose.yml`.
+### 2.1. Conmutación entre modo CPU y modo GPU NVIDIA
+
+Por defecto, `docker-compose.yml` construye la imagen sin librerías CUDA (`WITH_CUDA=false`) y ejecuta `worker-asr` en CPU (`small`, `int8`), garantizando portabilidad universal.
+
+En servidores con GPU NVIDIA y **NVIDIA Container Toolkit**, el archivo `docker-compose.gpu.yml`:
+1. Construye la imagen del backend/workers con soporte CUDA/cuDNN (`WITH_CUDA=true`).
+2. Configura `worker-asr` con `WHISPER_DEVICE=cuda`, `WHISPER_MODEL_SIZE=large-v3-turbo`, `WHISPER_COMPUTE_TYPE=int8_float16` y `WHISPER_BEAM_SIZE=2`.
+3. Reserva aceleración por hardware NVIDIA tanto para `worker-asr` como para `llm-local` (Ollama).
+
+```bash
+# Modo CPU (cualquier equipo)
+docker compose up --build -d
+
+# Modo GPU NVIDIA + LLM local soberano (recomendado en hospital)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile llm-local up --build -d
+```
 
 ---
 
-## 3. Variables de Entorno y Secretos
+## 3. Configuración de Variables de Entorno (`.env`)
 
-Es obligatorio crear un archivo `.env` en la raíz del proyecto antes de levantar los contenedores. A continuación, el detalle exhaustivo de cada bloque de configuración sincronizado con `.env.example`.
+Crear `.env` a partir de `.env.example` antes del primer despliegue:
 
-### 3.1. Configuración de Base de Datos (PostgreSQL)
+### 3.1. Seguridad, JWT y Red
 ```env
-POSTGRES_DB=ai_triage_prod
-POSTGRES_USER=triage_admin
-POSTGRES_PASSWORD=contrasena_robusta_para_postgres_123
+# Obligatoria (>= 50 caracteres de alta entropía)
+SECRET_KEY=generar_con_secrets_token_urlsafe_50
+
+# Clave Fernet dedicada para cifrar API keys en BD (32 bytes base64)
+FIELD_ENCRYPTION_KEY=generar_con_Fernet_generate_key
+
+DEBUG=False
+ALLOWED_HOSTS=nginx,localhost,127.0.0.1,triage.hospital.local
+CORS_ALLOWED_ORIGINS=https://triage.hospital.local
+CSRF_TRUSTED_ORIGINS=https://triage.hospital.local
+TLS_SERVER_NAME=triage.hospital.local
+HSTS_MAX_AGE=31536000
+JWT_ACCESS_MINUTES=15
+```
+
+### 3.2. Base de Datos PostgreSQL 16 + `pgvector`
+```env
+POSTGRES_DB=ai_triage
+POSTGRES_USER=triage_user
+POSTGRES_PASSWORD=contrasena_robusta_produccion
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 ```
 
-### 3.2. Configuración de Seguridad y Red (Django)
+### 3.3. Correo Electrónico (OTP y Recuperación)
 ```env
-# Clave criptográfica para firmas JWT y cifrado de bóveda AES-256 (OBLIGATORIA, sin fallbacks inseguros)
-SECRET_KEY=clave_secreta_de_alta_entropia_sin_espacios_de_al_menos_50_caracteres
-DEBUG=False
-ENVIRONMENT=production # Opciones: production, development, staging
-
-# Dominios y orígenes autorizados
-ALLOWED_HOSTS=nginx,localhost,127.0.0.1,hospital.triage.salud.gov.co
-CORS_ALLOWED_ORIGINS=http://localhost,https://hospital.triage.salud.gov.co
-```
-
-### 3.3. Configuración de Correo Transaccional (OTP y Recuperación)
-```env
-# En desarrollo local se utiliza Mailpit; en producción configurar relé SMTP institucional
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=mailpit # o smtp.hospital.gov.co
-EMAIL_PORT=1025    # o 587 con TLS
+EMAIL_HOST=mailpit
+EMAIL_PORT=1025
+EMAIL_USE_TLS=False
 EMAIL_HOST_USER=
 EMAIL_HOST_PASSWORD=
-EMAIL_USE_TLS=False
-DEFAULT_FROM_EMAIL=notificaciones@ai-triage.hospital.gov.co
+DEFAULT_FROM_EMAIL=AI-Triage <no-reply@hospital.local>
 ```
 
-### 3.4. Inicialización Controlada de Cuentas Demo
-> [!IMPORTANT]
-> En entornos de producción (`ENVIRONMENT=production`), la creación del usuario demo es **omitida automáticamente** por seguridad en el script de arranque. Si se requiere en `development`, debe especificarse obligatoriamente una contraseña robusta.
+### 3.4. Cuentas Demo Controladas (Solo Desarrollo / Pruebas)
 ```env
-DJANGO_DEMO_EMAIL=admin@hospital.com
-DJANGO_DEMO_PASSWORD=AdminHospital2026!
+CREATE_DEMO_USERS=False
+DEMO_ADMIN_EMAIL=admin@hospital.com
+DEMO_ADMIN_PASSWORD=
+DEMO_NURSE_EMAIL=enfermeria@hospital.com
+DEMO_NURSE_PASSWORD=
+RESET_DEMO_PASSWORDS=False
 ```
 
-### 3.5. Configuración de Inteligencia Artificial y Proveedores de LLM
-Las claves especificadas aquí se sincronizan automáticamente al inicio en la bóveda de credenciales cifradas (`APIKeyCredential`):
+### 3.5. Motores de IA (ASR, NER, LLM Local y Nube)
 ```env
-# Proveedor principal de análisis clínico estructurado
-GEMINI_API_KEY=AIzaSy...
+# Tiempos máximos de espera antes de degradación controlada
+ASR_TASK_TIMEOUT=90
+LLM_TASK_TIMEOUT=100
+ASR_SESSION_TTL=1800
 
-# Proveedores alternativos opcionales (sincronizados automáticamente)
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-DEEPSEEK_API_KEY=
-GROQ_API_KEY=
-COHERE_API_KEY=
-MISTRAL_API_KEY=
+# Extractor biomédico RoBERTa (Model Soup publicado en Hugging Face)
+NER_MODEL_PATH=HoraYMedia/ai-triage-ner-roberta
+NER_MODEL_REVISION=v1
 
-# Configuración del Motor ASR (Faster-Whisper)
-WHISPER_MODEL_SIZE=large-v3-turbo # Opciones: base, small, medium, large-v3-turbo
-WHISPER_DEVICE=auto               # 'auto', 'cuda' o 'cpu'
-WHISPER_COMPUTE_TYPE=float16      # 'int8' (menor VRAM) o 'float16' (mayor fidelidad)
-```
+# LLM local soberano vía Ollama (opcional, recomendado para privacidad total)
+LOCAL_LLM_BASE_URL=http://llm-local:11434
+LOCAL_LLM_MODEL=gemma4:e4b-it-qat
+LOCAL_LLM_TIMEOUT_SECONDS=300
 
-### 3.6. Configuración del Frontend
-```env
-# URL pública donde el frontend encuentra el backend (a través de Nginx)
-NEXT_PUBLIC_API_URL=http://localhost/api
-# URL del servidor FHIR externo (si aplica)
-NEXT_PUBLIC_FHIR_URL=http://servidor_fhir_hospital/fhir
+# Proveedor nube opcional (sincronizado automáticamente en bóveda MultiFernet)
+GEMINI_API_KEY=
 ```
 
 ---
 
-## 4. Pasos para el Despliegue
+## 4. Procedimiento Paso a Paso de Despliegue y Mantenimiento
 
-1. **Clonar repositorio y preparar secretos:**
-   ```bash
-   git clone <repo>
-   cd ai-triage
-   cp .env.example .env
-   # Editar .env con contraseñas seguras y API keys de producción
-   ```
+### 4.1. Puesta en marcha inicial
+```bash
+git clone https://github.com/kevinJ1910/ai-triage.git
+cd ai-triage
+cp .env.example .env
+# Configurar SECRET_KEY, FIELD_ENCRYPTION_KEY y POSTGRES_PASSWORD en .env
 
-2. **Otorgar permisos de ejecución al entrypoint:**
-   ```bash
-   chmod +x backend/scripts/entrypoint.sh
-   ```
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile llm-local up --build -d
+docker compose exec llm-local ollama pull gemma4:e4b-it-qat
+```
 
-3. **Construir y levantar el ecosistema:**
-   Se utiliza Docker Compose v2 (`docker compose`):
-   ```bash
-   docker compose down
-   docker compose build
-   docker compose up -d
-   ```
+### 4.2. Verificación operativa post-arranque
+```bash
+docker compose ps
+curl -k https://localhost/api/health_check/
+docker compose exec llm-local ollama ps
+```
+El endpoint `/api/health_check/` debe responder `status: "ok"`, `inference_mode: "worker"` y `asr.model_loaded: true`.
 
-4. **Verificación Post-Despliegue:**
-   Comprobar que todos los servicios estén saludables (`healthy`) y que las migraciones runtime se hayan aplicado:
-   ```bash
-   docker compose ps
-   docker compose logs backend --tail 50
-   ```
+### 4.3. Copias de seguridad y restauración de PostgreSQL
+```bash
+# Respaldo comprimido en caliente
+docker compose exec -T postgres pg_dump -U triage_user -Fc ai_triage > backup_ai_triage_$(date +%F).dump
+
+# Restauración controlada
+cat backup_ai_triage_YYYY-MM-DD.dump | docker compose exec -T postgres pg_restore -U triage_user -d ai_triage --clean --if-exists
+```
+
+### 4.4. Actualización y verificación de catálogos clínicos
+```bash
+# Verificar integridad de códigos SNOMED CT contra servidor terminológico HL7 (tx.fhir.org)
+docker compose exec backend python manage.py verify_snomed
+
+# Indexar / refrescar los 61 criterios del protocolo en pgvector
+docker compose exec backend python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); django.setup(); from triage.clinical_rag import ClinicalKnowledgeRAG; print(ClinicalKnowledgeRAG.index_pgvector())"
+```
 
 ---
 
-## 5. Consideraciones Finales de Seguridad
+## 5. Controles de Seguridad en Infraestructura
 
-*   **Certificados SSL/TLS:** En producción hospitalaria, es mandatario terminar el tráfico HTTPS con certificados válidos (vía Certbot, proxy perimetral o balanceador de carga institucional).
-*   **Usuarios No-Root:** Tanto el frontend (`nextjs:nodejs`, UID 1001) como el backend (`appuser:appgroup`, UID 10001) corren bajo cuentas de sistema aisladas sin permisos de root dentro de los contenedores.
-*   **Aislamiento de PostgreSQL:** El puerto 5432 de la base de datos no se expone al host en `docker-compose.yml`, garantizando que únicamente los contenedores internos de `ai_triage_network` puedan conectarse.
-*   **Depuración de Audios:** Las grabaciones de audio cargadas se procesan en streaming y buffer de memoria con algoritmo de poda automática por TTL (1800s); los archivos temporales en disco deben ser depurados periódicamente mediante políticas institucionales de cumplimiento HIPAA/RGPD.
+- **Cifrado en tránsito (TLS 1.2/1.3):** `nginx` exige HTTPS para habilitar `navigator.mediaDevices.getUserMedia` en estaciones clínicas de la red local. En producción se deben montar `fullchain.pem` y `privkey.pem` emitidos por una CA institucional en el volumen `nginx_certs` (`/etc/nginx/certs`).
+- **Aislamiento de red y contenedores sin root:** Ni PostgreSQL (`5432`) ni Redis (`6379`) ni Ollama (`11434`) exponen puertos fuera de `ai_triage_network`; `frontend` y `backend` corren sin privilegios de superusuario.
+- **Efimeridad del audio:** Los fragmentos de voz se eliminan del almacenamiento temporal inmediatamente tras su transcripción en `worker-asr`, y el contexto textual en Redis caduca automáticamente tras `ASR_SESSION_TTL` segundos.

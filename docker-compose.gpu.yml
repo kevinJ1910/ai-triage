@@ -1,11 +1,34 @@
-# Override opcional para hosts con GPU NVIDIA y nvidia-container-toolkit instalado.
+# Override para hosts con GPU NVIDIA y NVIDIA Container Toolkit instalado.
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+# O de forma permanente en el .env de ese equipo (separador ';' en Windows, ':' en Linux/macOS):
+#   COMPOSE_FILE=docker-compose.yml;docker-compose.gpu.yml
 services:
   backend:
+    build:
+      args:
+        # Instala las librerias CUDA/cuDNN (nvidia-*) en la imagen; en CPU se omiten.
+        WITH_CUDA: "true"
+
+  # La GPU la usan el worker ASR (Whisper) y, si se activa el perfil llm-local, el LLM local.
+  worker-asr:
     environment:
-      - WHISPER_DEVICE=cuda
-      - WHISPER_COMPUTE_TYPE=float16
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
+      WHISPER_DEVICE: cuda
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8_float16}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-2}
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # LLM local (perfil llm-local): con GPU responde en segundos en vez de minutos.
+  llm-local:
     deploy:
       resources:
         reservations:

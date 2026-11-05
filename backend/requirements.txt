@@ -1,10 +1,14 @@
 gunicorn==23.0.0
 psycopg2-binary==2.9.10
 django-redis==5.4.0
+whitenoise==6.12.0
+celery[redis]==5.6.3
 dj-database-url==2.1.0
 djangorestframework==3.15.1
 djangorestframework-simplejwt==5.3.1
-google-genai==0.3.0
+google-genai==2.28.0
+# Cliente del LLM local compatible con OpenAI (triage/local_llm.py); ya lo trae google-genai.
+httpx==0.28.1
 django-environ==0.11.2
 
 asgiref==3.10.0
@@ -12,6 +16,8 @@ blinker==1.9.0
 Django==5.2.8
 django-cors-headers==4.8.0
 faster-whisper==1.1.0
+# PyAV 19 elimino el argumento metadata_errors que faster-whisper (<=1.2.1) usa en decode_audio.
+av==18.1.0
 filelock==3.20.0
 frozenlist==1.7.0
 fsspec==2025.12.0
@@ -23,6 +29,7 @@ pycparser==2.22
 pydantic==2.12.5
 email-validator>=2.0.0
 python-dotenv==1.2.1
+tzdata==2025.2
 PyJWT==2.10.1
 rsa==4.9.1
 safetensors==0.7.0

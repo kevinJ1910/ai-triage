@@ -18,6 +18,19 @@ export interface PatientInfo {
   insurance: string;
 }
 
+export interface NormalizedClinicalTerm {
+  raw_term?: string;
+  medical_term?: string;
+  code?: string | null;
+  code_system?: string | null;
+  code_snomed?: string | null;
+  snomed_valid?: boolean;
+  valid?: boolean;
+  category?: string;
+  negated?: boolean;
+  allergy?: boolean;
+}
+
 export interface TriageSession {
   id: string;
   date: string;
@@ -25,6 +38,140 @@ export interface TriageSession {
   patientInfo?: PatientInfo;
   transcript: { speaker: string; text: string }[];
   analysisResult: any;
+}
+
+function foldTerm(value?: string | null): string {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsWholeTerm(haystack: string, needle: string): boolean {
+  if (!haystack || !needle || needle.length < 3) return false;
+  const re = new RegExp(`(^|[^a-z0-9])${escapeRegExp(needle)}([^a-z0-9]|$)`);
+  return re.test(haystack);
+}
+
+export function extractCodingTerms(analysisResult: any): NormalizedClinicalTerm[] {
+  if (Array.isArray(analysisResult?.normalized_terms)) return analysisResult.normalized_terms;
+  if (Array.isArray(analysisResult?.coding_terms)) return analysisResult.coding_terms;
+  return [];
+}
+
+export function findMatchingNormalizedTerm(
+  label: string,
+  terms: NormalizedClinicalTerm[],
+): NormalizedClinicalTerm | null {
+  const foldedLabel = foldTerm(label);
+  if (!foldedLabel || !terms.length) return null;
+
+  for (const term of terms) {
+    if (foldTerm(term.medical_term) === foldedLabel || foldTerm(term.raw_term) === foldedLabel) {
+      return term;
+    }
+  }
+
+  let best: NormalizedClinicalTerm | null = null;
+  let bestLen = 0;
+  for (const term of terms) {
+    for (const candidate of [foldTerm(term.medical_term), foldTerm(term.raw_term)]) {
+      if (!candidate || candidate.length < 3) continue;
+      if (containsWholeTerm(foldedLabel, candidate) || containsWholeTerm(candidate, foldedLabel)) {
+        if (candidate.length > bestLen) {
+          best = term;
+          bestLen = candidate.length;
+        }
+      }
+    }
+  }
+  return best;
+}
+
+export function buildCodeableConcept(
+  label: string,
+  terms: NormalizedClinicalTerm[],
+  defaultSnomedDisplay: boolean = false,
+): Record<string, any> {
+  const matched = findMatchingNormalizedTerm(label, terms);
+  const coding: Record<string, string>[] = [];
+
+  if (matched?.code_snomed && matched.snomed_valid !== false) {
+    coding.push({
+      system: 'http://snomed.info/sct',
+      code: String(matched.code_snomed),
+      display: matched.medical_term || label,
+    });
+  } else if (defaultSnomedDisplay) {
+    coding.push({
+      system: 'http://snomed.info/sct',
+      display: label,
+    });
+  }
+
+  if (matched?.code && matched.valid !== false) {
+    if (matched.code_system === 'CIE-10') {
+      coding.push({
+        system: 'http://hl7.org/fhir/sid/icd-10',
+        code: String(matched.code),
+        display: matched.medical_term || label,
+      });
+    } else if (matched.code_system === 'ATC') {
+      coding.push({
+        system: 'http://www.whocc.no/atc',
+        code: String(matched.code),
+        display: matched.medical_term || label,
+      });
+    }
+  }
+
+  return coding.length > 0 ? { coding, text: label } : { text: label };
+}
+
+export interface ParsedVital {
+  loinc: string;
+  display: string;
+  unit: string;
+  ucum: string;
+  value?: number;
+  systolic?: number;
+  diastolic?: number;
+}
+
+// Prefijos del formato compacto de input_pipeline ("PA: 145/95 mmHg") y su codigo LOINC / unidad UCUM.
+const VITAL_LOINC: Record<string, { loinc: string; display: string; unit: string; ucum: string }> = {
+  PA: { loinc: '85354-9', display: 'Blood pressure panel', unit: 'mmHg', ucum: 'mm[Hg]' },
+  FC: { loinc: '8867-4', display: 'Heart rate', unit: 'lpm', ucum: '/min' },
+  SPO2: { loinc: '59408-5', display: 'Oxygen saturation in Arterial blood by Pulse oximetry', unit: '%', ucum: '%' },
+  T: { loinc: '8310-5', display: 'Body temperature', unit: '°C', ucum: 'Cel' },
+  FR: { loinc: '9279-1', display: 'Respiratory rate', unit: 'rpm', ucum: '/min' },
+  GLU: { loinc: '2339-0', display: 'Glucose [Mass/volume] in Blood', unit: 'mg/dL', ucum: 'mg/dL' },
+  GCS: { loinc: '9269-2', display: 'Glasgow coma score total', unit: 'puntos', ucum: '{score}' },
+  EVA: { loinc: '72514-3', display: 'Pain severity - 0-10 verbal numeric rating [Score] - Reported', unit: 'puntos', ucum: '{score}' },
+};
+
+/**
+ * Interpreta un signo vital en formato compacto. Devuelve null si no tiene el formato esperado
+ * (p. ej. texto libre del LLM): en ese caso se exporta como texto sin codigo.
+ */
+export function parseVital(vital: string): ParsedVital | null {
+  const match = /^\s*([A-Za-z0-9]+)\s*:\s*(\d+(?:[.,]\d+)?)(?:\s*\/\s*(\d+(?:[.,]\d+)?))?/.exec(vital || '');
+  if (!match) return null;
+  const meta = VITAL_LOINC[match[1].toUpperCase()];
+  if (!meta) return null;
+  const first = Number(match[2].replace(',', '.'));
+  const second = match[3] !== undefined ? Number(match[3].replace(',', '.')) : undefined;
+  if (meta.loinc === '85354-9') {
+    return second === undefined ? null : { ...meta, systolic: first, diastolic: second };
+  }
+  return { ...meta, value: first };
 }
 
 /**
@@ -251,17 +398,12 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
     }
   };
 
+  const codingTerms = extractCodingTerms(session.analysisResult);
   const symptoms = session.analysisResult?.entities?.symptoms || [];
   if (symptoms.length > 0) {
-    encounterResource.reasonCode = symptoms.map((symptom: string) => ({
-      coding: [
-        {
-          system: "http://snomed.info/sct",
-          display: symptom
-        }
-      ],
-      text: symptom
-    }));
+    encounterResource.reasonCode = symptoms.map((symptom: string) =>
+      buildCodeableConcept(symptom, codingTerms, true)
+    );
   }
 
   const entries: any[] = [
@@ -368,15 +510,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
             ]
           }
         ],
-        code: {
-          coding: [
-            {
-              system: "http://snomed.info/sct",
-              display: symptom
-            }
-          ],
-          text: symptom
-        },
+        code: buildCodeableConcept(symptom, codingTerms, true),
         subject: {
           reference: `Patient/${patientId}`
         },
@@ -415,15 +549,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
             ]
           }
         ],
-        code: {
-          coding: [
-            {
-              system: "http://snomed.info/sct",
-              display: hist
-            }
-          ],
-          text: hist
-        },
+        code: buildCodeableConcept(hist, codingTerms, true),
         subject: {
           reference: `Patient/${patientId}`
         }
@@ -431,9 +557,90 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
     });
   });
 
-  // 5. Recursos Observation: Signos Vitales
+  // Diagnosticos o lesiones del episodio: Condition provisional.
+  const diagnoses = session.analysisResult?.entities?.diagnoses || [];
+  diagnoses.forEach((dx: string, idx: number) => {
+    entries.push({
+      fullUrl: `urn:uuid:cond-dx-${idx}-${session.id}`,
+      resource: {
+        resourceType: "Condition",
+        id: `cond-dx-${idx}-${session.id}`,
+        clinicalStatus: {
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-clinical", code: "active", display: "Active" }]
+        },
+        verificationStatus: {
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-ver-status", code: "provisional", display: "Provisional" }]
+        },
+        category: [{
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }]
+        }],
+        code: buildCodeableConcept(dx, codingTerms, false),
+        subject: { reference: `Patient/${patientId}` },
+        encounter: { reference: `Encounter/${encounterId}` },
+        recordedDate: new Date(session.date).toISOString()
+      }
+    });
+  });
+
+  // Hallazgos negados ("niega dolor toracico"): Condition descartada (verificationStatus = refuted).
+  const negatedFindings = session.analysisResult?.entities?.negated_findings || [];
+  negatedFindings.forEach((finding: string, idx: number) => {
+    entries.push({
+      fullUrl: `urn:uuid:cond-refuted-${idx}-${session.id}`,
+      resource: {
+        resourceType: "Condition",
+        id: `cond-refuted-${idx}-${session.id}`,
+        verificationStatus: {
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-ver-status", code: "refuted", display: "Refuted" }]
+        },
+        category: [{
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }]
+        }],
+        code: buildCodeableConcept(finding, codingTerms, false),
+        subject: { reference: `Patient/${patientId}` },
+        encounter: { reference: `Encounter/${encounterId}` },
+        recordedDate: new Date(session.date).toISOString()
+      }
+    });
+  });
+
+  // Alergias referidas por el paciente: AllergyIntolerance sin confirmar.
+  const allergies = session.analysisResult?.entities?.allergies || [];
+  allergies.forEach((allergen: string, idx: number) => {
+    entries.push({
+      fullUrl: `urn:uuid:allergy-${idx}-${session.id}`,
+      resource: {
+        resourceType: "AllergyIntolerance",
+        id: `allergy-${idx}-${session.id}`,
+        clinicalStatus: {
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", code: "active", display: "Active" }]
+        },
+        verificationStatus: {
+          coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", code: "unconfirmed", display: "Unconfirmed" }]
+        },
+        code: buildCodeableConcept(allergen, codingTerms, false),
+        patient: { reference: `Patient/${patientId}` },
+        encounter: { reference: `Encounter/${encounterId}` },
+        recordedDate: new Date(session.date).toISOString()
+      }
+    });
+  });
+
+  // 5. Recursos Observation: Signos Vitales (LOINC + valueQuantity UCUM si el formato es interpretable)
   const vitals = session.analysisResult?.entities?.vitals || [];
   vitals.forEach((vital: string, idx: number) => {
+    const parsed = parseVital(vital);
+    const quantity = (value: number, p: ParsedVital) => ({ value, unit: p.unit, system: "http://unitsofmeasure.org", code: p.ucum });
+    const valueFields = !parsed
+      ? { valueString: vital }
+      : parsed.systolic !== undefined
+        ? {
+            component: [
+              { code: { coding: [{ system: "http://loinc.org", code: "8480-6", display: "Systolic blood pressure" }] }, valueQuantity: quantity(parsed.systolic, parsed) },
+              { code: { coding: [{ system: "http://loinc.org", code: "8462-4", display: "Diastolic blood pressure" }] }, valueQuantity: quantity(parsed.diastolic as number, parsed) }
+            ]
+          }
+        : { valueQuantity: quantity(parsed.value as number, parsed) };
     entries.push({
       fullUrl: `urn:uuid:obs-vital-${idx}-${session.id}`,
       resource: {
@@ -451,16 +658,16 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
             ]
           }
         ],
-        code: {
-          text: vital
-        },
+        code: parsed
+          ? { coding: [{ system: "http://loinc.org", code: parsed.loinc, display: parsed.display }], text: vital }
+          : { text: vital },
         subject: {
           reference: `Patient/${patientId}`
         },
         encounter: {
           reference: `Encounter/${encounterId}`
         },
-        valueString: vital,
+        ...valueFields,
         effectiveDateTime: new Date(session.date).toISOString()
       }
     });
@@ -478,9 +685,7 @@ export function generateFHIRBundle(session: TriageSession): Record<string, any> 
         subject: {
           reference: `Patient/${patientId}`
         },
-        medicationCodeableConcept: {
-          text: med
-        },
+        medicationCodeableConcept: buildCodeableConcept(med, codingTerms, false),
         dateAsserted: new Date(session.date).toISOString()
       }
     });
@@ -522,6 +727,8 @@ export function generateHL7v2Message(session: TriageSession): string {
   const metaLevel = TRIAGE_LEVEL_METADATA[triageLevel] || TRIAGE_LEVEL_METADATA[5];
   const triageJustification = session.analysisResult?.triage?.justification || "Sin justificación registrada";
   const symptoms = session.analysisResult?.entities?.symptoms || [];
+  const diagnoses = session.analysisResult?.entities?.diagnoses || [];
+  const allergies = session.analysisResult?.entities?.allergies || [];
   const vitals = session.analysisResult?.entities?.vitals || [];
 
   const segments: string[] = [];
@@ -598,17 +805,42 @@ export function generateHL7v2Message(session: TriageSession): string {
   // OBX 5: Protocolo de Clasificacion
   segments.push(`OBX|${obxSeq++}|ST|TRIAGE_PROTOCOL^Protocolo Asistencial^L||CHRISTUS SINERGIA Salud - Resolucion 5596 Minsalud Colombia||||F|||${timestamp}`);
 
-  // OBX 6+: Signos Vitales
+  // OBX 6+: Signos Vitales (NM con LOINC y UCUM si el formato es interpretable; si no, texto)
   vitals.forEach((vital: string, idx: number) => {
-    segments.push(`OBX|${obxSeq++}|ST|VITAL_SIGN_${idx + 1}^Signo Vital^L||${escapeHL7v2Text(vital)}||||F|||${timestamp}`);
+    const parsed = parseVital(vital);
+    if (parsed && parsed.systolic !== undefined) {
+      segments.push(`OBX|${obxSeq++}|NM|8480-6^Systolic blood pressure^LN||${parsed.systolic}|${parsed.ucum}^${parsed.unit}^UCUM|||F|||${timestamp}`);
+      segments.push(`OBX|${obxSeq++}|NM|8462-4^Diastolic blood pressure^LN||${parsed.diastolic}|${parsed.ucum}^${parsed.unit}^UCUM|||F|||${timestamp}`);
+    } else if (parsed) {
+      segments.push(`OBX|${obxSeq++}|NM|${parsed.loinc}^${parsed.display}^LN||${parsed.value}|${parsed.ucum}^${parsed.unit}^UCUM|||F|||${timestamp}`);
+    } else {
+      segments.push(`OBX|${obxSeq++}|ST|VITAL_SIGN_${idx + 1}^Signo Vital^L||${escapeHL7v2Text(vital)}||||F|||${timestamp}`);
+    }
   });
 
-  // DG1: Diagnostico provisional / Motivo de consulta (SNOMED-CT)
-  if (symptoms.length > 0) {
-    symptoms.forEach((symptom: string, idx: number) => {
-      segments.push(`DG1|${idx + 1}|SCT|TRIAGE_DX^${escapeHL7v2Text(symptom)}^SNOMED-CT||${timestamp}|A`);
-    });
-  }
+  const codingTerms = extractCodingTerms(session.analysisResult);
+
+  // AL1: Alergias referidas (en ADT^A08 va antes de DG1)
+  allergies.forEach((allergen: string, idx: number) => {
+    const matched = findMatchingNormalizedTerm(allergen, codingTerms);
+    if (matched?.code_snomed && matched.snomed_valid !== false) {
+      segments.push(`AL1|${idx + 1}||${escapeHL7v2Text(String(matched.code_snomed))}^${escapeHL7v2Text(allergen)}^SNOMED-CT`);
+    } else {
+      segments.push(`AL1|${idx + 1}||^${escapeHL7v2Text(allergen)}^L`);
+    }
+  });
+
+  // DG1: Diagnostico provisional / Motivo de consulta. Los hallazgos negados no se exportan como diagnostico.
+  [...diagnoses, ...symptoms].forEach((dx: string, idx: number) => {
+    const matched = findMatchingNormalizedTerm(dx, codingTerms);
+    if (matched?.code && matched.valid !== false && matched.code_system === 'CIE-10') {
+      segments.push(`DG1|${idx + 1}|I10|${escapeHL7v2Text(String(matched.code))}^${escapeHL7v2Text(dx)}^ICD-10||${timestamp}|A`);
+    } else if (matched?.code_snomed && matched.snomed_valid !== false) {
+      segments.push(`DG1|${idx + 1}|SCT|${escapeHL7v2Text(String(matched.code_snomed))}^${escapeHL7v2Text(dx)}^SNOMED-CT||${timestamp}|A`);
+    } else {
+      segments.push(`DG1|${idx + 1}|SCT|TRIAGE_DX^${escapeHL7v2Text(dx)}^SNOMED-CT||${timestamp}|A`);
+    }
+  });
 
   // Estándar HL7 v2 utiliza Retorno de Carro (\r = ASCII 13) como terminador obligatorio de segmento
   return segments.join('\r') + '\r';

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, ChevronLeft, Search, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle, Stethoscope, Ban } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
 import { fetchWithAuth } from '@/lib/api';
 import { validateDocumentId, validateDate, validatePhone, InputWarning } from '@/lib/validation';
 import { generateFHIRBundle, downloadFHIRJson, downloadHL7v2Message } from '@/lib/hl7';
+import ExplainabilityPanel from '@/components/ExplainabilityPanel';
 
 
 // FIX-TEC-008: Interfaces tipadas para datos clinicos criticos.
@@ -36,12 +37,27 @@ interface UserProfile {
 
 interface TriageEntities {
   symptoms?: string[];
+  diagnoses?: string[];
   medications?: string[];
+  allergies?: string[];
   vitals?: string[];
   history?: string[];
+  negated_findings?: string[];
   patientName?: string;
   [key: string]: any;
 }
+
+type EntityListKey = 'symptoms' | 'diagnoses' | 'history' | 'medications' | 'allergies' | 'vitals' | 'negated_findings';
+
+const ENTITY_GROUPS: { key: EntityListKey; title: string; icon: ReactNode; color: string; bg: string; border: string }[] = [
+  { key: 'symptoms', title: 'Síntomas', icon: <AlertTriangle className="w-3.5 h-3.5"/>, color: 'text-red-400', bg: 'bg-red-500', border: 'border-red-500' },
+  { key: 'diagnoses', title: 'Diagnósticos / Lesiones', icon: <Stethoscope className="w-3.5 h-3.5"/>, color: 'text-rose-300', bg: 'bg-rose-400', border: 'border-rose-400' },
+  { key: 'history', title: 'Antecedentes', icon: <FileText className="w-3.5 h-3.5"/>, color: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500' },
+  { key: 'medications', title: 'Medicamentos', icon: <Pill className="w-3.5 h-3.5"/>, color: 'text-sky-400', bg: 'bg-sky-500', border: 'border-sky-500' },
+  { key: 'allergies', title: 'Alergias', icon: <ShieldAlert className="w-3.5 h-3.5"/>, color: 'text-orange-300', bg: 'bg-orange-400', border: 'border-orange-400' },
+  { key: 'vitals', title: 'Signos Vitales', icon: <Thermometer className="w-3.5 h-3.5"/>, color: 'text-emerald-400', bg: 'bg-emerald-500', border: 'border-emerald-500' },
+  { key: 'negated_findings', title: 'Hallazgos Negados', icon: <Ban className="w-3.5 h-3.5"/>, color: 'text-slate-400', bg: 'bg-slate-500', border: 'border-slate-500' },
+];
 
 interface TriageLevelInfo {
   level: number;
@@ -86,24 +102,31 @@ interface TriageSession {
   patientName: string;
   patientInfo?: PatientInfo;
   transcript: { speaker: string, text: string }[];
-  analysisResult: any;
+  analysisResult: AnalysisResult | null;
 }
 
-export default function TriageDashboard() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+interface TriageDashboardProps {
+  userProfile?: UserProfile | null;
+}
+
+export default function TriageDashboard({ userProfile }: TriageDashboardProps = {}) {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(userProfile || null);
 
   const canUseTranscriber = currentUser?.permissions ? currentUser.permissions.can_use_transcriber : true;
   const canEditSymptoms = currentUser?.permissions ? currentUser.permissions.can_edit_symptoms : true;
 
-
   useEffect(() => {
+    if (userProfile) {
+      setCurrentUser(userProfile);
+      return;
+    }
     try {
       const stored = localStorage.getItem('user_profile');
       if (stored) {
         setCurrentUser(JSON.parse(stored));
       }
     } catch (e) {}
-  }, []);
+  }, [userProfile]);
 
   const {
     isRecording,
@@ -119,7 +142,12 @@ export default function TriageDashboard() {
     resetTranscript,
     asrError,
     clearAsrError,
+    asrLagSeconds = 0,
+    pendingChunks = 0,
   } = useWhisperASR();
+  // Los fragmentos son de 4 s: si el texto tarda mas de 6 s en llegar o se acumulan fragmentos, la
+  // transcripcion va por detras de la voz (tipico en CPU con modelos grandes).
+  const isAsrLagging = (isRecording || isTranscribing) && (asrLagSeconds > 6 || pendingChunks >= 2);
 
   const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -142,6 +170,7 @@ export default function TriageDashboard() {
     if (transcript.length > 0 || analysisResult) {
       setShowNewConsultModal(true);
     } else {
+      setShowHistory(false);
       executeResetConsultation();
     }
   };
@@ -159,6 +188,8 @@ export default function TriageDashboard() {
     setIsVerifyingTranscript(false);
     setSyncStatus('idle');
     setActiveSessionId(null);
+    setShowHistory(false);
+    setSelectedSessionId(null);
     setPatientInfo({
       name: '',
       documentId: '',
@@ -331,16 +362,23 @@ export default function TriageDashboard() {
     return matchName || matchLevel;
   });
 
-  useEffect(() => {
-    const data = localStorage.getItem('triage_sessions');
-    if (data) {
-      try {
-        setSavedSessions(JSON.parse(data));
-      } catch (e) {
-        console.error("Failed to load sessions", e);
+  // El historial se lee de la BD: no se guardan datos clinicos en el navegador.
+  const loadHistory = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/triage/sessions/history/');
+      if (res.ok) {
+        setSavedSessions(await res.json());
       }
+    } catch (e) {
+      console.error('Error cargando historial de triajes:', e);
     }
   }, []);
+
+  useEffect(() => {
+    // Purga del historial heredado que versiones anteriores guardaban en localStorage
+    localStorage.removeItem('triage_sessions');
+    loadHistory();
+  }, [loadHistory]);
 
   const handleDownloadPDF = (session: TriageSession, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -449,26 +487,20 @@ export default function TriageDashboard() {
     toast.success('Descargando Mensaje HL7 v2.5.1 ER7');
   };
 
-  const handleSaveSession = () => {
+  const handleSaveSession = async () => {
     if (!analysisResult) return;
-    const newSession: TriageSession = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
-      patientInfo: { ...patientInfo },
-      transcript: [...transcript],
-      analysisResult: analysisResult,
-    };
-    const updated = [newSession, ...savedSessions];
-    setSavedSessions(updated);
-    localStorage.setItem('triage_sessions', JSON.stringify(updated));
-    setSyncStatus('success');
-    toast.success(`Sesión guardada para ${newSession.patientName}`);
+    // La sesion ya se persiste en BD al analizar; aqui solo se refresca el historial.
+    if (!activeSessionId) {
+      toast.error('Esta sesión no está registrada en el servidor.');
+      return;
+    }
+    await loadHistory();
+    toast.success(`Sesión registrada en el historial para ${patientInfo.name || 'el paciente'}`);
   };
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Sincronizar la transcripción en tiempo real del backend al estado local
+  // Sincronizar la transcripción incremental del backend al estado local
   useEffect(() => {
     if (isRecording || isTranscribing) {
       setTranscript(liveTranscript);
@@ -600,7 +632,7 @@ export default function TriageDashboard() {
     setSyncStatus('syncing');
     try {
       const tempSession: TriageSession = {
-        id: selectedSessionId || Date.now().toString(),
+        id: String(activeSessionId || selectedSessionId || Date.now()),
         date: new Date().toISOString(),
         patientName: patientInfo.name || analysisResult.entities?.patientName || 'Paciente Desconocido',
         patientInfo: { ...patientInfo },
@@ -609,7 +641,7 @@ export default function TriageDashboard() {
       };
       const fhirBundle = generateFHIRBundle(tempSession);
       
-      const res = await fetchWithAuth('/api/fhir', {
+      const res = await fetchWithAuth('/api/fhir/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fhirBundle)
@@ -628,69 +660,107 @@ export default function TriageDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-900 text-slate-200 rounded-lg overflow-hidden border border-slate-700">
+    <div className="flex flex-col h-full w-full bg-[var(--surface-base)] text-slate-200 rounded-2xl overflow-hidden border border-[var(--surface-border)] shadow-xl">
       
       {/* View Toolbar */}
-      <header className="h-12 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 bg-[var(--surface-panel)] border-b border-[var(--surface-border)] flex items-center justify-between px-4 sm:px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <h2 className="text-[11px] font-bold tracking-widest uppercase text-slate-300">
-            Triaje Clínico Interactivo
-          </h2>
+          <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+            <Activity className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-xs sm:text-sm font-semibold tracking-wide text-slate-100">
+              Triaje Clínico Interactivo
+            </h2>
+            <p className="text-[10px] text-slate-400 hidden sm:block">
+              Christus Sinergia Salud • Estación de Evaluación de Urgencias
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Tooltip text="Reiniciar para evaluar un nuevo paciente" position="bottom">
             <button 
               type="button"
               onClick={handlePromptNewConsultation}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-medium bg-[var(--surface-card)] hover:bg-slate-800 text-slate-200 border border-[var(--surface-border)] shadow-sm"
               title="Iniciar nueva evaluación de paciente"
             >
-              <Plus className="w-3.5 h-3.5 text-blue-400" />
+              <Plus className="w-3.5 h-3.5 text-sky-400" />
               <span className="hidden sm:inline">Nueva Consulta</span>
             </button>
           </Tooltip>
           <button 
-            onClick={() => { setShowHistory(!showHistory); setSelectedSessionId(null); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest ${showHistory ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            onClick={() => { if (!showHistory) loadHistory(); setShowHistory(!showHistory); setSelectedSessionId(null); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-medium ${showHistory ? 'bg-sky-600 text-white shadow-md' : 'bg-[var(--surface-card)] text-slate-300 hover:bg-slate-800 border border-[var(--surface-border)]'}`}
           >
             <History className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Historial</span>
           </button>
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse' : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'}`}></span>
-            <span className={`text-xs font-mono uppercase ${isRecording ? 'text-red-500' : 'text-emerald-500'} hidden sm:inline`}>{isRecording ? 'GRABANDO' : 'ASR ACTIVO'}</span>
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[var(--surface-card)] border border-[var(--surface-border)]">
+            <span className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+            <span className={`text-[11px] font-mono font-medium ${isRecording ? 'text-red-400' : 'text-emerald-400'} hidden sm:inline`}>{isRecording ? 'GRABANDO' : 'ASR ACTIVO'}</span>
           </div>
-          <div className="px-3 py-1 bg-slate-700 rounded text-[10px] sm:text-xs font-medium text-slate-300 truncate max-w-[120px] sm:max-w-none">
-              <User className="w-3.5 h-3.5 text-blue-400 shrink-0 inline mr-1" />
-              <span>Usuario: {currentUser?.full_name || "Dr. Rodriguez"}</span>
-              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-blue-900/60 border border-blue-500/40 text-blue-200 text-[9px] uppercase font-bold tracking-wider">
+          <div className="px-3 py-1.5 bg-[var(--surface-card)] rounded-xl border border-[var(--surface-border)] text-xs font-medium text-slate-300 truncate max-w-[140px] sm:max-w-none flex items-center">
+              <User className="w-3.5 h-3.5 text-sky-400 shrink-0 inline mr-1.5" />
+              <span>{currentUser?.full_name || "Dr. Rodriguez"}</span>
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[10px] uppercase font-semibold">
                 {currentUser?.role || "Medico"}
               </span>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-3 lg:p-4 overflow-hidden flex flex-col">
+      <main className="flex-1 p-3 sm:p-5 overflow-hidden flex flex-col">
         {showHistory ? (
           <div className="h-full flex flex-col min-h-0 overflow-y-auto">
              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
-               <h2 className="text-sm font-bold uppercase text-slate-300 tracking-widest flex items-center gap-2">
-                  <History className="w-4 h-4 text-blue-400" />
-                  Sesiones Guardadas ({filteredSessions.length})
-               </h2>
-               <div className="relative">
+               <div className="flex items-center gap-3">
+                 <button
+                   onClick={() => setShowHistory(false)}
+                   className="p-1.5 px-2.5 rounded-xl bg-[var(--surface-card)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] transition-colors flex items-center gap-1.5 text-xs font-medium shadow-xs"
+                   title="Volver a la estación de triaje"
+                 >
+                   <ChevronLeft className="w-3.5 h-3.5" />
+                   <span>Volver</span>
+                 </button>
+                 <h2 className="text-xs sm:text-sm font-semibold text-slate-100 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                      <History className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Sesiones Guardadas ({filteredSessions.length})</span>
+                 </h2>
+               </div>
+               <div className="relative w-full sm:w-72">
+                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                  <input 
                    type="text" 
                    placeholder="Filtrar por paciente o nivel..." 
                    value={searchQuery}
                    onChange={(e) => setSearchQuery(e.target.value)}
-                   className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-blue-500 transition-colors"
+                   className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl py-1.5 pl-8.5 pr-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all font-sans"
                  />
+                 {searchQuery && (
+                   <button
+                     onClick={() => setSearchQuery('')}
+                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-100"
+                     title="Limpiar filtro"
+                   >
+                     <X className="w-3.5 h-3.5" />
+                   </button>
+                 )}
                </div>
              </div>
              {filteredSessions.length === 0 ? (
-               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded-lg p-6">
-                 No se encontraron sesiones.
+               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 rounded-2xl bg-[var(--surface-panel)] border border-[var(--surface-border)]">
+                 <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                   <History className="w-5 h-5 text-slate-400" />
+                 </div>
+                 <p className="text-xs font-semibold text-slate-300">
+                   No se encontraron sesiones registradas
+                 </p>
+                 <p className="text-[11px] text-slate-400 max-w-sm mt-1 leading-relaxed">
+                   {searchQuery ? 'Ninguna sesión coincide con el término de búsqueda ingresado.' : 'Aún no hay consultas archivadas en el historial local.'}
+                 </p>
                </div>
              ) : (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-max pr-1 scrollbar-thin scrollbar-thumb-slate-700">
@@ -701,6 +771,8 @@ export default function TriageDashboard() {
                       setAnalysisResult(session.analysisResult); 
                       setShowHistory(false); 
                       setSelectedSessionId(session.id); 
+                      // Los ajustes posteriores deben aplicarse a ESTA sesion, no a la ultima analizada
+                      setActiveSessionId(Number(session.id) || null);
                       setIsEditingJustification(false);
                       if (session.patientInfo) {
                         setPatientInfo(session.patientInfo);
@@ -716,7 +788,7 @@ export default function TriageDashboard() {
                       }
                     }}>
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold uppercase text-white truncate pr-2">{session.patientName}</span>
+                        <span className="text-xs font-bold uppercase text-slate-100 truncate pr-2">{session.patientName}</span>
                         <div className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${getLevelGradient(session.analysisResult?.triage?.level)}`}>
                           Nivel {session.analysisResult?.triage?.level || "?"}
                         </div>
@@ -780,7 +852,7 @@ export default function TriageDashboard() {
                 </div>
                 <button 
                   onClick={clearAsrError} 
-                  className="p-1 text-red-400 hover:text-white rounded hover:bg-red-800/40 transition-colors"
+                  className="p-1 text-red-400 hover:text-slate-100 rounded hover:bg-red-800/40 transition-colors"
                   title="Cerrar aviso"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -788,12 +860,26 @@ export default function TriageDashboard() {
               </div>
             )}
 
+            {/* Aviso de retraso del ASR */}
+            {isAsrLagging && (
+              <div role="status" className="shrink-0 p-2.5 bg-amber-950/60 border border-amber-500/50 rounded-lg flex items-start gap-2 text-amber-200 text-[11px]" data-testid="asr-lag-warning">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  La transcripción va unos <strong>{Math.round(asrLagSeconds)} s</strong> por detrás de la voz
+                  {pendingChunks > 0 && <> ({pendingChunks} {pendingChunks === 1 ? 'fragmento' : 'fragmentos'} en cola)</>}.
+                  El texto seguirá llegando al detener la grabación. Con GPU o un modelo ASR más pequeño el retraso baja.
+                </span>
+              </div>
+            )}
+
             {/* ASR Transcription Box */}
-            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0 lg:h-[55%]">
-              <div className="flex justify-between items-center mb-3 shrink-0">
-                <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                  <Mic className="w-4 h-4 text-blue-400" />
-                  {isVerifyingTranscript ? 'Verificación de Transcripción' : 'Transcripción ASR'}
+            <div style={isDesktop ? { height: `${leftRatio}%` } : undefined} className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[320px] lg:min-h-0 shrink-0 lg:h-[55%] shadow-sm">
+              <div className="flex justify-between items-center mb-3.5 shrink-0">
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <Mic className="w-3.5 h-3.5" />
+                  </div>
+                  <span>{isVerifyingTranscript ? 'Verificación de Transcripción' : 'Transcripción de Consulta (ASR)'}</span>
                 </h3>
                 <div className="flex gap-2">
                   {isVerifyingTranscript ? (
@@ -930,9 +1016,24 @@ export default function TriageDashboard() {
               
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                 {transcript.length === 0 && !isRecording && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-mono uppercase tracking-widest text-center border-2 border-dashed border-slate-700 rounded-lg p-6">
-                        <Mic className="w-6 h-6 mb-2 opacity-30" />
-                        Esperando entrada de audio...
+                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3 shadow-inner">
+                            <Mic className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-xs font-semibold text-slate-200">
+                          Esperando Entrada de Audio
+                        </h4>
+                        <p className="text-[11px] text-slate-400 max-w-xs mt-1 leading-relaxed">
+                          Inicie la grabación para capturar el diálogo médico con transcripción incremental por fragmentos (4 s).
+                        </p>
+                        <button
+                          onClick={handleToggleRecording}
+                          disabled={isAnalyzing}
+                          className="mt-4 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Iniciar Grabación</span>
+                        </button>
                     </div>
                 )}
                 <AnimatePresence>
@@ -1032,33 +1133,40 @@ export default function TriageDashboard() {
             </div>
 
             {/* Patient Info Box */}
-            <div className="flex-1 bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
-              <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-3 shrink-0">
-                <User className="w-4 h-4 text-blue-400" />
-                Información del Paciente
-              </h3>
-              <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="flex-1 bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shadow-sm">
+              <div className="flex items-center justify-between mb-3.5 shrink-0">
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Datos del Paciente</span>
+                </h3>
+                <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md bg-[var(--surface-sunken)] border border-slate-800">
+                  Admisión
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div>
-                  <label htmlFor="patient-name" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Nombre Completo</label>
+                  <label htmlFor="patient-name" className="text-xs text-slate-300 font-medium block mb-1.5">Nombre Completo</label>
                   <input
                     id="patient-name"
                     aria-label="Nombre Completo"
                     type="text"
                     value={patientInfo.name}
                     onChange={e => setPatientInfo({ ...patientInfo, name: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Nombre del paciente"
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-document-id" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Documento Identidad</label>
+                  <label htmlFor="patient-document-id" className="text-xs text-slate-300 font-medium block mb-1.5">Documento Identidad</label>
                   <input
                     id="patient-document-id"
                     aria-label="Documento Identidad"
                     type="text"
                     value={patientInfo.documentId}
                     onChange={e => setPatientInfo({ ...patientInfo, documentId: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="C.C., T.I., etc."
                   />
                   <InputWarning 
@@ -1067,14 +1175,14 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-birth-date" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Fecha Nacimiento</label>
+                  <label htmlFor="patient-birth-date" className="text-xs text-slate-300 font-medium block mb-1.5">Fecha Nacimiento</label>
                   <input
                     id="patient-birth-date"
                     aria-label="Fecha Nacimiento"
                     type="date"
                     value={patientInfo.birthDate}
                     onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                   />
                   <InputWarning 
                     warning={patientInfo.birthDate ? validateDate(patientInfo.birthDate, { maxDate: new Date().toISOString().split('T')[0], label: 'Fecha de nacimiento' }).warning : null} 
@@ -1082,13 +1190,13 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-gender" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Género</label>
+                  <label htmlFor="patient-gender" className="text-xs text-slate-300 font-medium block mb-1.5">Género</label>
                   <select
                     id="patient-gender"
                     aria-label="Género"
                     value={patientInfo.gender}
                     onChange={e => setPatientInfo({ ...patientInfo, gender: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                   >
                     <option value="unknown">Desconocido</option>
                     <option value="male">Masculino</option>
@@ -1097,14 +1205,14 @@ export default function TriageDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="patient-phone" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Teléfono</label>
+                  <label htmlFor="patient-phone" className="text-xs text-slate-300 font-medium block mb-1.5">Teléfono</label>
                   <input
                     id="patient-phone"
                     aria-label="Teléfono"
                     type="text"
                     value={patientInfo.phone}
                     onChange={e => setPatientInfo({ ...patientInfo, phone: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
                     placeholder="Número telefónico"
                   />
                   <InputWarning 
@@ -1113,14 +1221,14 @@ export default function TriageDashboard() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="patient-insurance" className="text-[10px] text-slate-400 uppercase font-medium block mb-1">Aseguradora / EPS</label>
+                  <label htmlFor="patient-insurance" className="text-xs text-slate-300 font-medium block mb-1.5">Aseguradora / EPS</label>
                   <input
                     id="patient-insurance"
                     aria-label="Aseguradora / EPS"
                     type="text"
                     value={patientInfo.insurance}
                     onChange={e => setPatientInfo({ ...patientInfo, insurance: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 transition-all"
                     placeholder="Empresa promotora de salud"
                   />
                 </div>
@@ -1143,14 +1251,16 @@ export default function TriageDashboard() {
           >
             
             {/* NER Module */}
-            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0 lg:h-[60%]">
-              <div className="flex justify-between items-center shrink-0 mb-3">
-                <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                  Entidades Clínicas (NER)
+            <div style={isDesktop ? { height: `${rightRatio}%` } : undefined} className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0 shrink-0 lg:h-[60%] shadow-sm">
+              <div className="flex justify-between items-center shrink-0 mb-3.5">
+                <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <Activity className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Entidades Clínicas Detectadas</span>
                 </h3>
                 <div className="flex gap-2 items-center">
-                  {isAnalyzing && <span className="text-[9px] sm:text-[10px] font-mono text-emerald-400/80 animate-pulse flex items-center gap-1"><Activity className="w-3 h-3"/> Analizando...</span>}
+                  {isAnalyzing && <span className="text-[10px] font-mono text-emerald-400/80 animate-pulse flex items-center gap-1"><Activity className="w-3 h-3"/> Analizando...</span>}
                   {analysisResult && (
                     <button
                       onClick={() => {
@@ -1159,44 +1269,26 @@ export default function TriageDashboard() {
                         }
                         setIsEditMode(!isEditMode);
                       }}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest transition-all bg-slate-700 text-slate-300 hover:bg-slate-600"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all bg-[var(--surface-card)] text-slate-300 hover:bg-slate-800 border border-[var(--surface-border)]"
                     >
-                      {isEditMode ? <Check className="w-3 h-3 text-emerald-400" /> : <Edit3 className="w-3 h-3 text-blue-400" />}
+                      {isEditMode ? <Check className="w-3 h-3 text-emerald-400" /> : <Edit3 className="w-3 h-3 text-sky-400" />}
                       {isEditMode ? 'ACEPTAR' : 'EDITAR'}
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3 pr-1 scrollbar-thin scrollbar-thumb-slate-700">
-                <EntityGroup 
-                  title="Síntomas" icon={<AlertTriangle className="w-3 h-3"/>} color="text-red-400" bg="bg-red-500" border="border-red-500" 
-                  entities={(isEditMode ? editedEntities : analysisResult?.entities)?.symptoms} 
-                  loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), symptoms: [...(prev?.symptoms || []), val] }))}
-                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), symptoms: (prev?.symptoms || []).filter((_, i) => i !== idx) }))}
-                />
-                <EntityGroup 
-                  title="Antecedentes" icon={<FileText className="w-3 h-3"/>} color="text-amber-400" bg="bg-amber-500" border="border-amber-500" 
-                  entities={(isEditMode ? editedEntities : analysisResult?.entities)?.history} 
-                  loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), history: [...(prev?.history || []), val] }))}
-                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), history: (prev?.history || []).filter((_, i) => i !== idx) }))}
-                />
-                <EntityGroup 
-                  title="Medicamentos" icon={<Pill className="w-3 h-3"/>} color="text-blue-400" bg="bg-blue-500" border="border-blue-500" 
-                  entities={(isEditMode ? editedEntities : analysisResult?.entities)?.medications} 
-                  loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), medications: [...(prev?.medications || []), val] }))}
-                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), medications: (prev?.medications || []).filter((_, i) => i !== idx) }))}
-                />
-                <EntityGroup 
-                  title="Signos Vitales" icon={<Thermometer className="w-3 h-3"/>} color="text-emerald-400" bg="bg-emerald-500" border="border-emerald-500" 
-                  entities={(isEditMode ? editedEntities : analysisResult?.entities)?.vitals} 
-                  loading={isAnalyzing} isEditMode={isEditMode}
-                  onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), vitals: [...(prev?.vitals || []), val] }))}
-                  onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), vitals: (prev?.vitals || []).filter((_, i) => i !== idx) }))}
-                />
+              <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3.5 pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+                {ENTITY_GROUPS.map(group => (
+                  <EntityGroup
+                    key={group.key}
+                    title={group.title} icon={group.icon} color={group.color} bg={group.bg} border={group.border}
+                    entities={(isEditMode ? editedEntities : analysisResult?.entities)?.[group.key]}
+                    loading={isAnalyzing} isEditMode={isEditMode}
+                    onAdd={val => setEditedEntities(prev => ({ ...(prev || {}), [group.key]: [...(prev?.[group.key] || []), val] }))}
+                    onRemove={idx => setEditedEntities(prev => ({ ...(prev || {}), [group.key]: (prev?.[group.key] || []).filter((_, i) => i !== idx) }))}
+                  />
+                ))}
               </div>
             </div>
 
@@ -1209,18 +1301,20 @@ export default function TriageDashboard() {
             </div>
 
             {/* Triage Output */}
-            <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-slate-800/50 rounded-lg border border-slate-700 p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700">
+            <div className="flex-1 min-h-[300px] lg:min-h-[100px] bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 flex flex-col gap-3.5 overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-slate-700 shadow-sm">
                 <div className="flex items-center justify-between gap-2 mb-1 shrink-0 flex-wrap">
-                  <h2 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-orange-400" />
-                    Motor de Triaje Clínico
+                  <h2 className="text-xs font-semibold text-slate-200 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Motor de Triaje Clínico</span>
                   </h2>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300 text-[10px] font-medium">
                       Christus Sinergia Salud
                     </span>
                     {analysisResult?.engine_used && (
-                      <span className="px-2 py-0.5 rounded bg-slate-700/80 border border-slate-600 text-slate-300 text-[9px] font-mono">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-400 text-[10px] font-mono">
                         {analysisResult.engine_used}
                       </span>
                     )}
@@ -1230,12 +1324,21 @@ export default function TriageDashboard() {
                 {/* Error Banner if triage failed */}
                 {triageError && (
                   <div className="shrink-0 p-3 bg-red-950/70 border border-red-500/70 rounded-lg flex flex-col gap-2 text-red-200">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                      <div className="text-xs">
-                        <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
-                        <span className="text-slate-300">{triageError}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <span className="font-bold block text-red-300">Error en Diagnóstico de Triaje:</span>
+                          <span className="text-slate-300">{triageError}</span>
+                        </div>
                       </div>
+                      <button 
+                        onClick={() => setTriageError(null)} 
+                        className="p-1 text-red-400 hover:text-slate-100 rounded hover:bg-red-800/40 transition-colors shrink-0"
+                        title="Cerrar aviso de error"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     <div className="flex justify-end gap-2 mt-1">
                       <button
@@ -1297,7 +1400,9 @@ export default function TriageDashboard() {
                      Calculando gravedad con protocolo institucional...
                   </div>
                 ) : analysisResult && analysisResult.triage && analysisResult.triage.level ? (
-                    <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full flex-1 min-h-0">
+                    <>
+                    {/* shrink-0: con el panel de explicabilidad debajo, la fila no se encoge (el contenedor hace scroll). */}
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch w-full shrink-0">
                       <div className={`flex flex-col items-center justify-between p-3 rounded-xl shadow-lg shrink-0 w-36 sm:w-44 transition-all duration-300 border ${getLevelGradient(analysisResult.triage?.level)}`}>
                          <div className="flex items-center justify-between w-full px-1 mb-1">
                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">Prioridad</span>
@@ -1314,7 +1419,7 @@ export default function TriageDashboard() {
 
                           {/* Stepper controls */}
                           <div className="flex items-center justify-between w-full px-1 py-1">
-                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top">
+                            <Tooltip text="Aumentar Urgencia (Nivel más crítico)" position="top" align="left">
                               <button
                                 type="button"
                                 onClick={() => handleRequestTriageLevelChange(Math.max(1, (analysisResult.triage?.level || 5) - 1))}
@@ -1325,7 +1430,7 @@ export default function TriageDashboard() {
                               </button>
                             </Tooltip>
                             
-                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top">
+                            <Tooltip text={`${getLevelLabel(analysisResult.triage?.level)}: ${getAttentionTime(analysisResult.triage?.level)}`} position="top" align="center">
                               <div className="flex flex-col items-center cursor-help">
                                 <span className="text-4xl sm:text-5xl font-black text-white leading-none tracking-tight">
                                   {analysisResult.triage?.level ? ROMAN_LEVELS[analysisResult.triage.level] || analysisResult.triage.level : "?"}
@@ -1336,7 +1441,7 @@ export default function TriageDashboard() {
                               </div>
                             </Tooltip>
 
-                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top">
+                            <Tooltip text="Disminuir Urgencia (Nivel menos crítico)" position="top" align="right">
                               <button
                                 type="button"
                                 onClick={() => handleRequestTriageLevelChange(Math.min(5, (analysisResult.triage?.level || 1) + 1))}
@@ -1422,19 +1527,36 @@ export default function TriageDashboard() {
                          </div>
                       </div>
                     </div>
+                    <ExplainabilityPanel analysis={analysisResult} />
+                    </>
                 ) : !triageError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-dashed border-slate-700 rounded p-4 text-center">
-                    Esperando datos de la consulta para análisis...
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl bg-[var(--surface-input)]/50 border border-slate-800/80">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                      <ShieldAlert className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-300">
+                      Evaluación de Triaje en Espera
+                    </p>
+                    <p className="text-[11px] text-slate-400 max-w-sm mt-1 leading-relaxed">
+                      El nivel de urgencia según el protocolo Christus Sinergia se determinará al procesar la transcripción y los signos vitales del paciente.
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-4 text-[10px] text-slate-400 flex-wrap justify-center">
+                      <span className="px-2 py-0.5 rounded-md bg-red-950/40 border border-red-800/40 text-red-400 font-semibold">I Reanimación</span>
+                      <span className="px-2 py-0.5 rounded-md bg-orange-950/40 border border-orange-800/40 text-orange-400 font-semibold">II Emergencia</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-950/40 border border-amber-800/40 text-amber-400 font-semibold">III Urgencia</span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 border border-emerald-800/40 text-emerald-400 font-semibold">IV Prioritaria</span>
+                      <span className="px-2 py-0.5 rounded-md bg-sky-950/40 border border-sky-800/40 text-sky-400 font-semibold">V Externa</span>
+                    </div>
                   </div>
                 ) : null}
 
             </div>
 
             {/* Sync Module */}
-            <div className="shrink-0 bg-slate-800/50 rounded-lg border border-slate-700 p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-slate-400 flex items-center gap-2 truncate">
-                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
-                 <span className="truncate">Estado: {syncStatus === 'success' ? 'Guardado Exitoso' : 'Esperando'}</span>
+            <div className="shrink-0 bg-[var(--surface-panel)] rounded-xl border border-[var(--surface-border)] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+              <div className="text-xs text-slate-400 flex items-center gap-2 truncate">
+                 <div className={`w-2 h-2 rounded-full shrink-0 ${syncStatus === 'success' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                 <span className="truncate font-medium">Estado: <span className="text-slate-300">{syncStatus === 'success' ? 'Guardado Exitoso' : 'En Espera'}</span></span>
               </div>
               <div className="flex w-full sm:w-auto gap-2 shrink-0 flex-wrap">
                 <button
@@ -1452,11 +1574,11 @@ export default function TriageDashboard() {
                      downloadFHIRJson(currentSession);
                      toast.success('Descargando HL7 FHIR R4 JSON');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--surface-raised)] hover:bg-[var(--surface-raised-hover)] text-cyan-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 FHIR Release 4 (JSON Estándar)"
                 >
-                   <Code className="w-3 h-3 text-cyan-400" />
-                   FHIR R4
+                   <Code className="w-3.5 h-3.5 text-cyan-400" />
+                   <span>FHIR R4</span>
                 </button>
                 <button
                    disabled={!analysisResult}
@@ -1473,37 +1595,37 @@ export default function TriageDashboard() {
                      downloadHL7v2Message(currentSession);
                      toast.success('Descargando HL7 v2.5.1 ER7');
                    }}
-                   className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-slate-700 hover:bg-slate-600 text-blue-300 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--surface-raised)] hover:bg-[var(--surface-raised-hover)] text-blue-300 border border-slate-800 hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
                    title="Exportar HL7 Version 2.5.1 (ER7 Oficial)"
                 >
-                   <FileText className="w-3 h-3 text-blue-400" />
-                   HL7 v2.5.1
+                   <FileText className="w-3.5 h-3.5 text-blue-400" />
+                   <span>HL7 v2.5.1</span>
                 </button>
                 <button
                    disabled={!analysisResult}
                    onClick={handleSaveSession}
-                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       !analysisResult 
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border border-slate-600'
+                      ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-40' 
+                      : 'bg-[var(--surface-raised)] text-slate-200 hover:bg-[var(--surface-raised-hover)] border border-slate-800 hover:border-slate-700 shadow-xs'
                    }`}
                 >
-                   <Save className="w-3 h-3" />
-                   Guardar Local
+                   <Save className="w-3.5 h-3.5" />
+                   <span>Guardar en Historial</span>
                 </button>
                 <button
                    disabled={!analysisResult || syncStatus === 'syncing' || syncStatus === 'success'}
                    onClick={handleSyncFHIR}
-                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all shrink-0 ${
+                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
                       !analysisResult 
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50' 
+                      ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed opacity-40' 
                       : syncStatus === 'success'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-                      : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500 shadow-md'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-sky-600 hover:bg-sky-500 text-white border border-sky-500/40 shadow-sm'
                    }`}
                 >
-                   {syncStatus === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <Send className="w-3 h-3" />}
-                   {syncStatus === 'success' ? 'SINCRONIZADO' : syncStatus === 'syncing' ? 'SINCRONIZANDO...' : 'SINCRONIZAR FHIR R4'}
+                   {syncStatus === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
+                   <span>{syncStatus === 'success' ? 'Sincronizado' : syncStatus === 'syncing' ? 'Sincronizando...' : 'Sincronizar FHIR R4'}</span>
                 </button>
               </div>
             </div>
@@ -1537,7 +1659,7 @@ export default function TriageDashboard() {
             <div className="p-2 rounded bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
               <div>
                 <span className="text-slate-400">Nivel actual: </span>
-                <span className="font-bold text-white">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
+                <span className="font-bold text-slate-100">Nivel {ROMAN_LEVELS[analysisResult?.triage?.level || 5]} ({getLevelLabel(analysisResult?.triage?.level || 5)})</span>
               </div>
               <div>
                 <span className="text-slate-400">Nuevo nivel propuesto: </span>
@@ -1570,29 +1692,41 @@ function EntityGroup({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <h3 className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${color}`}>
-        {icon} {title}
-      </h3>
-      <div className={`flex flex-col gap-1 min-h-[40px] bg-slate-900/30 p-1.5 rounded-md border border-slate-700/50`}>
-        {!entities && !loading && <span className="text-[10px] text-slate-400 italic px-2 py-1">Pendiente...</span>}
+      <div className="flex items-center justify-between px-0.5">
+        <h3 className={`text-xs font-medium flex items-center gap-1.5 ${color}`}>
+          {icon} <span>{title}</span>
+        </h3>
+        {entities && entities.length > 0 ? (
+          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 border border-slate-700/60">
+            {entities.length}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-1.5 min-h-[48px] bg-[var(--surface-input)]/50 p-2.5 rounded-xl border border-slate-800/80">
+        {!entities && !loading && (
+          <div className="flex items-center gap-2 py-1.5 px-2 text-slate-500 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0"></span>
+            <span className="italic">Sin hallazgos preliminares</span>
+          </div>
+        )}
         {loading && (
-            <div className="w-full flex flex-col gap-1.5 opacity-70">
-                <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm`}></div>
-                <div className={`h-6 w-3/4 ${bg}/20 animate-pulse border-l-2 ${border} rounded-sm delay-75`}></div>
-            </div>
+          <div className="w-full flex flex-col gap-1.5 opacity-70">
+            <div className={`h-6 w-full ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg`}></div>
+            <div className={`h-6 w-3/4 ${bg}/20 animate-pulse border-l-2 ${border} rounded-lg delay-75`}></div>
+          </div>
         )}
         {!loading && entities?.map((e, idx) => (
-          <div key={idx} className={`flex items-center justify-between p-1.5 bg-slate-900 rounded-sm border-l-2 ${border}`}>
-            <span className="text-[10px] sm:text-xs font-medium text-slate-200 truncate">{e}</span>
+          <div key={idx} className={`flex items-center justify-between px-2.5 py-2 bg-[var(--surface-raised)] rounded-lg border-l-2 ${border} border border-slate-800/80 hover:border-slate-700/80 transition-colors shadow-xs`}>
+            <span className="text-xs font-medium text-slate-200 truncate">{e}</span>
             {isEditMode && (
               <button onClick={() => onRemove?.(idx)} className="text-red-400 hover:text-red-300 ml-2 shrink-0">
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         ))}
         {!loading && isEditMode && (
-          <div className="flex gap-1 mt-1">
+          <div className="flex gap-1.5 mt-1">
             <input 
               type="text" 
               value={newVal} 
@@ -1603,12 +1737,17 @@ function EntityGroup({
                   setNewVal("");
                 }
               }}
-              className="flex-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[10px] text-slate-200 focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-[var(--surface-panel)] border border-slate-800 hover:border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30"
               placeholder="Añadir..."
             />
           </div>
         )}
-        {!loading && entities?.length === 0 && !isEditMode && <span className="text-[10px] text-slate-400 uppercase px-2 py-1 font-mono tracking-wider">No detectado</span>}
+        {!loading && entities?.length === 0 && !isEditMode && (
+          <div className="flex items-center gap-2 py-1 px-2 text-slate-500 text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 shrink-0"></span>
+            <span>No detectado en transcripción</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1617,12 +1756,13 @@ function EntityGroup({
 const ROMAN_LEVELS = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 function getLevelGradient(level?: number) {
+  // keep-dark: el degradado conserva la paleta oscura tambien en el tema claro (texto blanco legible).
   switch (level) {
-    case 1: return 'bg-gradient-to-br from-red-600 to-red-950 border-red-500 shadow-red-900/50';
-    case 2: return 'bg-gradient-to-br from-orange-600 to-orange-950 border-orange-500 shadow-orange-900/50';
-    case 3: return 'bg-gradient-to-br from-amber-500 to-amber-950 border-amber-500 shadow-amber-900/50';
-    case 4: return 'bg-gradient-to-br from-emerald-600 to-emerald-950 border-emerald-500 shadow-emerald-900/50';
-    case 5: return 'bg-gradient-to-br from-blue-600 to-blue-950 border-blue-500 shadow-blue-900/50';
+    case 1: return 'keep-dark text-white bg-gradient-to-br from-red-600 to-red-950 border-red-500 shadow-red-900/50';
+    case 2: return 'keep-dark text-white bg-gradient-to-br from-orange-600 to-orange-950 border-orange-500 shadow-orange-900/50';
+    case 3: return 'keep-dark text-white bg-gradient-to-br from-amber-500 to-amber-950 border-amber-500 shadow-amber-900/50';
+    case 4: return 'keep-dark text-white bg-gradient-to-br from-emerald-600 to-emerald-950 border-emerald-500 shadow-emerald-900/50';
+    case 5: return 'keep-dark text-white bg-gradient-to-br from-blue-600 to-blue-950 border-blue-500 shadow-blue-900/50';
     default: return 'bg-slate-800 border-slate-700 text-slate-400';
   }
 }
@@ -1649,18 +1789,40 @@ function getAttentionTime(level?: number) {
   }
 }
 
-function Tooltip({ children, text, position = 'top' }: { children: React.ReactNode; text: string; position?: 'top' | 'bottom' | 'left' | 'right' }) {
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  }[position];
+function Tooltip({
+  children,
+  text,
+  position = 'top',
+  align = 'center',
+}: {
+  children: React.ReactNode;
+  text: string;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  align?: 'left' | 'center' | 'right';
+}) {
+  const getPositionClasses = () => {
+    switch (position) {
+      case 'top':
+        if (align === 'left') return 'bottom-full left-0 mb-2';
+        if (align === 'right') return 'bottom-full right-0 mb-2';
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+      case 'bottom':
+        if (align === 'left') return 'top-full left-0 mt-2';
+        if (align === 'right') return 'top-full right-0 mt-2';
+        return 'top-full left-1/2 -translate-x-1/2 mt-2';
+      case 'left':
+        return 'right-full top-1/2 -translate-y-1/2 mr-2';
+      case 'right':
+        return 'left-full top-1/2 -translate-y-1/2 ml-2';
+      default:
+        return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+    }
+  };
 
   return (
-    <div className="relative group/tooltip inline-flex items-center">
+    <div className="relative group/tooltip inline-flex items-center hover:z-30">
       {children}
-      <div className={`absolute ${positionClasses} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
+      <div className={`absolute ${getPositionClasses()} hidden group-hover/tooltip:flex pointer-events-none z-50 whitespace-nowrap bg-slate-950/95 text-slate-200 text-[10px] font-sans font-medium px-2.5 py-1 rounded shadow-xl border border-slate-700/80 backdrop-blur-sm transition-all duration-150`}>
         {text}
       </div>
     </div>
@@ -1686,38 +1848,62 @@ function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   const btnClasses = {
     danger: "bg-red-600 hover:bg-red-500 text-white shadow-red-900/30",
     warning: "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/30",
-    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/30",
+    primary: "bg-sky-600 hover:bg-sky-500 text-white shadow-sky-900/30",
   }[confirmVariant];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-5 shadow-2xl space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={onCancel}
+    >
+      <div 
+        className="relative bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cerrar modal"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-start gap-3.5 pr-6">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+            <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
             <div className="text-xs text-slate-400 leading-relaxed">{message}</div>
           </div>
         </div>
-        <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-800">
+        <div className="flex justify-end gap-2.5 pt-2 border-t border-[var(--surface-border)]">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
+            className="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-[var(--surface-card)] transition-colors border border-[var(--surface-border)]"
           >
             {cancelText}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md ${btnClasses}`}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${btnClasses}`}
           >
             {confirmText}
           </button>

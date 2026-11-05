@@ -1,413 +1,102 @@
-# Auditoria Tecnica Integral — AI-Triage
+# Auditoría Técnica Integral — AI-Triage
 
-**Fecha:** 2026-09-10  
-**Rama auditada:** `develop`  
-**Alcance:** Backend (Django/Python), Frontend (Next.js/TypeScript), Infraestructura Docker, Esquemas de base de datos, Seguridad, Deuda tecnica.
+**Fecha de esta revisión:** 2026-10-28 (revisión 5 — cierre integral de implementación, interoperabilidad semántica y latido ASR)  
+**Auditoría inicial:** 2026-09-10  
+**Rama auditada:** `feat/optimizacion-rag-asr-metricas` / `develop`  
+**Alcance:** backend (`Django/Python`), modelos ML (`ml/ner`), frontend (`Next.js/TypeScript`), infraestructura (`Docker Compose`, `CUDA`, `Ollama`, `nginx`), modelo de datos (`PostgreSQL 16 + pgvector`), seguridad, validez metodológica y deuda técnica.
 
 ---
 
-## 1. Severidades Utilizadas
+## 1. Severidades
 
-| Nivel | Descripcion |
+| Nivel | Descripción |
 |:------|:------------|
-| **CRITICO** | Bug o gap de seguridad con impacto directo en produccion o datos clinicos |
-| **ALTO** | Deuda tecnica significativa que degrada confiabilidad o escalabilidad |
-| **MEDIO** | Inconsistencia de diseno, cobertura faltante o patron suboptimo |
-| **BAJO** | Mejoras menores de calidad, legibilidad o consistencia |
+| **CRÍTICO** | Fallo de seguridad o de corrección con impacto directo en datos clínicos o en la decisión de triaje |
+| **ALTO** | Deuda técnica o defecto que degrada de forma significativa la confiabilidad, la seguridad o la validez de los resultados |
+| **MEDIO** | Inconsistencia de diseño, cobertura faltante o patrón subóptimo |
+| **BAJO** | Mejora menor de calidad, legibilidad o consistencia |
 
 ---
 
-## 2. Seguridad
+## 2. Resumen Ejecutivo de Estado
 
-### [CRITICO] Autenticacion de triaje completamente desactivada
-**Archivo:** [`backend/triage/views.py#L23`](file:///d:/Datos/Estudio/Universidad%202/semestre%209/TG1/ai-triage/backend/triage/views.py#L23)
+| Categoría de hallazgos | Resueltos / Mitigados | Pendientes (Deuda menor) |
+| :--- | ---: | ---: |
+| Auditoría inicial (`A-01 … A-34`) | 33 | 1 (`A-20`) |
+| Hallazgos de iteraciones intermedias (`N-01 … N-22`) | 22 | 0 |
+| Riesgos de seguimiento (`P-01 … P-08`) | 6 | 2 (`P-04`, `P-06`) |
 
-```python
-permission_classes = [AllowAny]
-```
+Hitos técnicos verificados en la revisión 5:
 
-Todo el `TriageSessionViewSet` — incluyendo creacion de triajes, override de niveles, asignacion de boxes y lectura de pacientes — es accesible sin autenticacion. Cualquier actor externo que conozca los endpoints puede crear o modificar sesiones clinicas, alterar el nivel de triaje de pacientes reales, o leer datos de admisiones sin tener sesion valida.
-
-**Impacto:** Violacion RBAC; modificacion maliciosa de decisiones clinicas de IA; lectura no autorizada de datos de salud (HIPAA/RGPD). 
-
-**Correccion sugerida:** Reemplazar `AllowAny` por `IsAuthenticatedOrReadOnly` minimo, o mejor `IsAuthenticated` con excepciones granulares en acciones especificas.
-
----
-
-### [CRITICO] Ausencia total de rate limiting en endpoints de autenticacion
-**Archivos:** `backend/config/settings.py`, `backend/accounts/views.py`
-
-No existe ningun throttle de DRF (`DEFAULT_THROTTLE_CLASSES`) en endpoints de login, verificacion OTP, reenvio de codigo o reset de contrasena. Esto habilita:
-- Ataques de fuerza bruta sobre OTPs (espacio de 10^6 con codigos de 6 digitos sin bloqueo).
-- Enumeracion de usuarios registrados via respuestas diferenciadas.
-- Denial of Service por saturacion del backend con peticiones concurrentes.
-
-**Correccion sugerida:** Agregar en `settings.py`:
-```python
-REST_FRAMEWORK = {
-    'DEFAULT_THROTTLE_CLASSES': ['rest_framework.throttling.AnonRateThrottle'],
-    'DEFAULT_THROTTLE_RATES': {'anon': '10/minute'},
-}
-```
-Con throttle especifico para auth y OTP de 5/minuto.
+1. **Mitigación de infratriaje y reglas fisiológicas (`P-01` -> Resuelto):** Se incorporaron 18 reglas cuantitativas de signos vitales adultos (`backend/triage/vital_signs.py`), detección determinista de negaciones en español (`backend/triage/negation.py`), recuperación híbrida `pgvector` + Okapi BM25 sobre 61 criterios (`backend/triage/clinical_rag.py`) y la política de piso de seguridad `min_critico`, elevando la sensibilidad en niveles críticos I–II al **92,5 %** en la partición congelada `test`.
+2. **Evaluación congelada y adjudicación médica ciega (`P-02` -> Mitigado):** Se consolidó el corpus de 250 relatos (`150 dev` + `100 test` con doble anotación ciega e IAA `0,865` en triaje / `0,979` en NER) y se completó la revisión ciega independiente sobre 50 casos estratificados de `test` (`80,0 %` de exactitud clínico-IA, `Kappa = 0,911`, Likert `4,80 / 4,58 / 4,58`).
+3. **Soberanía de datos con LLM local en GPU (`P-03` -> Resuelto):** Se integró `backend/triage/local_llm.py` y el servicio `llm-local` (Ollama GPU con `gemma4:e4b-it-qat`), garantizando operación 100 % *on-premise* sin transferencia externa de relatos clínicos y sin degradar jamás a nube cuando se selecciona el modo local.
+4. **Latido periódico con TTL en Redis para `worker-asr` (`P-05` -> Resuelto):** `backend/transcription/tasks.py` publica y renueva `asr:engine_status` mediante un hilo demonio cada `ASR_HEARTBEAT_INTERVAL` (`30 s`) con expiración `ASR_STATUS_TTL` (`90 s`), garantizando detección automática en `/api/health_check/` incluso ante terminación abrupta (`SIGKILL`).
+5. **Verificación empírica en GPU NVIDIA real, codificación semántica FHIR/HL7 y CI completa (`P-07` -> Resuelto):** Tanto `faster-whisper` (`large-v3-turbo`, `WER 2,39 %`, `RTF 0,044`) como `gemma4:e4b-it-qat` (`15,2 s` p50) fueron medidos sobre GPU NVIDIA GeForce RTX 3070 real; `frontend/lib/hl7.ts` y `backend/triage/views.py` inyectan códigos verificados SNOMED CT, CIE-10 y ATC en Bundles HL7 FHIR R4 y mensajes HL7 v2.5.1; y `.github/workflows/ci.yml` ejecuta las 3 suites (`backend`, `ml/ner/tests` y `frontend`).
 
 ---
 
-### [ALTO] JWT Refresh Token sin lista negra
-**Archivo:** [`backend/config/settings.py#L144`](file:///d:/Datos/Estudio/Universidad%202/semestre%209/TG1/ai-triage/backend/config/settings.py#L144)
+## 3. Hallazgos de la Auditoría Inicial (`A-01 … A-34`)
 
-```python
-'BLACKLIST_AFTER_ROTATION': False,
-```
-
-Con `ROTATE_REFRESH_TOKENS = True` pero `BLACKLIST_AFTER_ROTATION = False`, un refresh token robado puede seguir siendo utilizado indefinidamente incluso despues de que el usuario ha renovado su sesion. La app tampoco tiene endpoint de logout que invalide el token activo.
-
-**Correccion sugerida:** Agregar `rest_framework_simplejwt.token_blacklist` a `INSTALLED_APPS` y habilitar `BLACKLIST_AFTER_ROTATION: True`. Implementar endpoint `POST /api/auth/logout/` que haga `refresh_token.blacklist()`.
-
----
-
-### [ALTO] Tokens JWT almacenados en `localStorage` (XSS Vulnerable)
-**Archivos:** `frontend/lib/api.ts`, `frontend/app/login/page.tsx`, `frontend/components/AppNavigation.tsx`
-
-El token `access_token`, `refresh_token` y `user_profile` completo se persisten en `localStorage`. Este mecanismo es inherentemente vulnerable a XSS: cualquier script inyectado puede extraer las credenciales y suplantar al usuario medico. Para un sistema hospitalario con datos clinicos, esto representa un riesgo de cumplimiento significativo.
-
-**Correccion sugerida:** Migrar a cookies `httpOnly; Secure; SameSite=Strict` manejadas por el backend, eliminando la exposicion de tokens al entorno JavaScript.
-
----
-
-### [ALTO] `SECRET_KEY` y credenciales con fallback inseguros
-**Archivo:** `backend/config/settings.py#L14`
-
-```python
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-triage-prototype-key-3289139')
-```
-
-El fallback hardcodeado expone la clave criptografica en caso de que la variable de entorno no se configure. Cualquier deployment sin `.env` correcto expone las firmas JWT, las cookies de sesion y el cifrado de la boveda de llaves AES-256.
-
-**Correccion sugerida:** Eliminar el fallback. Hacer que el modulo falle explicitamente en arranque si `SECRET_KEY` no esta configurada:
-```python
-SECRET_KEY = os.environ['SECRET_KEY']  # KeyError intencional si falta
-```
-
----
-
-### [MEDIO] `ALLOWED_HOSTS = ['*']` en settings base
-**Archivo:** `backend/config/settings.py#L17`
-
-Con `ALLOWED_HOSTS = ['*']`, el backend acepta peticiones HTTP con cualquier valor en el header `Host`, habilitando ataques de Host Header Injection que pueden derivar en CSRF o redireccionamientos maliciosos.
-
-**Correccion sugerida:** Restringir a los dominios reales via variable de entorno, con validacion de startup que falle si `DEBUG=False` y `ALLOWED_HOSTS` contiene `'*'`.
+| # | Sev. | Hallazgo | Estado | Resolución verificada |
+|:--|:-----|:---------|:-------|:-----------|
+| A-01 | CRÍTICO | `TriageSessionViewSet` con `AllowAny` | **Resuelto** | `GenericViewSet` sin CRUD genérico; cada acción exige `IsAuthenticated` y permiso granular (`core/permissions.py`). |
+| A-02 | CRÍTICO | Sin *rate limiting* en autenticación | **Resuelto** | Throttles compartidos en Redis (`AuthThrottle` 10/min y `OTPThrottle` 5/min) en login, registro, OTP y recuperación. |
+| A-03 | ALTO | Refresh token sin lista negra ni logout | **Resuelto** | `token_blacklist`, rotación automática y `POST /api/auth/logout/`. |
+| A-04 | ALTO | Tokens JWT en `localStorage` | **Resuelto** | Refresh token en cookie `httpOnly` (`ai_triage_refresh`) y access token solo en memoria RAM del cliente. |
+| A-05 | ALTO | `SECRET_KEY` con valor por defecto inseguro | **Resuelto** | Obligatoria en entorno de ejecución (solo mockeada en `pytest`). |
+| A-06 | MEDIO | `ALLOWED_HOSTS = ['*']` | **Resuelto** | Lista explícita controlada por variable de entorno. |
+| A-07 | MEDIO | Endpoint FHIR público | **Resuelto** | `POST /api/fhir/` exige JWT y `fhir_logs` exige `can_view_fhir`. |
+| A-08 | ALTO | Historial de triajes solo en `localStorage` | **Resuelto** | Persistido y consultado vía `GET /api/triage/sessions/history/` (excluyendo casos `CORPUS-`). |
+| A-09 | ALTO | `time.sleep(0.5)` artificial en endpoint FHIR | **Resuelto** | Eliminado. |
+| A-10 | ALTO | Variable global `engine` en vistas ASR | **Resuelto** | Singleton thread-safe `WhisperEngine` aislado en `worker-asr`. |
+| A-11 | ALTO | Llamada a Gemini sin timeout efectivo | **Resuelto** | SDK `google-genai >= 2.28`, timeout explícito en triaje y normalización, y cota `LLM_TASK_TIMEOUT` en `run_task`. |
+| A-12 | ALTO | `TriageSession.save()` recalcula en guardados parciales | **Resuelto** | Recálculo condicionado exclusivamente a cambios en `level_fields`. |
+| A-13 | MEDIO | `AuditLog` silenciaba excepciones | **Resuelto** | Trazabilidad explícita mediante `logger.error(..., exc_info=True)`. |
+| A-14 | MEDIO | `evaluation_metrics` cargaba todas las sesiones en RAM | **Resuelto** | Agregaciones SQL (`GROUP BY` 5x5 y `aggregate()`) con complejidad constante en consultas. |
+| A-15 | MEDIO | Datos inventados en `emr_patients` | **Resuelto** | Retorna cadenas vacías / `null` cuando el dato demográfico no fue registrado. |
+| A-16 | MEDIO | `SystemConfigUpdateSchema` desalineado | **Resuelto** | Sincronizado con `SystemConfiguration` y `extra='forbid'`. |
+| A-17 | MEDIO | `db.sqlite3` versionado | **Resuelto** | Excluido en `.gitignore`. |
+| A-18 | BAJO | Logging duplicado con `FileHandler` manual | **Resuelto** | Centralizado en `settings.LOGGING`. |
+| A-19 | ALTO | `useState<any>` en datos clínicos | **Resuelto** | Interfaces TypeScript estrictas en componentes clínicos. |
+| A-20 | MEDIO | `TriageDashboard.tsx` monolítico | **Pendiente** | Mantiene ~1.890 líneas (los módulos `BlindReview`, `EMRSimulator`, `FHIRMonitor`, `MetricsDashboard` y `NormalizationMonitor` ya están desacoplados; ver `P-06`). |
+| A-21 | MEDIO | `fetchWithAuth` sin renovación concurrente | **Resuelto** | Promesa única compartida de refresh ante respuestas `401`. |
+| A-22 | BAJO | Perfil leído de `localStorage` | **Resuelto** | Verificado contra `/api/auth/me/` en `AppNavigation` e inyectado por props; autorización real en servidor. |
+| A-23 | BAJO | Validación de frontend parcial | **Mitigado** | `frontend/lib/validation.ts` centraliza cédula, fecha y teléfono; el backend valida todos los payloads con Pydantic v2. |
+| A-24 | MEDIO | `GEMINI_API_KEY` expuesta al contenedor frontend | **Resuelto** | Confinada exclusivamente a `backend` y `worker-llm`. |
+| A-25 | BAJO | Puerto `5432` expuesto al host | **Resuelto** | Confinado a la red interna `ai_triage_network`. |
+| A-26 | BAJO | Nombres inconsistentes en `AuditLog` | **Resuelto** | Taxonomía unificada de acciones auditables. |
+| A-27 | BAJO | `google-genai` en versión alfa | **Resuelto** | Actualizado a versión estable `2.28+`. |
+| A-28 | MEDIO | Dependencias huérfanas (`boto3`, `sendgrid`) | **Resuelto** | Depuradas de `requirements.txt`. |
+| A-29 | CRÍTICO | Fuga de trazas internas en errores ASR | **Resuelto** | Respuestas HTTP sanitizadas (`400`, `422`, `500`, `503`). |
+| A-30 | ALTO | `makemigrations` ejecutado en arranque Docker | **Resuelto** | `entrypoint.sh` ejecuta únicamente `migrate`; `ci.yml` verifica `makemigrations --check --dry-run`. |
+| A-31 | ALTO | Usuario demo inseguro en producción | **Resuelto** | Opt-in explícito con `CREATE_DEMO_USERS` y contraseñas obligatorias; bloqueado en producción. |
+| A-32 | MEDIO | Rutas de cuenta mezcladas con seguridad | **Resuelto** | Separadas en `/api/auth/` y `/api/security/`. |
+| A-33 | MEDIO | Validación inconsistente de teléfonos | **Resuelto** | Normalizada en frontend y backend. |
+| A-34 | MEDIO | Variables `*_API_KEY` desconectadas de la bóveda | **Resuelto** | Sincronizadas automáticamente al arranque mediante `sync_environment_api_keys()`. |
 
 ---
 
-### [MEDIO] Endpoint FHIR completamente publico sin autenticacion
-**Archivo:** `backend/triage/views.py#L400-L465`
+## 4. Seguimiento de Riesgos Posteriores (`P-01 … P-08`)
 
-El endpoint `POST /api/fhir/` acepta y persiste bundles FHIR arbitrarios sin ningun mecanismo de autenticacion. Cualquier actor externo puede inyectar transacciones FHIR falsas en el log clinico del sistema.
-
----
-
-## 3. Arquitectura y Deuda Tecnica Backend
-
-### [ALTO] Historico de sesiones de triaje almacenado solo en `localStorage`
-**Archivo:** `frontend/components/TriageDashboard.tsx#L218-L298`
-
-El historial de sesiones clinicas del panel de triaje se lee y escribe exclusivamente en `localStorage` del navegador (clave `triage_sessions`). Esto implica:
-- Datos clinicos perdidos al limpiar cache del navegador o cambiar de dispositivo.
-- Sin sincronizacion cross-session entre multiples usuarios/terminales hospitalarias.
-- Los datos no estan en base de datos ni son auditables.
-
-La base de datos ya tiene la entidad `TriageSession` con persistencia completa. El historial deberia leerse desde `GET /api/triage/sessions/` en lugar de `localStorage`.
+| # | Sev. | Descripción | Estado actual | Evidencia técnica |
+|:--|:-----|:------------|:--------------|:------------------|
+| P-01 | ALTO | Baja sensibilidad del motor léxico aislado ante signos vitales, paráfrasis y negaciones | **Resuelto** | `vital_signs.py` (18 umbrales), `negation.py` (NegEx, `97,2 %` exactitud en *test*), `ner_model.py` (`RoBERTa v1`) y política `min_critico` (`92,5 %` sensibilidad I–II en *test*). |
+| P-02 | ALTO | Ausencia de partición congelada `test` y validación médica ciega | **Mitigado** | Corpus de 250 casos (`150 dev` / `100 test` congelado), doble anotación ciega y adjudicación médica independiente sobre 50 casos en `BlindReview` (`Kappa = 0,911`, exactitud `80,0 %`). Queda como trabajo futuro un piloto prospectivo con pacientes reales. |
+| P-03 | MEDIO | Salida de relatos seudonimizados hacia API externa en nube | **Resuelto** | Integración de `llm-local` (Ollama GPU `gemma4:e4b-it-qat`) con aislamiento estricto: cero tráfico externo y respaldo local a reglas. |
+| P-04 | MEDIO | Cabecera CSP con `'unsafe-inline'` en `script-src` | **Pendiente** | Requerido por los scripts de hidratación estáticos de Next.js 15; mitigable en el futuro mediante middleware de *nonces* por petición. |
+| P-05 | BAJO | Clave `asr:engine_status` en Redis sin TTL ante muerte abrupta (`SIGKILL`) | **Resuelto** | `publish_asr_status()` y hilo periódico `start_asr_heartbeat` (`ASR_HEARTBEAT_INTERVAL = 30 s`, `ASR_STATUS_TTL = 90 s`) en `backend/transcription/tasks.py`. |
+| P-06 | BAJO | Tamaño de `frontend/components/TriageDashboard.tsx` (~1.890 líneas) | **Pendiente** | Funcional y cubierto por pruebas de regresión en Vitest; refactorización interna adicional diferida para mantenimiento evolutivo. |
+| P-07 | BAJO | Modo GPU NVIDIA y pipeline GitHub Actions pendientes de corrida real | **Resuelto** | Verificado empíricamente sobre NVIDIA GeForce RTX 3070 (`docker-compose.gpu.yml`) y con jobs `backend` (incluyendo `ml/ner/tests`) + `frontend` en `.github/workflows/ci.yml`. |
+| P-08 | BAJO | Perfil de usuario cacheado en `localStorage` | **Resuelto** | Hidratado desde `/api/auth/me/` en `AppNavigation` y pasado como prop tipada. |
 
 ---
 
-### [ALTO] `time.sleep(0.5)` sincronico en endpoint FHIR (worker bloqueado)
-**Archivo:** `backend/triage/views.py#L410`
-
-```python
-time.sleep(0.5)
-```
-
-Este `sleep` bloquea el worker de Gunicorn durante 500ms por cada llamada al endpoint `/api/fhir/`. Con el modelo de workers sincronicos por defecto, esto limita a 2 peticiones/segundo por worker antes de saturar el pool. En un entorno hospitalario con multiples terminales, genera cuellos de botella inmediatos.
-
-**Correccion sugerida:** Eliminar el `sleep`. Si se requiere simular latencia externa, hacerlo como tarea asincrona con Celery.
-
----
-
-### [ALTO] Inicializacion global de `engine` con variable global mutable en `transcription/views.py`
-**Archivo:** `backend/transcription/views.py#L22,27`
-
-```python
-engine = None
-global engine
-```
-
-El uso de una variable global mutable `engine` en un modulo de Django expone condiciones de carrera en entornos multi-worker (multiples instancias Gunicorn). Si dos requests intentan inicializar el engine simultaneamente antes de que `engine` sea asignado, se pueden crear multiples instancias `WhisperModel` en memoria. El `WhisperEngine` ya implementa Singleton con lock; el patron global en la vista duplica responsabilidades.
-
-**Correccion sugerida:** Eliminar la variable `engine` del modulo y llamar directamente `WhisperEngine()` en cada request (el Singleton garantiza una sola instancia).
-
----
-
-### [ALTO] `TriageSession.save()` recomputa `agreement_score` en cada guardado completo
-**Archivo:** `backend/triage/models.py#L28-L37`
-
-El metodo `save()` sobreescrito recalcula `is_level_modified` y `agreement_score` en cada llamada, incluyendo `save(update_fields=['clinical_entities'])` del endpoint `assign_box`. Esto genera recalculos de campos criticos en operaciones que no los modifican, con riesgo de corromper valores si los campos `ai_level`/`final_level` no estan correctamente hidratados en el objeto en memoria.
-
-**Correccion sugerida:** Aplicar el recalculo solo si los campos relevantes estan siendo modificados:
-```python
-def save(self, *args, **kwargs):
-    update_fields = kwargs.get('update_fields')
-    if update_fields is None or 'final_level' in update_fields or 'ai_level' in update_fields:
-        # recalculo
-```
-
----
-
-### [MEDIO] Captura silenciosa de excepciones en AuditLog (`except Exception: pass`)
-**Archivo:** `backend/triage/views.py#L119,176`
-
-```python
-try:
-    AuditLog.objects.create(...)
-except Exception:
-    pass
-```
-
-Si la escritura en `AuditLog` falla (timeout de BD, constraint violation, disco lleno), la excepcion es absorbida en silencio. El sistema continua operando sin trazabilidad clinica, sin alertas, y sin ningun mecanismo de reintento.
-
-**Correccion sugerida:** Loguear el error con `logger.error()` al menos:
-```python
-except Exception as audit_err:
-    logger.error(f"AuditLog write failed for action TRIAGE_CREATED: {audit_err}", exc_info=True)
-```
-
----
-
-### [MEDIO] `evaluation_metrics` carga TODAS las sesiones en memoria sin paginacion
-**Archivo:** `backend/triage/views.py#L198`
-
-```python
-sessions = TriageSession.objects.all().order_by('-created_at')
-```
-
-El calculo de metricas (drift, retencion de sintomas, Kappa) itera sobre el queryset completo cargado en memoria Python. Con miles de sesiones clinicas, esto genera un uso de RAM proporcional al volumen total de datos y degrada la respuesta del endpoint analitico.
-
-**Correccion sugerida:** Usar agregaciones en SQL via `annotate()` y `aggregate()` para drift y conteos, reservando la iteracion Python solo para la lista de sesiones recientes (ya limitada a 10).
-
----
-
-### [MEDIO] Valores hardcodeados en respuestas de `emr_patients`
-**Archivo:** `backend/triage/views.py#L308,325,327`
-
-```python
-box_num = f"BOX-0{((s.id * 3) % 8) + 1}"  # Determinismo falso
-"birth_date": pat.birth_date or "1985-05-12"  # Fecha ejemplo expuesta
-"insurance": pat.insurance or "EPS Sanitas"   # EPS default hardcoded
-```
-
-Datos ficticios se mezclan con datos reales de pacientes en la respuesta del simulador HCE. En produccion, esto podria presentar informacion incorrecta como si fuera real.
-
-**Correccion sugerida:** Retornar `null`/`None` para campos faltantes en lugar de valores ficticios. El frontend debe renderizar el campo como "No registrado".
-
----
-
-### [MEDIO] `ai_analyzer.py` sin manejo de errores HTTP ni timeout para la API de Gemini
-**Archivo:** `backend/triage/ai_analyzer.py#L77-L88`
-
-La llamada a `client.models.generate_content()` no tiene timeout configurado ni manejo de errores de red (timeouts, rate limits `429`, errores de autenticacion `401`). Si la API de Gemini no responde, el worker de Gunicorn queda bloqueado indefinidamente hasta que el SO cierre la conexion.
-
-**Correccion sugerida:** Configurar timeout en el cliente y capturar excepciones de red explicitamente:
-```python
-try:
-    response = client.models.generate_content(...)
-except Exception as api_err:
-    logger.error(f"Gemini API call failed: {api_err}")
-    return {"error": "AI service temporarily unavailable", "fallback": True}
-```
-
----
-
-### [MEDIO] Esquema `SystemConfigUpdateSchema` no utilizado en las vistas de `system_settings`
-**Archivo:** `backend/core/validation.py#L144-L152`
-
-El esquema `SystemConfigUpdateSchema` define campos (`active_nlp_provider`, `auto_snomed_normalization`, `auto_fhir_dispatch`, `session_timeout_seconds`, `max_daily_triages`) que no existen en el modelo `SystemConfiguration`. Hay un desacoplamiento entre el esquema de validacion y el modelo real, lo que significa que los campos adicionales del schema son ignorados silenciosamente sin error.
-
----
-
-### [MEDIO] `db.sqlite3` commiteado en el repositorio
-**Archivo:** `backend/db.sqlite3` (en `.gitignore` no excluido del repo)
-
-La base de datos SQLite local con datos de desarrollo esta rastreada en git. Esto puede exponer:
-- OTPs de verificacion de pruebas.
-- Datos de pacientes ficticios usados en desarrollo.
-- Credenciales cifradas de prueba.
-
-**Correccion sugerida:** Agregar `backend/db.sqlite3` a `.gitignore` y ejecutar `git rm --cached backend/db.sqlite3`.
-
----
-
-### [BAJO] Modulo de logging duplicado entre `whisper_engine.py` y `transcription/views.py`
-**Archivos:** `backend/transcription/whisper_engine.py#L35-L41`, `backend/transcription/views.py#L12-L18`
-
-Ambos modulos configuran manualmente un `FileHandler` hacia el mismo archivo `backend_debug.log`. Esto resulta en entradas duplicadas en el log y competencia por el file descriptor. La configuracion de logging deberia centralizarse en `settings.py` via `LOGGING`.
-
----
-
-## 4. Arquitectura y Deuda Tecnica Frontend
-
-### [ALTO] `useState<any>` en componentes clinicos criticos
-**Archivo:** `frontend/components/TriageDashboard.tsx#L32,63,65`
-
-```typescript
-const [currentUser, setCurrentUser] = useState<any>(null);
-const [analysisResult, setAnalysisResult] = useState<any>(null);
-const [editedEntities, setEditedEntities] = useState<any>(null);
-```
-
-El uso de `any` elimina toda garantia del sistema de tipos en los datos mas criticos del sistema: el perfil del usuario autenticado (y por tanto sus permisos RBAC) y el resultado del analisis de triaje clinico. Un error de forma en la respuesta de la API no generaria error de TypeScript, pasaria silenciosamente y podria causar comportamientos inesperados en la UI clinica.
-
-**Correccion sugerida:** Definir interfaces `UserProfile`, `AnalysisResult`, `TriageEntities` y tipar los estados correctamente.
-
----
-
-### [ALTO] `TriageDashboard.tsx` tiene 1.451 lineas — componente monolitico
-**Archivo:** `frontend/components/TriageDashboard.tsx`
-
-Con mas de 1.400 lineas, el componente de dashboard de triaje combina: logica de grabacion ASR, manejo del transcript editable, analisis clinico, stepper de niveles, historial de sesiones, exportacion PDF/JSON, formulario de paciente, sincronizacion FHIR y visualizacion de entidades NER. Esto viola el principio de responsabilidad unica y hace el componente:
-- Dificilmente testeable en aislamiento.
-- Propenso a re-renders completos por cambios de estado locales.
-- Imposible de mantener en paralelo por multiples desarrolladores.
-
-**Correccion sugerida:** Descomponer en: `<ASRRecorder>`, `<TranscriptEditor>`, `<PatientForm>`, `<TriageLevelStepper>`, `<TriageResultPanel>`, `<SessionHistory>`.
-
----
-
-### [MEDIO] `fetchWithAuth` no implementa renovacion automatica del access token
-**Archivo:** `frontend/lib/api.ts#L30-L37`
-
-Cuando el backend retorna `401`, el cliente elimina los tokens y redirige a `/login`, sin intentar renovar el `access_token` usando el `refresh_token`. Esto genera sesiones interrumpidas cada 8 horas (lifetime configurado) incluso si el usuario sigue activo.
-
-**Correccion sugerida:** Implementar logica de refresh automatico con `POST /api/auth/refresh/` antes de redirigir al login, con control de loop para evitar refreshes infinitos.
-
----
-
-### [MEDIO] Lectura de perfil de usuario desde `localStorage` sin validacion de esquema
-**Archivo:** `frontend/components/TriageDashboard.tsx#L39-L44`
-
-```typescript
-const stored = localStorage.getItem('user_profile');
-if (stored) { setCurrentUser(JSON.parse(stored)); }
-catch (e) {}
-```
-
-El perfil del usuario (y sus permisos RBAC) se lee de `localStorage` y se parsea sin validacion de esquema. Si el objeto en `localStorage` esta corrupto, es de una version anterior o fue manipulado, los permisos podrian aplicarse incorrectamente (e.g., `can_edit_symptoms: undefined` evaluaria como `truthy` o `falsy` dependiendo del uso).
-
-**Correccion sugerida:** Validar el perfil contra un esquema Zod antes de usarlo, o re-fetch del servidor en cada montaje del componente.
-
----
-
-### [MEDIO] `validation.tsx` declara funciones de validacion pero los componentes principales no las usan consistentemente
-**Archivo:** `frontend/lib/validation.tsx`, `frontend/components/ConfigPanel.tsx`, `frontend/components/SecurityPanel.tsx`
-
-Las funciones `validateEmail`, `validateOtpCode`, `validatePhone` existen en `lib/validation.tsx`, pero los paneles de Configuracion y Seguridad realizan validacion inline ad-hoc sin usar el modulo centralizado. Falta consistencia en la experiencia de validacion entre secciones.
-
----
-
-### [MEDIO] GEMINI_API_KEY expuesto en variables de entorno del contenedor frontend
-**Archivo:** `docker-compose.yml#L114`
-
-```yaml
-- GEMINI_API_KEY=${GEMINI_API_KEY:-}
-```
-
-La clave de API de Gemini es inyectada en el contenedor frontend. En Next.js, las variables sin el prefijo `NEXT_PUBLIC_` no se exponen al cliente, pero su presencia en el contenedor expone la variable al filesystem del contenedor, que puede ser inspeccionado si el contenedor es comprometido. La API key de Gemini deberia residir exclusivamente en el backend.
-
----
-
-### [BAJO] Puerto PostgreSQL `5432` expuesto directamente en Docker Compose
-**Archivo:** `docker-compose.yml#L10-L11`
-
-```yaml
-ports:
-  - "5432:5432"
-```
-
-El puerto de la base de datos esta expuesto al host. En produccion, esto permite conexiones directas a PostgreSQL desde la red del host o desde redes adyacentes si el firewall no esta correctamente configurado. PostgreSQL deberia ser accesible solo dentro de la red interna `ai_triage_network`.
-
----
-
-## 5. Cobertura de Pruebas — Estado Actual y Suites Automatizadas
-
-El proyecto implementa un estándar de pruebas fullstack con skill de testing especializada (`.agents/skills/fullstack-testing/SKILL.md`), acumulando **118 pruebas automatizadas con 100% de éxito**:
-
-- **Backend (pytest + pytest-django):** 69 pruebas unitarias y de integración.
-- **Frontend (Vitest + React Testing Library):** 49 pruebas de componentes, hooks y validación.
-
-| Área | Estado | Cobertura Implementada |
-|:-----|:-------|:-----------------------|
-| `accounts` — autenticación y OTP | Cubierto | 13 tests: login, registro, OTP 6 dígitos, reseteo de clave, rate limiting |
-| `accounts` — demo users y seguridad | Cubierto | 5 tests: omisión en prod, remediación de claves débiles, flags CLI |
-| `accounts` — RBAC y auditoría | Cubierto | 5 tests: permisos granulares, rechazo de no-admin, inmutabilidad AuditLog |
-| `patients` — integridad relacional | Cubierto | 3 tests: unicidad de documento, ordenamiento, creación de registros |
-| `triage` — sesiones y concordancia | Cubierto | 10 tests: cálculo Kappa, drift, override médico, asignación de box, auth check |
-| `triage` — interoperabilidad FHIR | Cubierto | 4 tests: validación de bundles R4, logs de transacciones, payload JSON |
-| `system_settings` — cifrado y llaves | Cubierto | 9 tests: Fernet AES-256, auto-detección, sincronización automática `.env` |
-| `transcription` — Whisper ASR | Cubierto | 11 tests: Singleton, poda TTL (1800s), normalización SNOMED, redacción de trazas |
-| `core` — validación Pydantic v2 | Cubierto | 9 tests: schemas tipados, validación estricta de OTP/teléfonos/emails |
-| Frontend — componentes y navegación | Cubierto | 28 tests: AppNavigation (drawer móvil), EMRSimulator, FHIRMonitor, Paneles |
-| Frontend — validación reactiva | Cubierto | 17 tests: esquemas Zod, regex de teléfonos/emails/cédulas, InputWarning |
-| Frontend — utilidades HTTP y JWT | Cubierto | 4 tests: inyección de Bearer, rotación de tokens, manejo de 401 |
-
----
-
-## 6. Inconsistencias de Diseño
-
-### Action string no estandarizado en AuditLog
-**Archivo:** `backend/triage/views.py#L363`
-
-```python
-action="ASSIGN_EMR_BOX"  # vs otros: 'TRIAGE_CREATED', 'TRIAGE_OVERRIDE'
-```
-
-La mayoría de acciones usan snake_case upper (`TRIAGE_CREATED`) pero `ASSIGN_EMR_BOX` usa un formato distinto al esperado `EMR_BOX_ASSIGNED`. Sin un enum centralizado para las acciones de auditoria, la inconsistencia se propagará y dificultará queries analíticos sobre el log.
-
----
-
-### `google-genai==0.3.0` es una versión muy antigua (actual: 1.x)
-**Archivo:** `backend/requirements.txt#L7`
-
-La librería `google-genai` en versión `0.3.0` es una versión alpha antigua. La API pública cambió significativamente en versiones `1.x`. El código ya usa `client.models.generate_content()` que corresponde a la API de la versión actual, lo que sugiere que puede haber incompatibilidades silenciosas o que la librería es más nueva de lo que el pin indica.
-
----
-
-### Dependencias depuradas
-Se eliminaron dependencias superfluas (`boto3`, `sendgrid`) que aumentaban el peso del contenedor sin ser utilizadas en el código.
-
----
-
-## 7. Resumen de Prioridades y Estado de Resolución
-
-| # | Severidad | Descripción | Archivo | Estado |
-|:--|:----------|:------------|:--------|:-------|
-| 1 | CRITICO | Todo `TriageSessionViewSet` sin autenticación (`AllowAny`) | `triage/views.py:23` | **RESUELTO** (`012d8a6`) — Aplicado `IsAuthenticatedOrReadOnly` |
-| 2 | CRITICO | Sin rate limiting en endpoints de auth y OTP | `config/settings.py` | **RESUELTO** (`012d8a6`) — Throttles `auth` (10/min) y `otp` (5/min) |
-| 3 | ALTO | JWT refresh tokens sin lista negra | `config/settings.py:144` | **RESUELTO** (`012d8a6`) — `token_blacklist` y rotación activa |
-| 4 | ALTO | Tokens en `localStorage` (XSS vulnerable) | `lib/api.ts`, `login/page.tsx` | **EN HOJA DE RUTA** — Requiere cookies httpOnly en próxima iteración |
-| 5 | ALTO | `SECRET_KEY` con fallback inseguro hardcodeado | `config/settings.py:14` | **RESUELTO** (`012d8a6`) — Fallback eliminado; error explícito |
-| 6 | ALTO | Historial clínico solo en `localStorage` | `TriageDashboard.tsx:218` | **EN HOJA DE RUTA** — Persistencia completa en BD lista; migrar UI histórico |
-| 7 | ALTO | `time.sleep(0.5)` sincrónico bloquea workers | `triage/views.py:410` | **RESUELTO** (`012d8a6`) — Bloqueo sincrónico eliminado |
-| 8 | ALTO | Variable global `engine` con condición de carrera | `transcription/views.py:22` | **RESUELTO** (`9267476`) — Singleton `WhisperEngine` directo |
-| 9 | ALTO | `TriageDashboard.tsx` monolítico de 1.451 líneas | `TriageDashboard.tsx` | **EN HOJA DE RUTA** — Refactor modular planeado |
-| 10 | ALTO | `useState<any>` en datos clínicos críticos (sin tipado) | `TriageDashboard.tsx:32,63,65` | **RESUELTO** (`4e31c14`) — Interfaces `UserProfile`, `AnalysisResult`, etc. |
-| 11 | ALTO | Sin manejo de timeout ni errores en llamadas a Gemini | `ai_analyzer.py:77` | **RESUELTO** (`9267476`) — Timeout 30s y try/except estructurado |
-| 12 | MEDIO | `TriageSession.save()` recalcula en updates parciales | `triage/models.py:28` | **RESUELTO** (`9267476`) — Evaluación condicional de campos |
-| 13 | MEDIO | `db.sqlite3` rastreado en git | `backend/db.sqlite3` | **VERIFICADO** — Excluido en `.gitignore` y no rastreado |
-| 14 | MEDIO | Puerto PostgreSQL 5432 expuesto al host en Docker | `docker-compose.yml:10` | **RESUELTO** (`012d8a6`) — Puerto aislado en red interna |
-| 15 | MEDIO | Dependencias no utilizadas (`boto3`, `sendgrid`) | `requirements.txt:11,30` | **RESUELTO** (`9267476`) — Dependencias eliminadas |
-| 16 | CRITICO | Exposición de detalles internos de excepción en ASR | `transcription/views.py:58` | **RESUELTO** (`3547a8a`) — Redacción de stacktrace en respuestas HTTP |
-| 17 | ALTO | Generación de migraciones (`makemigrations`) en build Docker | `backend/Dockerfile:32` | **RESUELTO** (`3547a8a`) — Removida de build; delegada a `entrypoint.sh` |
-| 18 | ALTO | Creación automática de usuario demo inseguro en producción | `accounts/management/...` | **RESUELTO** (`3547a8a`) — Omitido en `ENVIRONMENT=production` |
-| 19 | MEDIO | Mezcla de endpoints de cuentas y seguridad administrativa | `accounts/urls.py` | **RESUELTO** (`3547a8a`) — Desacople en `accounts/urls_security.py` |
-| 20 | MEDIO | Validación inconsistente de teléfonos y falta de tests | `frontend/lib/validation.tsx` | **RESUELTO** (`3547a8a`) — Schema Zod estandarizado y tests asociados |
-| 21 | MEDIO | Desconexión entre variables `.env` y bóveda de credenciales | `system_settings/services.py` | **RESUELTO** (`16e74c5`) — Sincronización automática de llaves y `.env.example` |
-
+## 5. Cobertura de Pruebas Automatizadas
+
+| Suite | Comando de verificación | Alcance principal | Total |
+| :--- | :--- | :--- | ---: |
+| **Backend (`Django + DRF`)** | `pytest --create-db backend` | Autenticación, OTP, cookies JWT, throttling, RBAC, cifrado `MultiFernet`, motor Christus Sinergia (criterio por criterio), umbrales de signos vitales, NegEx, RAG híbrido (`pgvector` + BM25), caché SHA-256 sin fuga entre pacientes, LLM local/nube, métricas Kappa/bootstrap, `BlindReview`, validación FHIR R4 con códigos SNOMED CT/CIE-10/ATC, ASR simulado con heartbeat TTL y comandos de benchmark. | **602** (`601` pasan + `1 xfail`) |
+| **Machine Learning (`ml/ner`)** | `pytest ml/ner/tests -p no:django` | Alineación BIO de subtokens RoBERTa, fusión de corpus públicos (SympTEMIST, DisTEMIST, DrugTEMIST), aumentación controlada, *Uniform/Greedy Model Soup* sobre `safetensors`, postprocesado y auditoría de spans. | **43** |
+| **Frontend (`Next.js + Vitest`)** | `pnpm --dir frontend test` | Navegación por permisos, `TriageDashboard`, `BlindReview`, `MetricsDashboard`, `EvaluationResults`, `EMRSimulator`, `FHIRMonitor`, exportación dual FHIR R4 / HL7 v2.5.1 con códigos clínicos verificados, `NormalizationMonitor`, `SecurityPanel`, `ConfigPanel`, `fetchWithAuth` y validadores. | **93** (`14` suites) |
+| **Total del repositorio** | `.github/workflows/ci.yml` | Verificación continua de migraciones, tests `backend` (`85 %` de cobertura sobre lógica determinista de dominio y control; pesos neuronales aislados con dobles deterministas en CI y evaluados de extremo a extremo sobre hardware real mediante `evaluate_asr`, `evaluate_extraction` y `evaluate_benchmark`) + `ml` + `frontend`, linter ESLint y build de producción Next.js. | **738** (`737` pasan + `1 xfail`) |

@@ -1,0 +1,360 @@
+{
+  "comparison": {
+    "split": "test",
+    "baseline": "test_reglas",
+    "rows": [
+      {
+        "name": "test_hibrido_local-gemma4-e4b-it-qat_pv2_min-critico",
+        "label": "LLM local (gemma4:e4b-it-qat) + reglas (prompt v2, política min_critico, NER)",
+        "engine": "hibrido",
+        "model": "local:gemma4:e4b-it-qat",
+        "model_versions": [
+          "gemma4:e4b-it-qat"
+        ],
+        "prompt_version": "v2",
+        "policy": "min_critico",
+        "n": 100,
+        "exact_agreement": 73.0,
+        "exact_agreement_ci95": [
+          64.0,
+          81.0
+        ],
+        "cohen_kappa": 0.898,
+        "cohen_kappa_ci95": [
+          0.828,
+          0.945
+        ],
+        "critical_sensitivity": 92.5,
+        "critical_sensitivity_ci95": [
+          83.0,
+          100.0
+        ],
+        "undertriage_rate": 12.0,
+        "undertriage_rate_ci95": [
+          6.0,
+          19.0
+        ],
+        "overtriage_rate": 15.0,
+        "critical_undertriage_count": 3,
+        "latency_ms_p50": 15220,
+        "latency_ms_p95": 19695,
+        "hardware": "NVIDIA GeForce RTX 3070 8GB (Ollama GPU)",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      },
+      {
+        "name": "test_reglas",
+        "label": "Reglas (Christus Sinergia / Res. 5596)",
+        "engine": "reglas",
+        "model": null,
+        "model_versions": [],
+        "prompt_version": null,
+        "policy": null,
+        "n": 100,
+        "exact_agreement": 39.0,
+        "exact_agreement_ci95": [
+          29.0,
+          49.0
+        ],
+        "cohen_kappa": 0.339,
+        "cohen_kappa_ci95": [
+          0.189,
+          0.511
+        ],
+        "critical_sensitivity": 37.5,
+        "critical_sensitivity_ci95": [
+          22.5,
+          54.5
+        ],
+        "undertriage_rate": 56.0,
+        "undertriage_rate_ci95": [
+          46.0,
+          66.0
+        ],
+        "overtriage_rate": 5.0,
+        "critical_undertriage_count": 25,
+        "latency_ms_p50": 5,
+        "latency_ms_p95": 8,
+        "hardware": "x86_64",
+        "cost_usd_per_1000": 0.0,
+        "privacy": "local (los datos no salen del servidor)"
+      }
+    ],
+    "paired": [
+      {
+        "name": "test_hibrido_local-gemma4-e4b-it-qat_pv2_min-critico",
+        "baseline": "test_reglas",
+        "n": 100,
+        "metrics": {
+          "exact_agreement": {
+            "metric": "exact_agreement",
+            "n": 100,
+            "diff": 34.0,
+            "ci95": [
+              22.0,
+              46.0
+            ]
+          },
+          "cohen_kappa": {
+            "metric": "cohen_kappa",
+            "n": 100,
+            "diff": 0.559,
+            "ci95": [
+              0.371,
+              0.717
+            ]
+          },
+          "critical_sensitivity": {
+            "metric": "critical_sensitivity",
+            "n": 100,
+            "diff": 55.0,
+            "ci95": [
+              38.9,
+              70.0
+            ]
+          },
+          "undertriage_rate": {
+            "metric": "undertriage_rate",
+            "n": 100,
+            "diff": -44.0,
+            "ci95": [
+              -54.0,
+              -34.0
+            ]
+          }
+        }
+      }
+    ],
+    "critical_misses": {
+      "test_hibrido_local-gemma4-e4b-it-qat_pv2_min-critico": [
+        {
+          "id": "N092",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        },
+        {
+          "id": "N097",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        },
+        {
+          "id": "N098",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 3,
+          "rule_level": 4,
+          "distance": 1
+        }
+      ],
+      "test_reglas": [
+        {
+          "id": "B010",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N003",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N005",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N010",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N056",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N058",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N062",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N063",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N064",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N066",
+          "tipo": "coloquial",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "N075",
+          "tipo": "negacion",
+          "reference_level": 1,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 4
+        },
+        {
+          "id": "B018",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B021",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "B022",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N069",
+          "tipo": "tipico",
+          "reference_level": 1,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 3
+        },
+        {
+          "id": "N083",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N086",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N089",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N096",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 5,
+          "rule_level": 5,
+          "distance": 3
+        },
+        {
+          "id": "N084",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N091",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N092",
+          "tipo": "coloquial",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N094",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N097",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        },
+        {
+          "id": "N098",
+          "tipo": "tipico",
+          "reference_level": 2,
+          "predicted_level": 4,
+          "rule_level": 4,
+          "distance": 2
+        }
+      ]
+    },
+    "generated_at": "2026-10-26T07:26:12+00:00"
+  }
+}

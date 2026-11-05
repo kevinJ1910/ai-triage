@@ -1,4 +1,4 @@
-import { generateFHIRBundle, generateHL7v2Message, TRIAGE_LEVEL_METADATA, TriageSession } from '../lib/hl7';
+import { generateFHIRBundle, generateHL7v2Message, parseVital, TRIAGE_LEVEL_METADATA, TriageSession } from '../lib/hl7';
 
 describe('HL7 Interoperability Standards Generator', () => {
   const mockSession: TriageSession = {
@@ -138,4 +138,177 @@ describe('HL7 Interoperability Standards Generator', () => {
       expect(obxProtocol).toBeDefined();
     });
   });
+
+  describe('Entidades ampliadas: diagnosticos, alergias, negados y signos vitales codificados', () => {
+    const extended: TriageSession = {
+      ...mockSession,
+      analysisResult: {
+        ...mockSession.analysisResult,
+        entities: {
+          symptoms: ['Dolor toracico'],
+          diagnoses: ['Sindrome coronario agudo'],
+          allergies: ['Penicilina'],
+          negated_findings: ['Disnea'],
+          history: [],
+          medications: [],
+          vitals: ['PA: 160/95 mmHg', 'FC: 98 lpm', 'SpO2: 94%', 'saturacion normal'],
+        },
+      },
+    };
+
+    it('parses compact vitals into LOINC codes and numeric values', () => {
+      expect(parseVital('PA: 160/95 mmHg')).toMatchObject({ loinc: '85354-9', systolic: 160, diastolic: 95, ucum: 'mm[Hg]' });
+      expect(parseVital('T: 38.9°C')).toMatchObject({ loinc: '8310-5', value: 38.9, ucum: 'Cel' });
+      expect(parseVital('saturacion normal')).toBeNull();
+      expect(parseVital('PA: 160')).toBeNull();
+    });
+
+    it('exports AllergyIntolerance, a provisional diagnosis and a refuted Condition', () => {
+      const resources = generateFHIRBundle(extended).entry.map((e: any) => e.resource);
+      const allergy = resources.find((r: any) => r.resourceType === 'AllergyIntolerance');
+      expect(allergy.code.text).toBe('Penicilina');
+      expect(allergy.patient.reference).toBe('Patient/pat-987654');
+      expect(allergy.verificationStatus.coding[0].code).toBe('unconfirmed');
+
+      const refuted = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Disnea');
+      expect(refuted.verificationStatus.coding[0].code).toBe('refuted');
+      expect(refuted.clinicalStatus).toBeUndefined();
+
+      const dx = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Sindrome coronario agudo');
+      expect(dx.verificationStatus.coding[0].code).toBe('provisional');
+    });
+
+    it('codes vital-sign Observations with LOINC and UCUM quantities', () => {
+      const vitals = generateFHIRBundle(extended).entry
+        .map((e: any) => e.resource)
+        .filter((r: any) => r.resourceType === 'Observation' && r.category?.[0]?.coding?.[0]?.code === 'vital-signs');
+      const bp = vitals.find((r: any) => r.code.coding?.[0]?.code === '85354-9');
+      expect(bp.component.map((c: any) => c.valueQuantity.value)).toEqual([160, 95]);
+      const hr = vitals.find((r: any) => r.code.coding?.[0]?.code === '8867-4');
+      expect(hr.valueQuantity).toEqual({ value: 98, unit: 'lpm', system: 'http://unitsofmeasure.org', code: '/min' });
+      const free = vitals.find((r: any) => r.code.text === 'saturacion normal');
+      expect(free.valueString).toBe('saturacion normal');
+    });
+
+    it('adds AL1 and DG1 segments and does not export negated findings as diagnoses', () => {
+      const segments = generateHL7v2Message(extended).split('\r');
+      expect(segments).toContain('AL1|1||^Penicilina^L');
+      const dg1 = segments.filter((s: string) => s.startsWith('DG1|'));
+      expect(dg1.some((s: string) => s.includes('Sindrome coronario agudo'))).toBe(true);
+      expect(dg1.some((s: string) => s.includes('Disnea'))).toBe(false);
+      expect(segments.some((s: string) => s.startsWith('OBX|') && s.includes('8480-6^Systolic blood pressure^LN||160|'))).toBe(true);
+      const names = segments.map((s: string) => s.split('|')[0]);
+      expect(names.indexOf('AL1')).toBeLessThan(names.indexOf('DG1'));
+    });
+  });
+
+  describe('Codificacion terminologica SNOMED CT, CIE-10 y ATC desde normalized_terms', () => {
+    const codedSession: TriageSession = {
+      ...mockSession,
+      analysisResult: {
+        ...mockSession.analysisResult,
+        entities: {
+          symptoms: ['Dolor torácico', 'Tos'],
+          diagnoses: ['Crisis hipertensiva'],
+          history: ['Hipertensión arterial'],
+          medications: ['Losartán 50mg'],
+          allergies: ['Penicilina'],
+          negated_findings: ['Disnea'],
+          vitals: ['PA: 190/120 mmHg'],
+        },
+        normalized_terms: [
+          {
+            raw_term: 'dolor en el pecho',
+            medical_term: 'Dolor torácico',
+            code: 'R07.4',
+            code_system: 'CIE-10',
+            code_snomed: '29857009',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'crisis hipertensiva',
+            medical_term: 'Crisis hipertensiva',
+            code: 'I16.9',
+            code_system: 'CIE-10',
+            code_snomed: '706882009',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'hipertension arterial',
+            medical_term: 'Hipertensión arterial',
+            code: 'I10',
+            code_system: 'CIE-10',
+            code_snomed: '38341003',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'losartan',
+            medical_term: 'Losartán',
+            code: 'C09CA01',
+            code_system: 'ATC',
+            code_snomed: '373567002',
+            snomed_valid: true,
+            valid: true,
+          },
+          {
+            raw_term: 'penicilina',
+            medical_term: 'Penicilina',
+            code_snomed: '764146007',
+            snomed_valid: true,
+            valid: false,
+          },
+          {
+            raw_term: 'medicamentos',
+            medical_term: 'Medicamentos generales',
+            code: 'Z79.899',
+            code_system: 'CIE-10',
+            valid: false,
+          },
+        ],
+      },
+    };
+
+    it('attaches verified SNOMED CT, ICD-10 and ATC codes across Condition, Encounter, MedicationStatement and AllergyIntolerance', () => {
+      const bundle = generateFHIRBundle(codedSession);
+      const resources = bundle.entry.map((e: any) => e.resource);
+
+      const encounter = resources.find((r: any) => r.resourceType === 'Encounter');
+      expect(encounter.reasonCode[0].coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '29857009', display: 'Dolor torácico' },
+        { system: 'http://hl7.org/fhir/sid/icd-10', code: 'R07.4', display: 'Dolor torácico' },
+      ]);
+      // "Tos" must NOT falsely match substring inside "medicamentos"
+      expect(encounter.reasonCode[1].coding).toEqual([
+        { system: 'http://snomed.info/sct', display: 'Tos' },
+      ]);
+
+      const dxCond = resources.find((r: any) => r.resourceType === 'Condition' && r.code.text === 'Crisis hipertensiva');
+      expect(dxCond.code.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '706882009', display: 'Crisis hipertensiva' },
+        { system: 'http://hl7.org/fhir/sid/icd-10', code: 'I16.9', display: 'Crisis hipertensiva' },
+      ]);
+
+      const medStmt = resources.find((r: any) => r.resourceType === 'MedicationStatement');
+      expect(medStmt.medicationCodeableConcept.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '373567002', display: 'Losartán' },
+        { system: 'http://www.whocc.no/atc', code: 'C09CA01', display: 'Losartán' },
+      ]);
+
+      const allergy = resources.find((r: any) => r.resourceType === 'AllergyIntolerance');
+      expect(allergy.code.coding).toEqual([
+        { system: 'http://snomed.info/sct', code: '764146007', display: 'Penicilina' },
+      ]);
+    });
+
+    it('emits ICD-10 and SNOMED CT codes in HL7 v2.5.1 DG1 and AL1 segments when normalized', () => {
+      const segments = generateHL7v2Message(codedSession).split('\r');
+      expect(segments).toContain('AL1|1||764146007^Penicilina^SNOMED-CT');
+      expect(segments.some((s: string) => s.startsWith('DG1|1|I10|I16.9^Crisis hipertensiva^ICD-10|'))).toBe(true);
+      expect(segments.some((s: string) => s.startsWith('DG1|2|I10|R07.4^Dolor torácico^ICD-10|'))).toBe(true);
+    });
+  });
+
 });

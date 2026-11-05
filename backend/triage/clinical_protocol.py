@@ -2,6 +2,8 @@ import re
 import unicodedata
 from typing import Dict, Any, List, Optional
 
+from .negation import find_affirmed
+
 # Protocolo Institucional de Triaje: Christus Sinergia Salud / Resolucion 5596 Minsalud Colombia
 
 CHRISTUS_SINERGIA_LEVELS = {
@@ -131,26 +133,32 @@ def _normalize_text(text: str) -> str:
     return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
 
 
-def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[str]] = None) -> Dict[str, Any]:
+def is_rule_fallback(rule_result: Dict[str, Any]) -> bool:
+    """True cuando el motor de reglas no hallo patron especifico ni escalado vital y aplico descarte 4/5."""
+    return float(rule_result.get("confidence", 1.0)) <= 0.80
+
+
+def _evaluate_patterns(transcript: str, symptoms: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Motor determinista de clasificacion de triaje basado estrictamente en el protocolo
-    institucional Christus Sinergia Salud.
-    Sirve como mecanismo de garantia asistencial si el LLM falla, no responde (503) o se excede el timeout.
+    Clasificacion por patrones lexicos del protocolo Christus Sinergia Salud (niveles 1-5 en cascada).
+    Un patron solo dispara su nivel si alguna coincidencia no esta negada ("niega dolor toracico").
     """
     combined = transcript + " " + " ".join(symptoms or [])
     norm = _normalize_text(combined)
 
     # 1. Reglas de Triage 1 (Reanimacion - Inmediata)
     triage1_patterns = [
-        (r"\b(paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado sin responder|coma)\b", "Inconciencia o ausencia de signos vitales"),
+        # "paro" y "coma" sueltos casaban con frases cotidianas ("cuando me paro", "que coma").
+        (r"\b(paro (?:cardiaco|cardiorrespiratorio|respiratorio)|(?:un|en) paro|sin signos vitales|no respira|inconsciente|inconciencia|desmayado sin responder|(?:en|estado de) coma|comatoso)\b", "Inconciencia o ausencia de signos vitales"),
         (r"\b(asfixia|cianosis severa|paro respiratorio|dificultad respiratoria severa|no puede respirar nada)\b", "Dificultad respiratoria severa con riesgo vital"),
         (r"\b(hemorragia masiva|desangrando|sangrado exanguinante|amputacion|perdida de miembro|perdida de organo)\b", "Hemorragia masiva o pérdida de miembro u órgano"),
         (r"\b(parto expulsivo|coronando|bebe saliendo|naciendo ya)\b", "Trabajo de parto expulsivo"),
         (r"\b(quemadura en todo el cuerpo|gran quemado|hipotermia severa)\b", "Quemaduras corporales extensas o hipotermia severa"),
-        (r"\b(politraumatismo severo|atropellado alta velocidad|caida de gran altura)\b", "Traumatismos severos múltiples")
+        (r"\b(politraumatismo severo|atropellado alta velocidad|caida de gran altura)\b", "Traumatismos severos múltiples"),
+        (r"\b(?:abuso sexual|agresion sexual|violacion)\b.*\b(?:menor a 72|menos de 72|hace (?:unas|pocas|\d+) horas|hoy|anoche|ayer)\b", "Abuso sexual menor a 72 horas"),
     ]
     for pattern, reason in triage1_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 1,
                 "name": "Reanimación",
@@ -163,18 +171,20 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
     # 2. Reglas de Triage 2 (Emergencia - < 30 min)
     triage2_patterns = [
         (r"\b(dolor (de|en el) pecho|opresion toracica|dolor toracico|infarto|angina|irradiado al brazo|irradiado a la mandibula)\b", "Dolor torácico con signos de alarma (sospecha SCA)"),
-        (r"\b(convulsion|convulsionando|estado convulsivo|crisis epileptica|estatus)\b", "Estado convulsivo"),
+        (r"\b(convulsion(?:es)?|convulsionando|estado convulsivo|crisis epilepticas?|estatus)\b", "Estado convulsivo"),
         (r"\b(crisis hipertensiva|presion muy alta|presion 180|presion 200|emergencia hipertensiva)\b", "Crisis hipertensiva"),
-        (r"\b(diabetes descompensada|cetoacidosis|glucosa >|azucar 400|azucar 500|coma diabetico)\b", "Diabetes descompensada"),
+        (r"\b(diabetes descompensada|cetoacidosis|glucosa ?> ?\d+|azucar 400|azucar 500|coma diabetico)\b", "Diabetes descompensada"),
         (r"\b(dificultad respiratoria moderada|ahogo moderado|tirajes intercostales|saturacion menor|sat < 90)\b", "Dificultad respiratoria moderada"),
         (r"\b(fractura expuesta|hueso afuera|hueso visible)\b", "Fractura expuesta"),
-        (r"\b(sangrado vaginal.*embaraz|embarazada.*sangr|metrorragia)\b", "Sangrado vaginal en paciente embarazada"),
+        (r"\b(sangrado vaginal.*embaraz\w*|embarazada.*sangr\w*|metrorragia)\b", "Sangrado vaginal en paciente embarazada"),
+        (r"\b(trabajo de parto|contracciones cada \d+ minutos|rompio fuente)\b", "Trabajo de parto"),
+        (r"\b(?:abuso sexual|agresion sexual|violacion)\b", "Abuso sexual mayor a 72 horas"),
         (r"\b(intoxicacion|envenenamiento|tomo veneno|ingestion de toxicos|sobredosis)\b", "Ingestión de sustancias tóxicas o envenenamiento"),
         (r"\b(agitacion psicomotora|brote psicotico|intento de suicidio|agresivo incontrolable)\b", "Agitación psicomotora aguda"),
         (r"\b(quemadura de tercer grado|quemadura profunda|quemadura de 3er grado)\b", "Quemadura de III grado")
     ]
     for pattern, reason in triage2_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 2,
                 "name": "Emergencia",
@@ -187,15 +197,15 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
     # 3. Reglas de Triage 3 (Urgencia - < 120 min)
     triage3_patterns = [
         (r"\b(vertigo severo|mareo incapacitante|no se puede parar)\b", "Vértigo severo incapacitante"),
-        (r"\b(dificultad respiratoria leve|disnea leve|silbido en el pecho|sibilancia)\b", "Dificultad respiratoria leve"),
-        (r"\b(vomito y diarrea|deshidratacion|no tolera via oral|vomitando todo|diarrea abundante)\b", "Vómito y diarrea con signos de deshidratación"),
+        (r"\b(dificultad respiratoria leve|disnea leve|silbidos? en el pecho|sibilancias?)\b", "Dificultad respiratoria leve"),
+        (r"\b(vomito y diarrea(?! sin deshidrat)|(?<!sin )deshidratacion|no tolera via oral|vomitando todo|diarrea abundante)\b", "Vómito y diarrea con signos de deshidratación"),
         (r"\b(dialisis|fistula arteriovenosa|insuficiencia renal aguda)\b", "Síntomas asociados a tratamiento de diálisis"),
         (r"\b(reaccion alergica|alergia con brote|urticaria generalizada|ronchas en todo el cuerpo)\b", "Reacción alérgica con brote generalizado"),
         (r"\b(quemadura de segundo grado|quemadura 2do grado|ampollas por quemadura)\b", "Quemadura de II o III grado localizada"),
         (r"\b(trauma moderado|golpe fuerte|esguince severo|luxacion|deformidad sin herida expuesta)\b", "Trauma moderado con dolor agudo")
     ]
     for pattern, reason in triage3_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 3,
                 "name": "Urgencia",
@@ -207,16 +217,16 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
 
     # 4. Reglas de Triage 4 (Consulta Prioritaria - Direccionamiento EPS)
     triage4_patterns = [
-        (r"\b(tos y congestion|gripe|resfriado comun|congestiona|rinorrea|moqueo)\b", "Tos y congestión respiratoria alta"),
+        (r"\b(tos y congestion|gripe|gripa|resfriado comun|congestiona|rinorrea|moqueo)\b", "Tos y congestión respiratoria alta"),
         (r"\b(faringitis|amigdalitis|dolor de garganta|placas en la garganta|odinofagia)\b", "Faringitis o amigdalitis aguda"),
-        (r"\b(vomito.*sin deshidrat|diarrea.*sin deshidrat|gastroenteritis leve)\b", "Vómito o diarrea sin deshidratación"),
+        (r"\b(vomito.*sin deshidrat\w*|diarrea.*sin deshidrat\w*|gastroenteritis leve)\b", "Vómito o diarrea sin deshidratación"),
         (r"\b(ardor al orinar|chistata|infeccion urinaria leve|disuria)\b", "Ardor al orinar o sospecha de infección local"),
         (r"\b(dolor de cabeza leve|dolor leve.*24 horas|dolor moderado.*dias)\b", "Dolor leve a moderado de más de 24 horas de evolución"),
         (r"\b(trauma leve|golpe leve|raspada|herida superficial)\b", "Trauma menor superficial"),
         (r"\b(ansiedad|depresion|crisis de angustia leve)\b", "Ansiedad o depresión sin ideación autolítica")
     ]
     for pattern, reason in triage4_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 4,
                 "name": "Consulta Prioritaria",
@@ -236,7 +246,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         (r"\b(formulacion de medicamentos|receta|renovacion de formula)\b", "Formulación de medicamentos o control rutinario")
     ]
     for pattern, reason in triage5_patterns:
-        if re.search(pattern, norm):
+        if find_affirmed(pattern, norm):
             return {
                 "level": 5,
                 "name": "Consulta Externa",
@@ -247,7 +257,7 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
             }
 
     # Fallback por defecto si no encaja en patrones criticos: Nivel 4 o 5 segun presencia de dolor
-    if "dolor" in norm or "fiebre" in norm:
+    if find_affirmed(r"\b(dolor|duele|fiebre)\b", norm):
         return {
             "level": 4,
             "name": "Consulta Prioritaria",
@@ -265,3 +275,89 @@ def evaluate_christus_sinergia_triage(transcript: str, symptoms: Optional[List[s
         "confidence": 0.78,
         "protocol": "Christus Sinergia Salud"
     }
+
+
+# Escalado por signos vitales (adultos). Umbrales fijados desde referencias publicadas, NO ajustados al
+# corpus de evaluacion, y pendientes de validacion por el equipo clinico:
+#   Nivel 2: un solo parametro con 3 puntos en NEWS2 (Royal College of Physicians, 2017) exige respuesta
+#            urgente: FR <= 8 o >= 25, SpO2 <= 91 %, PAS <= 90 o >= 220, FC <= 40 o >= 131, T <= 35 C,
+#            alteracion de la conciencia (GCS < 15). Ademas: crisis hipertensiva >= 180/120 (ACC/AHA 2017),
+#            hipoglicemia < 54 mg/dL (ADA, nivel 2), glucosa >= 400 mg/dL (criterio ya presente en el
+#            protocolo) y dolor intenso EVA >= 8 (Manchester: dolor intenso -> muy urgente).
+#   Nivel 1: compromiso vital que requiere intervencion inmediata: GCS <= 8, SpO2 < 85 %, PAS < 70 o
+#            PAS < 90 con FC > 120 (choque), FC < 40 o > 150, FR < 8 o > 35, T < 32 C.
+#   Nivel 3: dolor moderado EVA 5-7 (Manchester: dolor moderado -> urgente).
+# Ningun signo vital normal baja el nivel que asignan los patrones: el escalado solo sube la urgencia.
+VITAL_SIGN_RULES = (
+    (1, lambda v: v.get('gcs') is not None and v['gcs'] <= 8, "Glasgow ≤ 8"),
+    (1, lambda v: v.get('spo2') is not None and v['spo2'] < 85, "SpO2 < 85 %"),
+    (1, lambda v: v.get('bp_sys') is not None and v['bp_sys'] < 70, "PAS < 70 mmHg"),
+    (1, lambda v: v.get('bp_sys') is not None and v.get('heart_rate') is not None
+        and v['bp_sys'] < 90 and v['heart_rate'] > 120, "PAS < 90 mmHg con FC > 120 lpm (choque)"),
+    (1, lambda v: v.get('heart_rate') is not None and (v['heart_rate'] < 40 or v['heart_rate'] > 150),
+     "FC < 40 o > 150 lpm"),
+    (1, lambda v: v.get('respiratory_rate') is not None and (v['respiratory_rate'] < 8 or v['respiratory_rate'] > 35),
+     "FR < 8 o > 35 rpm"),
+    (1, lambda v: v.get('temperature') is not None and v['temperature'] < 32, "Temperatura < 32 °C"),
+    (2, lambda v: v.get('gcs') is not None and v['gcs'] < 15, "Alteración de la conciencia (Glasgow < 15)"),
+    (2, lambda v: v.get('spo2') is not None and v['spo2'] <= 91, "SpO2 ≤ 91 %"),
+    (2, lambda v: v.get('bp_sys') is not None and (v['bp_sys'] <= 90 or v['bp_sys'] >= 220), "PAS ≤ 90 o ≥ 220 mmHg"),
+    (2, lambda v: (v.get('bp_sys') or 0) >= 180 or (v.get('bp_dia') or 0) >= 120, "Crisis hipertensiva (≥ 180/120 mmHg)"),
+    (2, lambda v: v.get('heart_rate') is not None and (v['heart_rate'] <= 40 or v['heart_rate'] >= 131),
+     "FC ≤ 40 o ≥ 131 lpm"),
+    (2, lambda v: v.get('respiratory_rate') is not None and (v['respiratory_rate'] <= 8 or v['respiratory_rate'] >= 25),
+     "FR ≤ 8 o ≥ 25 rpm"),
+    (2, lambda v: v.get('temperature') is not None and v['temperature'] <= 35, "Temperatura ≤ 35 °C"),
+    (2, lambda v: v.get('glucose') is not None and (v['glucose'] < 54 or v['glucose'] >= 400),
+     "Glucemia < 54 o ≥ 400 mg/dL"),
+    (2, lambda v: v.get('eva') is not None and v['eva'] >= 8, "Dolor intenso (EVA ≥ 8/10)"),
+    (3, lambda v: v.get('eva') is not None and 5 <= v['eva'] <= 7, "Dolor moderado (EVA 5-7/10)"),
+)
+
+_VITAL_LEVEL_INFO = {
+    1: ("Reanimación", "Inmediata", 0.95, "Requiere reanimación inmediata."),
+    2: ("Emergencia", "Dentro de los siguientes 30 minutos", 0.92,
+        "Condición con riesgo de rápido deterioro vital o funcional."),
+    3: ("Urgencia", "Hasta 120 minutos", 0.88, "Paciente que requiere valoración y manejo de urgencia."),
+}
+
+
+def evaluate_vital_signs(vitals: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Nivel mas urgente que justifican los signos vitales estructurados, o None si ninguno lo eleva."""
+    if not vitals:
+        return None
+    for level in (1, 2, 3):
+        reasons = [reason for rule_level, check, reason in VITAL_SIGN_RULES if rule_level == level and check(vitals)]
+        if reasons:
+            name, attention, confidence, closing = _VITAL_LEVEL_INFO[level]
+            return {
+                "level": level,
+                "name": name,
+                "attention_time": attention,
+                "justification": f"Protocolo Christus Sinergia Salud - Triage {level} por signos vitales: "
+                                 f"{'; '.join(reasons)}. {closing}",
+                "confidence": confidence,
+                "protocol": "Christus Sinergia Salud",
+            }
+    return None
+
+
+def evaluate_christus_sinergia_triage(
+    transcript: str, symptoms: Optional[List[str]] = None, vitals: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Motor determinista de clasificacion de triaje basado en el protocolo institucional Christus Sinergia Salud.
+    Sirve como mecanismo de garantia asistencial si el LLM falla, no responde (503) o se excede el timeout.
+
+    Combina los patrones lexicos con el escalado por signos vitales y devuelve el nivel mas urgente.
+    vitals son los structured_vitals de input_pipeline; si no se pasan, se extraen del transcript.
+    """
+    by_patterns = _evaluate_patterns(transcript, symptoms)
+    if vitals is None:
+        # Import diferido: input_pipeline importa este modulo.
+        from .input_pipeline import ClinicalTranscriptCompressor
+        _, vitals = ClinicalTranscriptCompressor.extract_vitals(transcript or "")
+    by_vitals = evaluate_vital_signs(vitals)
+    if by_vitals and by_vitals["level"] < by_patterns["level"]:
+        return by_vitals
+    return by_patterns

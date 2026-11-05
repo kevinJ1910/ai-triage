@@ -1,224 +1,101 @@
-# Informe Tecnico de Implementacion, Arquitectura y Brechas del Sistema
+# Informe Técnico de Implementación, Arquitectura y Estado del Sistema
 
-**Fecha:** 2026-09-10  
-**Proyecto:** AI-Triage Hospitalario (Tesis de Grado / Sistema de Soporte Clinico)  
-**Rama Base:** `develop`  
-**Autor:** Ingenieria de Software y Arquitectura Clinica  
+**Fecha:** 2026-10-28 (Versión 5 — Cierre Integral de Implementación y Memoria)  
+**Proyecto:** AI-Triage Hospitalario (Sistema de Soporte a la Decisión Clínica por Voz)  
+**Rama:** `feat/optimizacion-rag-asr-metricas` (convergente a `develop`)  
+**Versión anterior del informe:** 2026-10-27 (Versión 4)
 
 ---
 
 ## 1. Resumen Ejecutivo
 
-El sistema AI-Triage ha sido transformado de una arquitectura con componentes prototipales y simulaciones estaticas a una plataforma hospitalaria integral, atestada en base de datos relacional con control de acceso basado en roles (RBAC), auditoria inmutable, cifrado simetrico de credenciales, motor semantico de triaje, telemetria matematica de concordancia Humano-IA, suites automatizadas de pruebas fullstack y despliegue orquestado multi-contenedor.
+**AI-Triage** es una plataforma web de apoyo a la clasificación de urgencias por voz para población adulta bajo el protocolo institucional de **Christus Sinergia Salud** y la **Resolución 5596 de 2015** del Ministerio de Salud y Protección Social de Colombia. El sistema transcribe el relato clínico con `faster-whisper`, extrae entidades biomédicas mediante un modelo RoBERTa ajustado (`HoraYMedia/ai-triage-ner-roberta@v1`, consolidado con *Model Soup*) en conjunto con un catálogo terminológico determinista (SNOMED CT, CIE-10 y ATC), recupera criterios institucionales mediante un motor RAG híbrido (`pgvector` + Okapi BM25) y propone un nivel de prioridad (1 a 5) combinando un motor determinista de reglas (con escalado por signos vitales y detección de negación NegEx) con inferencia LLM local soberana (Ollama GPU `gemma4:e4b-it-qat`) o en nube (Google Gemini), manteniendo siempre la decisión final en el profesional (*human-in-the-loop*).
 
-Todos los modulos mock y asignaciones simuladas fueron eliminados y sustituidos por capas de negocio persistentes que se comunican a traves de contratos REST tipados y validados (Pydantic v2 en backend y validadores de asercion en frontend Next.js 15). La interfaz de usuario fue refactorizada para ofrecer navegacion fluida y responsiva en entornos de escritorio y dispositivos moviles de urgencias.
+Principales hitos cerrados en esta versión definitiva:
 
----
-
-## 2. Componentes y Funcionalidades Implementadas
-
-### 2.1. Autenticacion Institucional y Servicio SMTP Local (Mailpit)
-- **Servicio Mailpit**: Desplegado en `docker-compose.yml` (puerto SMTP 1025, Web UI 8025) para captura local y trazabilidad de trafico de correos transaccionales sin requerir proveedores de pago en desarrollo.
-- **Modelo de Usuario Extendido (`accounts.User`)**: Incorpora campos de identificación clínica (`document_id`, `phone`, `role`, `is_verified`, `first_name`, `last_name`).
-- **Verificacion OTP y Restablecimiento**:
-  - Generacion criptografica segura de tokens OTP de 6 digitos (`AuthVerificationCode`) con validez de 15 minutos e invalidacion tras un unico uso.
-  - Correos HTML corporativos con la paleta clinica oscura institucional generados mediante plantillas en `accounts/emails.py`.
-- **Proteccion de Rutas y Sesion Real**:
-  - Enrutamiento protegido en la raiz `/` que valida el token JWT contra `/api/auth/me/`.
-  - Reemplazo dinamico del nombre estatico ("Dr. Rodriguez") por el perfil autenticado en la barra lateral y en los encabezados de triaje.
-
-### 2.2. Boveda de Credenciales Cifradas y Seleccion de Modelos
-- **App `system_settings`**:
-  - Modelo `APIKeyCredential` con cifrado AES-256 (Fernet) derivado de la `SECRET_KEY` del entorno (`crypto.py`).
-  - Deteccion automatica del proveedor (`gemini`, `openai`, `anthropic`, `deepseek`) basada en prefijos de clave (`AIza...`, `sk-...`, `sk-ant-...`).
-  - Politica estricta de seguridad: las llaves nunca se devuelven en texto plano; unicamente se exponen enmascaradas (`••••••••Wxyz`) y solo se permite crear o revocar.
-- **Inferencia Dinamica (`ai_analyzer.py`)**:
-  - Consulta en tiempo de ejecucion de la llave activa en base de datos con respaldo transparente en variables de entorno `.env`.
-
-### 2.3. Seguridad Basada en Roles (RBAC) y Auditoria Inmutable
-- **Matriz de Permisos Granulares (`accounts.UserPermission`)**:
-  - Conmutadores independientes por usuario: `can_use_transcriber`, `can_edit_symptoms`, `can_register_patients`, `can_view_emr`, `can_view_fhir`, `can_manage_config`.
-  - Endpoint de actualizacion administrativa: `PATCH /api/security/users/<id>/permissions/`.
-- **Bloqueo Fisico en UI**:
-  - Bloqueo de botones de grabacion ASR y edicion de sintomas si el usuario carece de permisos, acompanado de advertencias visuales y notificaciones toast.
-- **Trazabilidad Inmutable (`accounts.AuditLog`)**:
-  - Registro de eventos criticos (`LOGIN`, `TRIAGE_CREATED`, `TRIAGE_OVERRIDE`, `PERMISSIONS_UPDATED`, `KEY_REGISTERED`, `CONFIG_UPDATED`, `EMR_BOX_ASSIGNED`) con direccion IP y marca temporal inalterable.
-
-### 2.4. Motor de Normalizacion Clinica (SNOMED-CT / CIE-10)
-- **Servicio `POST /api/transcribe/normalize/`**:
-  - Analisis con LLM (Gemini) estructurado en JSON y motor de respaldo de reglas clinicas para traduccion de lenguaje coloquial ("le aprieta el pecho", "falta el aire", "posartan", "presion alta") a conceptos estandarizados (opresion toracica, disnea, losartan, hipertension arterial).
-- **Monitor Reactivo (`NormalizationMonitor.tsx`)**:
-  - Entrada editable con selector de casos predefinidos de urgencias.
-  - Visualizacion paralela crudo vs estandarizado con resaltado semantico.
-  - Tabla ontologica interactiva con codigos numericos y filtrado por categorias (Sintoma, Signo, Medicamento, Antecedente).
-
-### 2.5. Motor de Triaje Interactivo con Nivel Editable
-- **Persistencia Desacoplada (`triage.TriageSession`)**:
-  - Campos `ai_level` (nivel propuesto por el modelo), `final_level` (nivel ratificado por el medico), `is_level_modified` (booleano) y `agreement_score` (escala 0.0 a 1.0).
-- **Control Stepper en UI (`TriageDashboard.tsx`)**:
-  - Botones interactivos `+` y `-` para navegacion entre los 5 niveles (I al V).
-  - Transicion visual de gradientes y bordes segun escala estandar:
-    - Nivel I: Rojo (`#ef4444` / Resucitacion inmediata)
-    - Nivel II: Naranja (`#f97316` / Emergencia)
-    - Nivel III: Amarillo/Ambar (`#eab308` / Urgencia)
-    - Nivel IV: Verde (`#22c55e` / Urgencia Menor)
-    - Nivel V: Azul (`#3b82f6` / No Urgente)
-  - Badge de estado ("IA Concordante" vs "Ajustado por Medico").
-  - Sobreescritura persistente mediante `PATCH /api/triage/sessions/<id>/override_level/`.
-
-### 2.6. Telemetria y Metricas de Evaluacion Humano-IA
-- **Endpoint Analitico `GET /api/triage/sessions/evaluation_metrics/`**:
-  - Tasa de concordancia global (% de casos identicos).
-  - Indice Kappa de Cohen ponderado con interpretacion clinica cualitativa.
-  - Deriva de severidad (desviacion neta promedio: positiva indica sobreclasificacion medica hacia menor gravedad, negativa indica aumento de urgencia).
-  - Tasa de retencion de entidades sintomaticas.
-- **Panel Reactivo (`MetricsDashboard.tsx`)**:
-  - Tarjetas KPI con umbrales y metas hospitalarias.
-  - Grafico comparativo de distribucion de niveles (Volumen IA vs Medico).
-  - Tabla de auditoria de sesiones recientes con fecha y score de concordancia.
-
-### 2.7. Simulador HCE / HIS con Persistencia Real de Boxes
-- **Rediseno Visual (`EMRSimulator.tsx`)**:
-  - Reemplazo de la interfaz clara por la paleta oscura clinica unificada (`bg-slate-900`/`bg-slate-950`).
-- **Consulta Real (`GET /api/triage/sessions/emr_patients/`)**:
-  - Carga dinamica de sesiones de triaje y admisiones desde PostgreSQL.
-  - Detalle demografico, signos vitales y entidades clinicas estructuradas.
-- **Asignacion de Box Persistente (`POST /api/triage/sessions/<id>/assign_box/`)**:
-  - Eliminacion total del `setTimeout` simulado.
-  - Asignacion real y persistente del Box clinico (`REAN-01`, `BOX-01` a `BOX-06`, `SALA-OBSERVACION`) almacenada en `clinical_entities` de `TriageSession`.
-  - Trazabilidad y auditoria de la accion en `AuditLog`.
-
-### 2.8. Monitor de Interoperabilidad FHIR R4
-- **Persistencia de Transacciones (`triage.FHIRMessageLog`)**:
-  - Almacenamiento de cada mensaje entrante/saliente con codigo de estado HTTP, tipo de recurso, identificador FHIR y resultado de validacion.
-- **Visor Estructurado (`FHIRMonitor.tsx`)**:
-  - Lista cronologica de transacciones con filtros de estado.
-  - Inspector de payloads JSON R4 con resaltado sintactico.
-  - Resumen de recursos anidados (`Patient`, `Encounter`, `Observation`).
-  - Transmision de bundles de prueba en tiempo real hacia `/api/fhir/`.
-
-### 2.9. Capa de Validacion de Tipos y Resiliencia en Runtime
-- **Backend (Pydantic v2 en `backend/core/validation.py`)**:
-  - Esquemas tipados para autenticacion, registro, verificacion OTP, override de triaje, configuracion del sistema y asignacion de box EMR (`EMRBoxAssignSchema`).
-  - Validacion estricta en campos criticos (emails RFC, enteros delimitados, booleanos, enums de proveedores de IA).
-  - Flexibilidad controlada para estructuras polimorficas de salud (cargas FHIR JSON, sintomas en lista libre, metadatos clinicos).
-  - Utilidad centralizada `validate_payload` con conversion transparente a excepciones estandar DRF (`ValidationError` con codigo HTTP 400).
-- **Frontend (Aserciones y Validadores en `frontend/lib/validation.ts`)**:
-  - Validaciones reactivas para correos electronicos, cadenas numericas (OTP de 6 digitos, identificadores de documento), telefonos, fechas ISO y rangos de niveles de urgencia (1 a 5).
-  - Sanitizacion de entradas y emision visual de advertencias (badges ambar y bordes de alerta) en tiempo de edicion sin interrumpir el flujo clinico.
-
-### 2.10. Suites de Pruebas Automatizadas Fullstack
-- **Frontend (Vitest + React Testing Library)**:
-  - 10 archivos de prueba y 56 tests unitarios/componentes ejecutándose al 100% de éxito (~2.8s).
-  - Cobertura: navegación de la app, apertura y conmutación del drawer móvil, asignación EMR y vistas adaptativas, monitores FHIR y Normalización, paneles de Seguridad y Métricas, utilidades de autenticación JWT, lógica reactiva de validaciones tipadas Zod, y controles UX de triaje (banner minimizable, modales de confirmación, tooltips).
-- **Backend (pytest + pytest-django)**:
-  - 93 tests unitarios y de integración ejecutándose al 100% de éxito (~65s).
-  - Cobertura: ciclo de vida de autenticación y verificación OTP, demo users y omisión en producción, seguridad RBAC y registros de auditoría inmutables, modelos criptográficos de credenciales, motor Whisper con poda TTL y redacción de trazas de excepción, endpoints FHIR R4, cálculo matemático de concordancia de triaje, esquemas de validación Pydantic v2, gobernanza de tokens y priorización de protocolo clínico Christus Sinergia Salud con fallback a LLM estructurado.
-- **Total:** 149 pruebas fullstack automatizadas con reporte de cero regresiones.
-
-### 2.11. Responsividad Movil Integral y Adaptabilidad de Interfaz
-- **Encabezado Superior Movil y Drawer Deslizante (`AppNavigation.tsx`)**:
-  - Barra superior compacta visible unicamente en pantallas reducidas (`md:hidden`) con boton de accion rapida y logotipo del sistema.
-  - Drawer flotante tipo Sheet con fondo desenfocado (`backdrop-blur-sm`), control de cierre táctil y badges de usuario autenticado.
-  - Barra lateral colapsable preservada sin regresiones para pantallas de escritorio (`hidden md:flex`).
-- **Navegacion Adaptativa por Vistas**:
-  - `EMRSimulator.tsx` y `FHIRMonitor.tsx`: Conmutacion condicional entre vista de lista y vista de detalle (`mobileView: 'list' | 'detail'`) con boton de retorno, evitando el colapso horizontal de tablas y visualizadores JSON en pantallas moviles.
-  - `TriageDashboard.tsx`: Alturas minimas adaptativas y ocultamiento de manijas de redimensionamiento tactiles en dispositivos moviles.
-
-### 2.12. Orquestacion Contenerizada con Docker Compose
-- **Despliegue Multi-Contenedor Saludable**:
-  - `ai_triage_nginx`: Proxy inverso unificado en puerto 80 con reescritura de URLs hacia API y Frontend.
-  - `ai_triage_backend`: Imagen multi-etapa basada en Python 3.12-slim, servidor Gunicorn en puerto 8000, scripts de entrypoint con migraciones automáticas en tiempo de arranque runtime (eliminando `makemigrations` en build-time), ejecución con usuario no-root `appuser` (UID 10001) y healthcheck activo contra `/api/health_check/`.
-  - `ai_triage_frontend`: Imagen multi-etapa optimizada basada en Node 20 Alpine y Next.js Standalone en puerto 3000 con usuario `nextjs` (UID 1001).
-  - `ai_triage_postgres`: Base de datos PostgreSQL 16 Alpine persistente con puerto interno aislado.
-  - `ai_triage_redis`: Cola y almacenamiento temporal Redis 7 Alpine.
-  - `ai_triage_mailpit`: Servidor SMTP y visor web de correos transaccionales para OTP y recuperación.
-
-### 2.13. Fortalecimiento de Seguridad, Concurrencia y Resolucion de Auditoria
-- **Control de Acceso en Triaje**: Se blindó `TriageSessionViewSet` con `IsAuthenticatedOrReadOnly`, bloqueando creaciones y sobreescrituras no autenticadas con código 401.
-- **Defensa contra Fuerza Bruta (Rate Limiting)**: Se configuraron clases de throttle específicas (`AuthThrottle`: 10 peticiones/minuto, `OTPThrottle`: 5 peticiones/minuto) en endpoints de login, registro, verificación OTP y recuperación de clave, complementadas con políticas globales en `REST_FRAMEWORK`.
-- **Lista Negra de Tokens JWT**: Se integró `rest_framework_simplejwt.token_blacklist` y se configuró `BLACKLIST_AFTER_ROTATION: True`, invalidando de inmediato refresh tokens tras su renovación o cierre de sesión.
-- **Protección de Llaves Criptográficas**: Se eliminó el fallback inseguro hardcodeado de `SECRET_KEY`, forzando excepciones explícitas en startup si no se suministra vía variables de entorno, con soporte de carga jerárquica de `.env`.
-- **Redacción de Trazas de Excepción**: En `transcription/views.py` se redactaron los detalles internos de excepción (rutas del sistema de archivos, trazas internas de CUDA/ctranslate2), retornando mensajes genéricos de error HTTP 500 y registrando el detalle en logs de backend.
-- **Desacoplamiento de Rutas de Seguridad**: Separación explícita de endpoints de gestión administrativa de usuarios y auditoría en `accounts/urls_security.py` bajo `/api/security/`, preservando `/api/auth/` exclusivamente para flujos de sesión.
-- **Inicialización Controlada de Cuentas Demo**: En `create_demo_user.py` se omite por completo la creación de cuentas de demostración si `ENVIRONMENT=production`, y se exige contraseña explícita en `development`.
-- **Sincronización de Llaves de Entorno**: Se desarrolló `sync_env_api_keys` y plantilla `.env.example` para sincronizar automáticamente credenciales de múltiples proveedores de IA (`gemini`, `openai`, `anthropic`, `deepseek`, `groq`, `cohere`, `mistral`) con la bóveda cifrada en arranque.
-- **Aislamiento de Red Docker**: Se cerró la exposición directa del puerto `5432` de PostgreSQL al host en `docker-compose.yml`, restringiendo su tráfico a la red interna `ai_triage_network`.
-- **Resiliencia en Cliente Frontend**: Se implementó la renovación silenciosa automática de access tokens vía `tryRefreshToken` en `fetchWithAuth` ante respuestas HTTP 401 previniendo interrupciones abruptas de sesión, y se sustituyó `useState<any>` por interfaces clínicas tipadas (`UserProfile`, `TriageEntities`, `TriageLevelInfo`, `AnalysisResult`).
-
-### 2.14. Priorización Institucional Christus Sinergia Salud y Desreferenciación de Esquemas LLM
-- **Inferencia Jerárquica Institucional**: El módulo `ai_analyzer.py` ejecuta prioritariamente el evaluador determinista `evaluate_christus_sinergia_triage(raw_transcript)` basado en la Resolución 5596 del Minsalud de Colombia y matrices clínicas de Christus Sinergia Salud. Si se detecta un patrón crítico o patología clasificable institucionalmente, esta se inyecta como contexto vinculante y prioritario antes de consultar al LLM.
-- **Sanitización de Esquemas para Google GenAI**: La API de Google GenAI (`google-genai` SDK con Gemini 2.5 Flash) rechaza esquemas JSON generados por Pydantic que contengan el campo `title` y referencias anidadas `$defs` / `$ref`. Se implementó la utilidad recursiva `_sanitize_schema_for_gemini` que desreferencia completamente los sub-esquemas (`PatientInfoSchema`, `VitalSignsSchema`) e higieniza las propiedades prohibidas, garantizando la decodificación gramatical estructurada estricta sin errores de validación de API.
-- **Validación Bidireccional de Salida**: La respuesta JSON del LLM se valida e hidrata directamente con `TriageOutputSchema.model_validate`, protegiendo la sesión contra alucinaciones de tipos o datos incompletos.
-
-### 2.15. Experiencia de Usuario Clínica (UX): Modales de Confirmación, Tooltips y Banner Minimizable
-- **Banner de Respaldo Asistencial Minimizable**: En `TriageDashboard.tsx`, el banner ámbar de advertencia regulatoria ahora cuenta con control de colapso/expansión accesible con teclado y clic (`ChevronDown` / `ChevronUp`), permitiendo al profesional reducir el espacio ocupado a una barra discreta de una sola línea sin perder trazabilidad.
-- **Modales de Confirmación Quirúrgicos**:
-  - Modal de confirmación al iniciar "Nueva Consulta" cuando existen transcripciones o datos de paciente en curso, evitando pérdida accidental de información clínica.
-  - Modal de confirmación al realizar "Ajuste Clínico de Nivel", alertando al personal sobre la discrepancia entre la recomendación algorítmica y el criterio médico ingresado.
-### 2.16. Optimización de Métricas de Rendimiento, Accesibilidad y Estabilidad Visual (Auditoría Lighthouse)
-- **Eliminación de Cumulative Layout Shift (CLS)**: Se resolvió la deriva de diseño en el render inicial de `TriageDashboard.tsx` (CLS 0.196) desacoplando el retraso de hidratación de `isDesktop` y asignando proporciones base en clases CSS nativas (`lg:w-[41.6%]`, `lg:h-[55%]`, `lg:h-[60%]`), además de convertir los tiradores de redimensionamiento a `hidden lg:flex` estáticos en CSS.
-- **Accesibilidad Formativa WCAG 2.1 AA (`label` y `select-name`)**: Vinculación explícita de `htmlFor`, atributos `id` y descriptores `aria-label` en la totalidad de los controles del paciente (Nombre, Documento, Fecha de Nacimiento, Género, Teléfono y Aseguradora/EPS).
-- **Contraste Cromático Estándar (`color-contrast` >= 4.5:1)**: Sustitución de tonos apagados de bajo contraste (`text-slate-500`, `text-slate-600`) por `text-slate-400` y realce de badges de usuario con fondo `bg-blue-900/60 text-blue-200 border border-blue-500/40` en la barra lateral, estados vacíos de audio/triaje y placeholders de entidades clínicas.
-- **Reducción Crítica de Carga de Red**: Optimización de `icon.png` (de 443 KB a 4.9 KB, reducción del 99%) aliviando el bloqueo crítico de red en el documento inicial, e incorporación de `display: 'swap'` en las fuentes web de Google (`Inter` y `Space Grotesk`) para prevenir bloqueo de renderizado de texto.
+- **Evaluación acústica sobre hardware GPU real:** Sobre 40 grabaciones clínicas reales (20 en silencio y 20 con ruido hospitalario a 12 dB SNR / 60–65 dB), `faster-whisper` (`large-v3-turbo` en NVIDIA RTX 3070) alcanzó un **WER global de 2,39 %** (`1,87 %` en silencio, `2,90 %` en ruido), un error en términos clínicos de **3,33 %** y un **RTF de 0,044** (latencia media `1,26 s`), frente a **7,53 % de WER** (`RTF 0,142`) en CPU (`small`, `int8`).
+- **Extracción biomédica y normalización auditada:** El flujo híbrido alcanzó un **micro-F1 de 0,888** en `dev` (150 casos) y **0,789** IC95 `[0,750, 0,828]` en `test` (100 casos, con `0,963` en medicamentos y `97,2 %` de exactitud en negación), respaldado por doble anotación ciega inter-anotador de **0,979 micro-F1** y validación externa sobre **CodiEsp** (`73,3 %` de precisión a 3 caracteres CIE-10). El catálogo local reúne **315 conceptos** (`1.337` variantes, `302` mapeados a `299` códigos SNOMED CT únicos verificados contra `tx.fhir.org`, `208` a `188` códigos CIE-10 únicos y `76` a códigos ATC).
+- **Soberanía de datos con LLM local en GPU y política `min_critico`:** En la corrida única sobre el split congelado `test` (100 casos), el flujo local `gemma4:e4b-it-qat` en GPU NVIDIA RTX 3070 (prompt `v2`, política `min_critico`) obtuvo **73,0 % de exactitud** IC95 `[64,0, 81,0]`, **Kappa ponderado cuadrático de 0,898** IC95 `[0,828, 0,945]`, **sensibilidad crítica en niveles I–II del 92,5 %** IC95 `[83,0, 100,0]` e **infratriaje de 12,0 %** (`-44,0 pp` respecto al motor de reglas aisladas), con latencia mediana de **15,2 s** y sin salida de datos del servidor hospitalario.
+- **Validación clínica ciega (`BlindReview`):** Un médico independiente evaluó a ciegas 50 casos estratificados de `test` (10 por nivel), registrando **80,0 % de exactitud clínico-IA**, **Kappa ponderado de 0,911** IC95 `[0,793, 0,975]` y calificaciones medias Likert (1–5) de **4,80** en claridad, **4,58** en pertinencia clínica y **4,58** en fidelidad al protocolo.
+- **Interoperabilidad semántica completa y observabilidad ASR:** Los Bundles **HL7 FHIR R4** y los mensajes **HL7 v2.5.1 (`ADT^A08`)** inyectan ahora los códigos verificados **SNOMED CT**, **CIE-10** y **ATC** además de **LOINC/UCUM**, y el worker ASR mantiene un latido periódico con expiración TTL en Redis (`ASR_HEARTBEAT_INTERVAL = 30 s`, `ASR_STATUS_TTL = 90 s`).
+- **Calidad de software e integración continua:** **738 pruebas automatizadas** (`602` en `backend` [`601` pasan + `1 xfail`] + `43` en `ml` bajo Pytest, y `93` en `14` suites bajo Vitest en `frontend`), ejecutadas automáticamente en GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 
+## 2. Arquitectura de Servicios
 
-## 3. Brechas Identificadas y Limitaciones Actuales
-
-A pesar de que el sistema cumple a cabalidad con la funcionalidad logica, validacion tipada y persistencia en base de datos, se documentan las siguientes brechas tecnicas y dependencias operativas:
-
-### 3.1. Procesamiento ASR (Whisper) en Host de Desarrollo vs Docker
-- **Brecha**: La libreria `faster-whisper` requiere dependencias nativas de CUDA y cuDNN para aceleracion por hardware en Windows.
-- **Mecanismo de Mitigacion Implementado**: Se implemento un bloqueo `try/except` con fallback seguro en `whisper_engine.py` para permitir la ejecucion de comandos administrativos de Django y tests de integracion en entornos host sin GPU dedicada.
-- **Impacto**: La transcripcion acustica en tiempo real con latencia minima depende de la ejecucion del contenedor Docker `backend` con runtime NVIDIA configurado, o de la utilizacion del modo de transcripcion asistida/pregrabada en el host.
-
-### 3.2. Servidor FHIR Externo (HAPI-FHIR / Firely)
-- **Brecha**: El endpoint `/api/fhir/` valida la conformidad semantica del esquema R4 y persiste los registros en la base de datos local (`FHIRRecord` y `FHIRMessageLog`), pero no existe un relay HTTP saliente hacia un servidor HAPI-FHIR externo en la nube.
-- **Impacto**: Para una interoperabilidad institucional federada fuera del entorno hospitalario simulado, se requiere anadir una tarea en segundo plano (Celery/Redis) que retransmita el bundle JSON al endpoint FHIR externo configurado en `SystemConfiguration`.
-
-### 3.3. Servidor Ontologico Integral (Ontoserver / RF2 Release)
-- **Brecha**: El motor de normalizacion utiliza una combinacion de LLM (Gemini) y un catalogo relacional de reglas clinicas SNOMED-CT de alta frecuencia de urgencias.
-- **Impacto**: No contiene el volcado completo de la ontologia SNOMED-CT (archivos RF2 de mas de 350.000 conceptos activos), el cual demandaria un motor de busqueda ontologica dedicado (e.g., Elasticsearch o servidor Snowstorm/Ontoserver) con varios gigabytes de memoria. La aproximacion actual con LLM y catalogo rapido cubre los escenarios de urgencias con precision aceptable para triaje.
-
-### 3.4. Gestion de Sesiones Abiertas de Transcripcion
-- **Brecha**: El almacenamiento de buffers de audio en `whisper_engine.py` opera mediante diccionarios en memoria protegidos con `threading.Lock` y limpieza TTL automatica.
-- **Impacto**: En una arquitectura con balanceo de carga horizontal (multiples pods o instancias de backend), las sesiones de grabacion en streaming requeririan persistencia compartida en Redis o comunicacion via WebSockets/WebRTC en lugar de HTTP polling tradicional.
+| Servicio | Función técnica |
+| :--- | :--- |
+| `nginx` | Terminación TLS 1.2/1.3 en puerto 443 (redirección desde 80), cabeceras de seguridad (CSP, HSTS, COOP, `Permissions-Policy`) y enrutamiento inverso hacia `frontend` y `backend`. |
+| `frontend` | Next.js 15 (App Router, React 19, TypeScript) en modo `standalone` sin privilegios de root. |
+| `backend` | Django 5.2+ / DRF sobre Gunicorn: autenticación JWT + OTP, RBAC en servidor, persistencia atómica, auditoría y encolamiento Celery. |
+| `worker-asr` | Celery (`--pool solo`, cola `asr`): `WhisperEngine` con acondicionamiento acústico (pasa-altos 80 Hz + RMS −20 dBFS), *hotwords* médicas, latido de salud con TTL en Redis y soporte CPU (`small`, `int8`) o GPU CUDA (`large-v3-turbo`, `int8_float16`). |
+| `worker-llm` | Celery (cola `llm`): inferencia RoBERTa NER (`HoraYMedia/ai-triage-ner-roberta@v1`), normalización clínica, RAG híbrido (`pgvector` + BM25) y clasificación con Gemini o LLM local (`TRIAGE_PROMPT_VERSION=v2`, `TRIAGE_COMBINE_POLICY=min_critico`), con degradación garantizada a reglas. |
+| `llm-local` | Contenedor Ollama (perfil `llm-local`, CPU o GPU NVIDIA) para ejecución *on-premise* de `gemma4:e4b-it-qat` y `qwen2.5:7b-instruct-q4_K_M`. |
+| `postgres` | PostgreSQL 16 + `pgvector` (aislado sin puerto expuesto al host): persistencia relacional y tabla vectorial `triage_clinical_rag_vectors` (61 criterios). |
+| `redis` | Redis 7 Alpine: broker Celery (`db 0`), caché clínica canónica SHA-256, contexto ASR por sesión, latido `asr:engine_status` con TTL y contadores de *throttling* (`db 1`). |
+| `mailpit` | Servidor SMTP local y visor web para códigos OTP de verificación y recuperación. |
 
 ---
 
-## 4. Matriz de Endpoints y Servicios
+## 3. Componentes Técnicos Verificados
 
-| Metodo | Endpoint | Descripcion | Esquema de Validacion | Autenticacion / Control |
+1. **Seguridad, autenticación y RBAC (`backend/accounts/`, `backend/core/permissions.py`):** Registro con verificación OTP de 6 dígitos (TTL 15 min), access token exclusivamente en memoria del navegador, refresh token rotativo en cookie `httpOnly` con invalidación en lista negra (`POST /api/auth/logout/`), limitación de tasa en Redis (`10/min` en `auth`, `5/min` en `otp`), seis permisos granulares verificados en servidor y registro inmutable en `AuditLog`.
+2. **Bóveda criptográfica (`backend/system_settings/`):** Cifrado simétrico `MultiFernet` con `FIELD_ENCRYPTION_KEY` independiente de `SECRET_KEY`, enmascaramiento estricto en respuestas API y conmutación dinámica de motores ASR, NER y LLM desde `ConfigPanel`.
+3. **Pipeline híbrido de triaje (`backend/triage/`):**
+   - Motor determinista `clinical_protocol.py` + `vital_signs.py` (18 umbrales fisiológicos adultos basados en NEWS2, ACC/AHA, ADA y MTS) + detector de negación en español `negation.py` (NegEx).
+   - Compresor clínico `input_pipeline.py` y seudonimizador reversible de identificadores personales (Ley 1581 de 2012) previo a cualquier llamada externa.
+   - Caché canónica `clinical_cache.py` (huella SHA-256 de texto normalizado + signos vitales, sin almacenar datos identificativos del paciente).
+   - Recuperador `clinical_rag.py` sobre **61 criterios institucionales** combinando similitud coseno en `pgvector` (`triage_clinical_rag_vectors`) con puntuación léxica Okapi BM25 y expansión ontológica.
+   - Extractor `ner_model.py` (`HoraYMedia/ai-triage-ner-roberta@v1`, consolidado mediante *Uniform Model Soup* en `ml/ner/model_soup.py`) fusionado con el catálogo determinista (`backend/transcription/terminology/`).
+   - Clasificador estructurado en `ai_analyzer.py` / `local_llm.py` validado con Pydantic v2 (`TriageOutputSchema`) bajo el prompt `v2` y la política `min_critico` (cuando las reglas detectan un criterio de nivel I–II, el nivel final nunca puede ser menos urgente).
+4. **Interoperabilidad dual codificada y Simulador HCE (`frontend/lib/hl7.ts`, `backend/triage/fhir_validation.py`, `backend/triage/views.py`):** Exportación de Bundles **HL7 FHIR R4** (`Patient`, `Encounter` con `reasonCode` codificado, `Observation` LOINC/UCUM, `Condition` con códigos SNOMED CT/CIE-10 y estado `refuted` para negaciones, `AllergyIntolerance` con códigos SNOMED CT/ATC y `MedicationStatement` con códigos ATC/SNOMED CT) y tramas **HL7 v2.5.1 ER7 (`ADT^A08`)** con segmentos `MSH`, `EVN`, `PID`, `PV1`, `PV2`, `OBX`, `AL1` y `DG1` codificados. El endpoint `POST /api/fhir/` valida la conformidad estructural R4 (`201` / `422`), persiste `FHIRRecord` + `FHIRMessageLog` y sincroniza el estado en `EMRSimulator` (`update_care_status`).
+
+---
+
+## 4. Limitaciones Conocidas y Trabajo Futuro
+
+Las brechas críticas y de integración del alcance del proyecto quedaron cerradas al 100 %. Las limitaciones que delimitan la transferencia a operación asistencial hospitalaria real son:
+
+1. **Piloto prospectivo multicéntrico con pacientes reales:** El corpus de 250 casos y los 40 audios se construyeron sobre relatos sintéticos para cumplir estrictamente con la Ley 1581 de 2012 sin exponer historias clínicas reales, y la validación ciega contó con un médico adjudicador independiente sobre 50 casos de prueba (`100` en total sumando `dev`). Antes de cualquier uso asistencial directo se requiere un estudio prospectivo multicéntrico aprobado por comité de ética institucional, con panel de múltiples evaluadores, cronometraje asistencial y aplicación presencial de la escala SUS.
+2. **Conectores externos hacia HIS comerciales (SMART on FHIR y MLLP):** Aunque el sistema exporta y valida localmente Bundles HL7 FHIR R4 y mensajes HL7 v2.5.1 con códigos LOINC, SNOMED CT, CIE-10 y ATC verificados, `/api/fhir/` actúa como receptor simulado dentro del alcance del trabajo de grado; su puesta en producción requiere conectores OAuth2 SMART on FHIR y transporte TCP/MLLP hacia el HIS hospitalario.
+3. **Servidor terminológico SNOMED CT RF2 completo:** El catálogo local cubre los 315 conceptos más frecuentes de urgencias adultas (verificados contra `tx.fhir.org`), pero no embebe la edición completa SNOMED CT RF2 (>350.000 conceptos) mediante Snowstorm u Ontoserver.
+4. **Población pediátrica y obstétrica especializada:** Los umbrales de signos vitales implementados en `vital_signs.py` aplican exclusivamente a adultos; su extensión a pediatría y obstetricia requiere tablas fisiológicas estratificadas por edad/gestación y trámite regulatorio SaMD ante el INVIMA.
+5. **Deuda técnica menor de mantenimiento evolutivo:** `TriageDashboard.tsx` (~1.890 líneas) admite extracción adicional de subcomponentes internos, y la cabecera CSP mantiene `'unsafe-inline'` en `script-src` por los scripts de hidratación estáticos de Next.js 15 (mitigable con middleware de *nonces*).
+
+---
+
+## 5. Matriz Consolidada de Endpoints REST
+
+| Método | Endpoint | Descripción | Validación | Control de acceso |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login/` | Autenticacion JWT con verificacion de cuenta | `LoginSchema` (Pydantic) | Publico (Rate Limit: 10/min) |
-| `POST` | `/api/auth/register/` | Registro de personal clinico con envio de OTP | `RegisterSchema` (Pydantic) | Publico (Rate Limit: 10/min) |
-| `POST` | `/api/auth/verify/` | Validacion de codigo OTP de 6 digitos | `VerifyCodeSchema` (Pydantic) | Publico (Rate Limit: 5/min) |
-| `POST` | `/api/auth/password-reset/` | Solicitud y confirmacion de recuperacion | `PasswordResetRequest/Confirm` | Publico (Rate Limit: 10/min) |
-| `POST` | `/api/auth/refresh/` | Renovación de tokens JWT (Blacklist activo) | N/A | Público / Refresh Token |
-| `GET` | `/api/auth/me/` | Perfil del usuario autenticado y roles | N/A | Bearer JWT Requerido |
-| `GET` | `/api/security/users/` | Directorio de usuarios y permisos | N/A | Bearer JWT Requerido |
-| `PATCH`| `/api/security/users/<id>/permissions/` | Modificacion de matriz RBAC | `UserPermissionUpdateSchema` | Bearer JWT (Solo Admin) |
-| `GET` | `/api/security/audit/` | Pistas de auditoria inmutables | N/A | Bearer JWT Requerido |
-| `GET` | `/api/config/` | Parametros y modelos de IA activos | N/A | Bearer JWT Requerido |
-| `PATCH`| `/api/config/` | Actualizacion de configuracion del sistema | `SystemConfigUpdateSchema` | Bearer JWT (Solo Admin) |
-| `POST` | `/api/config/keys/` | Registro y cifrado de llaves en boveda AES | `APIKeyCreateSchema` (Pydantic) | Bearer JWT Requerido |
-| `POST` | `/api/transcribe/normalize/` | Normalizacion SNOMED-CT / CIE-10 | `NormalizeTextSchema` (Pydantic) | Publico / Bearer JWT |
-| `POST` | `/api/triage/sessions/analyze/` | Inferencia clinica y creacion de triaje | N/A | Bearer JWT Requerido |
-| `PATCH`| `/api/triage/sessions/<id>/override_level/` | Ajuste manual de nivel y sintomas | `TriageOverrideSchema` (Pydantic) | Bearer JWT Requerido |
-| `POST` | `/api/triage/sessions/<id>/assign_box/` | Asignacion persistente de Box hospitalario | `EMRBoxAssignSchema` (Pydantic) | Bearer JWT Requerido |
-| `GET` | `/api/triage/sessions/evaluation_metrics/` | Calculo de Kappa, concordancia y deriva | N/A | IsAuthenticatedOrReadOnly |
-| `GET` | `/api/triage/sessions/emr_patients/` | Lista de admisiones para HCE | N/A | IsAuthenticatedOrReadOnly |
-| `GET` | `/api/triage/sessions/fhir_logs/` | Historial de transacciones FHIR R4 | N/A | IsAuthenticatedOrReadOnly |
-| `POST` | `/api/fhir/` | Ingestion e interoperabilidad FHIR R4 | `FHIRSyncSchema` (Pydantic) | Libre / Validacion Esquema |
-| `GET` | `/api/health_check/` | Estado y telemetria del motor Whisper ASR | N/A | Libre / Publico |
-
----
-
-## 5. Recomendaciones para Despliegue en Produccion
-
-1. **Persistencia en Postgres**: El entorno Docker ya cuenta con PostgreSQL 16 Alpine integrado como base de datos predeterminada con indices optimizados para busquedas de pacientes y auditoria.
-2. **Workers Asincronos de Fondo**: Incorporar tareas Celery con Redis para la sincronizacion asincrona de bundles FHIR y generacion pesada de reportes analiticos.
-3. **Contenedor GPU**: Levantar el servicio `backend` en Docker con soporte `nvidia-container-toolkit` para transcripcion ASR sub-segundo con faster-whisper.
-4. **Rotacion de Clave AES**: Establecer politicas semestrales de re-cifrado de credenciales en caso de modificacion de `SECRET_KEY`.
+| `POST` | `/api/auth/login/` | Inicio de sesión (access en cuerpo, refresh en cookie `httpOnly`) | `LoginSchema` | Público (10/min) |
+| `POST` | `/api/auth/refresh/` | Renovación con rotación del refresh token (cookie) | — | Público (cookie) |
+| `POST` | `/api/auth/logout/` | Cierre de sesión e inclusión del refresh en lista negra | — | JWT |
+| `POST` | `/api/auth/register/` | Registro de personal asistencial y envío de OTP | `RegisterSchema` | Público (10/min) |
+| `POST` | `/api/auth/verify/` · `/api/auth/resend-code/` | Verificación y reenvío de código OTP | `VerifyCodeSchema` | Público (5/min) |
+| `POST` | `/api/auth/password-reset/` · `/confirm/` | Solicitud y confirmación de restablecimiento de contraseña | Pydantic | Público (10/min · 5/min) |
+| `GET` | `/api/auth/me/` | Perfil autenticado y matriz de permisos | — | JWT |
+| `GET` | `/api/security/users/` | Directorio de usuarios registrados | — | Admin |
+| `PATCH` | `/api/security/users/<id>/permissions/` | Actualización de matriz RBAC por usuario | `UserPermissionUpdateSchema` | Admin |
+| `GET` | `/api/security/audit/` | Consulta de bitácora inmutable `AuditLog` | — | Admin |
+| `GET` / `POST` | `/api/config/` | Configuración activa de motores ASR, NER y LLM | `SystemConfigUpdateSchema` | JWT / Admin (`can_manage_config`) |
+| `GET` | `/api/config/engines/` | Estado operativo de motores y modelos locales disponibles | — | JWT |
+| `POST` | `/api/config/vocabulary/sync/` | Verificación y recarga de catálogos SNOMED CT / CIE-10 | — | Admin / `can_manage_config` |
+| `GET` / `POST` / `DELETE` | `/api/config/keys/[<id>/]` | Gestión de bóveda de claves API cifradas (`MultiFernet`) | `APIKeyCreateSchema` | JWT / Admin |
+| `POST` | `/api/transcribe/` | Transcripción de fragmento de audio en cola `asr` | — | `can_use_transcriber` |
+| `POST` | `/api/transcribe/reset/` | Reinicio de contexto acumulado de sesión ASR | — | `can_use_transcriber` |
+| `POST` | `/api/transcribe/normalize/` | Normalización clínica SNOMED CT / CIE-10 / ATC | `NormalizeTextSchema` | JWT |
+| `POST` | `/api/triage/sessions/analyze/` | Análisis híbrido y guardado atómico de sesión de triaje | — | `can_register_patients` |
+| `GET` | `/api/triage/sessions/history/` | Historial de sesiones (propias; administrador consulta todas) | — | JWT |
+| `PATCH` | `/api/triage/sessions/<id>/override_level/` | Ratificación o ajuste médico de nivel y síntomas | `TriageOverrideSchema` | `can_edit_symptoms` |
+| `GET` | `/api/triage/sessions/emr_patients/` | Cola de admisiones clínicas para el simulador HCE | — | `can_view_emr` |
+| `POST` / `PATCH` | `/api/triage/sessions/<id>/update_care_status/` | Actualización de estado asistencial y notas de evolución HCE | — | `can_view_emr` |
+| `GET` | `/api/triage/sessions/evaluation_metrics/` | Concordancia, Kappa cuadrático, seguridad y referencia ciega | — | JWT (identidad solo con `can_view_emr`) |
+| `GET` | `/api/triage/sessions/benchmark_results/` | Artefactos reproducibles de evaluación ASR, NER y triaje | — | JWT |
+| `GET` | `/api/triage/sessions/blind_review_queue/` | Cola de casos pendientes para adjudicación doble ciego | — | `can_edit_symptoms` |
+| `POST` | `/api/triage/sessions/<id>/reference_level/` | Adjudicación inmutable de nivel de referencia ciego | `TriageReferenceSchema` | `can_edit_symptoms` (distinto del autor) |
+| `POST` | `/api/triage/sessions/<id>/justification_rating/` | Calificación Likert (1–5) de claridad, pertinencia y fidelidad | `JustificationRatingSchema` | Adjudicador de la sesión |
+| `GET` | `/api/triage/sessions/fhir_logs/` | Bitácora auditada de mensajes HL7 FHIR R4 | — | `can_view_fhir` |
+| `POST` | `/api/fhir/` | Validación estructural e ingestión de Bundles HL7 FHIR R4 | `FHIRSyncSchema` | JWT |
+| `GET` | `/api/health_check/` | Estado integral del backend y del worker ASR (con TTL) | — | Público |

@@ -1,0 +1,155 @@
+import React from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import BlindReview from '../../components/BlindReview';
+
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
+const queue = {
+  pending_total: 2,
+  adjudicated_by_me: 3,
+  rated_by_me: 2,
+  results: [
+    { id: 7, date: '2026-10-01 08:00', gender: 'female', age: 54, transcript: 'dolor toracico opresivo' },
+    { id: 8, date: '2026-10-01 09:00', gender: 'male', age: null, transcript: 'tos leve' },
+  ],
+};
+
+function mockFetch(referenceResponse: { ok: boolean; status: number; body: object }) {
+  const fetchMock = vi.fn().mockImplementation((url: string) => {
+    if (url.includes('/blind_review_queue/')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => queue } as Response);
+    }
+    if (url.includes('/justification_rating/')) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({}) } as Response);
+    }
+    if (url.includes('/reference_level/')) {
+      return Promise.resolve({
+        ok: referenceResponse.ok,
+        status: referenceResponse.status,
+        json: async () => referenceResponse.body,
+      } as Response);
+    }
+    return Promise.resolve({ ok: false, status: 401, json: async () => ({}) } as Response);
+  });
+  global.fetch = fetchMock;
+  return fetchMock;
+}
+
+describe('BlindReview Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('muestra la transcripcion sin niveles y registra el nivel elegido', async () => {
+    const fetchMock = mockFetch({ ok: true, status: 200, body: { session_id: 7, reference_level: 2 } });
+    render(<BlindReview />);
+
+    await waitFor(() => expect(screen.getByText('dolor toracico opresivo')).toBeInTheDocument());
+    expect(screen.getByText('2 pendientes')).toBeInTheDocument();
+    expect(screen.getByText('3 adjudicados')).toBeInTheDocument();
+    expect(screen.getByText('54 años')).toBeInTheDocument();
+
+    const submit = screen.getByRole('button', { name: /Registrar nivel de referencia/i });
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Emergencia/i }));
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(screen.getByText('tos leve')).toBeInTheDocument());
+    const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/7/reference_level/'));
+    expect(call).toBeDefined();
+    expect(JSON.parse(call![1].body)).toEqual({ reference_level: 2 });
+    expect(screen.getByText('1 pendientes')).toBeInTheDocument();
+    expect(screen.getByText('4 adjudicados')).toBeInTheDocument();
+  });
+
+  it('tras fijar la referencia pide valorar la justificacion de la IA (Likert)', async () => {
+    const fetchMock = mockFetch({
+      ok: true, status: 200, body: { session_id: 7, reference_level: 2, justification: 'Dolor toracico con signos de alarma' },
+    });
+    render(<BlindReview />);
+
+    await waitFor(() => expect(screen.getByText('dolor toracico opresivo')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Emergencia/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Registrar nivel de referencia/i }));
+
+    await waitFor(() => expect(screen.getByText('Dolor toracico con signos de alarma')).toBeInTheDocument());
+    const submitRating = screen.getByRole('button', { name: /Registrar valoración/i });
+    expect(submitRating).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Claridad: 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pertinencia clínica: 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fidelidad al protocolo: 3' }));
+    fireEvent.click(submitRating);
+
+    await waitFor(() => expect(screen.getByText('tos leve')).toBeInTheDocument());
+    const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/7/justification_rating/'));
+    expect(JSON.parse(call![1].body)).toEqual({ clarity: 4, relevance: 5, fidelity: 3 });
+  });
+
+  it('recarga automaticamente el siguiente lote cuando quedan pendientes en el servidor', async () => {
+    let batchRequests = 0;
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/blind_review_queue/')) {
+        batchRequests += 1;
+        if (batchRequests === 1) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              pending_total: 2,
+              adjudicated_by_me: 0,
+              results: [{ id: 101, date: '2026-10-01 10:00', gender: 'male', age: 40, transcript: 'primer lote unico' }],
+            }),
+          } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            pending_total: 1,
+            adjudicated_by_me: 1,
+            results: [{ id: 102, date: '2026-10-01 10:05', gender: 'female', age: 29, transcript: 'segundo lote cargado' }],
+          }),
+        } as Response);
+      }
+      if (url.includes('/reference_level/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ session_id: 101, reference_level: 3, justification: 'Justificacion lote 1' }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({}) } as Response);
+    });
+    global.fetch = fetchMock;
+
+    render(<BlindReview />);
+    await waitFor(() => expect(screen.getByText('primer lote unico')).toBeInTheDocument());
+
+    // Seleccion por atajo de teclado '3'
+    fireEvent.keyDown(window, { key: '3' });
+    fireEvent.click(screen.getByRole('button', { name: /Registrar nivel de referencia/i }));
+
+    await waitFor(() => expect(screen.getByText('Justificacion lote 1')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Omitir y seguir/i }));
+
+    await waitFor(() => expect(screen.getByText('segundo lote cargado')).toBeInTheDocument());
+    expect(batchRequests).toBe(2);
+    expect(screen.getByText('1 pendientes')).toBeInTheDocument();
+  });
+
+  it('mantiene el caso si el servidor rechaza el registro', async () => {
+    mockFetch({ ok: false, status: 403, body: { error: 'No puede adjudicar un triaje realizado por usted' } });
+    const { toast } = await import('sonner');
+    render(<BlindReview />);
+
+    await waitFor(() => expect(screen.getByText('dolor toracico opresivo')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Urgencia Menor/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Registrar nivel de referencia/i }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('No puede adjudicar un triaje realizado por usted')
+    );
+    expect(screen.getByText('dolor toracico opresivo')).toBeInTheDocument();
+  });
+});

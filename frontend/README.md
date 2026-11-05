@@ -1,50 +1,44 @@
 # AI-Triage: Frontend Web App (Next.js 15)
 
-Aplicación web cliente desarrollada con **Next.js 15**, **React 19**, **TailwindCSS** y **TypeScript** para la asistencia interactiva de triaje clínico hospitalario en tiempo real.
+Aplicación cliente en **Next.js 15** (App Router), **React 19**, **Tailwind CSS 4** y **TypeScript** para la asistencia de triaje clínico con captura progresiva de voz en cuasi tiempo real (*near real-time*) y estructuración asíncrona.
 
-## Características Principales del Frontend
+## Características Principales
 
-* **Triaje Clínico Interactivo:** Panel visual con transcripción ASR en vivo, extracción NER, asignación de nivel (I a V), justificación médica editable y telemetría de confianza.
-* **Priorización Institucional Christus Sinergia Salud:** Escala oficial con tiempos máximos de espera según la Resolución 5596 del Ministerio de Salud de Colombia.
-* **Gobernanza y UX Hospitalaria:**
-  - Modales de confirmación para inicio de nueva consulta y discrepancias clínicas en ajuste manual de nivel.
-  - Tooltips interactivos con ventanas terapéuticas de espera y estados operativos.
-  - Banner minimizable/colapsable para avisos de respaldo asistencial determinista.
-* **Simulador EMR Hospitalario:** Cola de espera de pacientes clasificados y asignación persistente de boxes de atención médica.
-* **Monitor Ontológico y Normalización:** Mapeo de quejas coloquiales a conceptos formales de SNOMED-CT y CIE-10.
-* **Monitor de Interoperabilidad FHIR:** Inspección y descarga de Bundles HL7 FHIR Release 4 y mensajes HL7 v2.5.1 ER7.
-* **Dashboard de Métricas y Gobernanza de Tokens:** Monitoreo de tasa de concordancia clínica, índice Kappa de Cohen, y telemetría de tokens LLM consumidos y ahorrados por caché semántico.
-* **Diseño Responsivo:** Soporte adaptativo para terminales desktop de urgencias y dispositivos móviles mediante Drawer deslizante.
+* **Triaje clínico interactivo:** Transcripción ASR incremental por micro-lotes de 4 s, entidades clínicas, nivel sugerido (I a V) con ratificación o ajuste médico y justificación editable.
+* **Priorización Christus Sinergia Salud:** Escala con tiempos máximos de espera según la Resolución 5596 de Minsalud.
+* **Validación ciega (`BlindReview`):** Cola de casos para que un clínico distinto al tratante asigne el nivel de referencia viendo solo la transcripción, sin el nivel de la IA ni el del médico.
+* **Métricas:** Concordancia, Kappa ponderado, infratriaje / sobretriaje, sensibilidad en niveles I–II, comparación contra la referencia ciega y gobernanza de tokens.
+* **Simulador HCE:** Cola de pacientes clasificados y asignación persistente de box.
+* **Normalización ontológica:** Mapeo de términos coloquiales a SNOMED-CT y CIE-10.
+* **Monitor FHIR:** Inspección y descarga de Bundles HL7 FHIR R4 y mensajes HL7 v2.5.1.
+* **Configuración:** Modelos de IA, dispositivo real del motor ASR (CPU o GPU) y bóveda de claves API.
+* **Diseño responsivo:** Escritorio y móvil con drawer de navegación.
+
+## Comunicación con el Backend
+
+* El cliente llama siempre a rutas relativas `/api/...`; en Docker, nginx las dirige a Django. `pnpm dev` por sí solo no alcanza el backend: hace falta el stack de Docker (o un proxy equivalente).
+* Todas las llamadas autenticadas pasan por `fetchWithAuth` (`lib/api.ts`): el access token vive solo en memoria y el refresh token en una cookie httpOnly que gestiona el backend; ante un 401 se renueva una vez y, si falla, se redirige a `/login`.
+* En producción la app se sirve por HTTPS con una CSP estricta (`connect-src 'self'`): no se deben añadir llamadas a dominios externos desde el navegador.
 
 ## Ejecución y Pruebas
 
 ```bash
-# Instalación de dependencias
-pnpm install
-
-# Servidor de desarrollo
-pnpm dev
-
-# Suite de pruebas automatizadas (Vitest)
-pnpm test
-
-# Verificación de tipos TypeScript
-pnpm tsc --noEmit
-
-# Linting de código
-pnpm lint
-
-# Compilación de producción
-pnpm build
+pnpm install          # dependencias
+pnpm dev              # servidor de desarrollo (requiere el backend detrás de nginx)
+pnpm test             # Vitest + Testing Library (93 pruebas en 14 suites)
+pnpm lint             # ESLint
+pnpm build            # compilación de producción y validación de tipos
 ```
 
 ## Estructura de Componentes
 
-* `components/TriageDashboard.tsx`: Motor de triaje clínico interactivo, ASR en tiempo real, modales y exportaciones.
-* `components/EMRSimulator.tsx`: Simulador de Historia Clínica Electrónica y asignación de box persistente.
-* `components/MetricsDashboard.tsx`: Monitor de concordancia clínica y gobernanza de tokens LLM.
-* `components/NormalizationMonitor.tsx`: Tabla y filtros de ontologías SNOMED-CT / CIE-10.
-* `components/FHIRMonitor.tsx`: Visor e historial transaccional de interoperabilidad FHIR R4.
-* `components/ConfigPanel.tsx`: Gestión de motores de IA y bóveda cifrada de credenciales API.
-* `components/SecurityPanel.tsx`: Administración de usuarios, roles hospitalarios y auditoría forense.
-* `components/AppNavigation.tsx`: Barra superior, navegación adaptativa y drawer móvil.
+* `components/AppNavigation.tsx`: Shell de la app; verifica la sesión con `/api/auth/me/` y conmuta entre paneles.
+* `components/TriageDashboard.tsx`: Triaje interactivo, ASR incremental por fragmentos (4 s), modales y exportaciones.
+* `components/BlindReview.tsx`: Adjudicación ciega del nivel de referencia.
+* `components/MetricsDashboard.tsx`: Concordancia clínica, seguridad, referencia ciega y gobernanza de tokens.
+* `components/EMRSimulator.tsx`: Simulador de Historia Clínica Electrónica y asignación de box.
+* `components/NormalizationMonitor.tsx`: Ontologías SNOMED-CT / CIE-10.
+* `components/FHIRMonitor.tsx`: Historial e inspección de interoperabilidad FHIR R4.
+* `components/ConfigPanel.tsx`: Motores de IA, estado del ASR y bóveda de credenciales.
+* `components/SecurityPanel.tsx`: Usuarios, roles, permisos y auditoría.
+* `hooks/useWhisperASR.ts`: Captura de micrófono por fragmentos y envío a `/api/transcribe/`.

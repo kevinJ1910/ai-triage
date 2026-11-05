@@ -20,6 +20,26 @@ class TriageSession(models.Model):
     total_tokens = models.IntegerField(default=0, help_text="Total tokens consumed in inference")
     is_cached = models.BooleanField(default=False, help_text="True if response was served from semantic cache")
     rag_context = models.JSONField(default=list, blank=True, help_text="Criteria retrieved via clinical RAG")
+    # Ubicacion y estado asistencial en urgencias (simulador HCE); antes vivian dentro de clinical_entities.
+    assigned_box = models.CharField(max_length=50, blank=True, default='', help_text="Box o cama asignada")
+    care_status = models.CharField(max_length=50, default='Pendiente de Box', help_text="Estado asistencial del paciente")
+    # Nivel de referencia independiente (adjudicacion ciega): lo asigna un clinico distinto al tratante
+    # viendo solo la transcripcion, sin conocer ai_level ni final_level. Evita el sesgo de anclaje
+    # de comparar la IA contra un nivel final que el medico fijo despues de ver la propuesta de la IA.
+    reference_level = models.PositiveSmallIntegerField(
+        null=True, blank=True, choices=[(i, str(i)) for i in range(1, 6)],
+        help_text="Nivel asignado a ciegas por un clinico adjudicador"
+    )
+    reference_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reference_adjudications'
+    )
+    reference_at = models.DateTimeField(null=True, blank=True)
+    # Valoracion Likert (1-5) de la justificacion de la IA por el adjudicador, despues de fijar la referencia.
+    justification_clarity = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Claridad (1-5)")
+    justification_relevance = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Pertinencia clinica (1-5)")
+    justification_fidelity = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Fidelidad al protocolo (1-5)")
+    justification_rated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

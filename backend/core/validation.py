@@ -6,7 +6,7 @@ manteniendo flexibilidad en cargas dinámicas (JSON payloads, metadatos, bundles
 
 from typing import Optional, List, Dict, Any, Union, Literal
 from datetime import date
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, ValidationError
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
@@ -118,19 +118,13 @@ class TriageOverrideSchema(BaseModel):
     justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
 
-class EMRBoxAssignSchema(BaseModel):
-    assigned_box: Optional[str] = Field(default=None, max_length=50)
-    box_name: Optional[str] = Field(default=None, max_length=50)
-    status: Optional[str] = Field(default="En Atencion", max_length=50)
+class TriageReferenceSchema(BaseModel):
+    reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")
 
-    @model_validator(mode='after')
-    def validate_box_presence(self):
-        resolved = self.assigned_box or self.box_name
-        if not resolved or not resolved.strip():
-            raise ValueError("assigned_box o box_name debe ser proporcionado y no vacio")
-        self.assigned_box = resolved.strip()
-        return self
-
+class JustificationRatingSchema(BaseModel):
+    clarity: int = Field(ge=1, le=5, description="Claridad de la justificacion (1-5)")
+    relevance: int = Field(ge=1, le=5, description="Pertinencia clinica (1-5)")
+    fidelity: int = Field(ge=1, le=5, description="Fidelidad al protocolo (1-5)")
 
 class FHIRSyncSchema(BaseModel):
     resourceType: Literal['Bundle']
@@ -147,12 +141,14 @@ class SystemConfigUpdateSchema(BaseModel):
     active_asr_model: Optional[str] = None
     active_llm_engine: Optional[str] = None
     active_ner_model: Optional[str] = None
+    # Nombre de modelo de Ollama/llama.cpp (familia:etiqueta); vacio vuelve a LOCAL_LLM_MODEL.
+    local_llm_model: Optional[str] = Field(default=None, max_length=100, pattern=r'^[A-Za-z0-9._:/-]*$')
     snomed_version: Optional[str] = None
     icd10_version: Optional[str] = None
 
 class APIKeyCreateSchema(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    provider: Optional[Literal['gemini', 'openai', 'anthropic', 'deepseek', 'custom']] = None
+    provider: Optional[Literal['gemini', 'custom']] = None
     api_key: str = Field(min_length=4, max_length=500)
     description: Optional[str] = Field(default="", max_length=500)
 

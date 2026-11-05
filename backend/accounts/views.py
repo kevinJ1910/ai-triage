@@ -19,9 +19,18 @@ from .serializers import (
 )
 from .emails import send_verification_email, send_password_reset_email
 from .throttles import AuthThrottle, OTPThrottle
+from core.permissions import IsAdminRole
+from core.validation import validate_payload, UserPermissionUpdateSchema
+from .jwt_cookies import move_refresh_to_cookie
+from core.timeutils import local_strftime
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    # Fuerza bruta de contrasenas: mismo limite que el resto de flujos de autenticacion.
+    throttle_classes = [AuthThrottle]
+
+    def post(self, request, *args, **kwargs):
+        return move_refresh_to_cookie(super().post(request, *args, **kwargs))
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -66,12 +75,12 @@ class VerifyCodeView(APIView):
                 details='Cuenta verificada satisfactoriamente via OTP.'
             )
 
-            return Response({
+            return move_refresh_to_cookie(Response({
                 "message": "Correo verificado exitosamente. Bienvenido a AI-Triage.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "user": user_data
-            }, status=status.HTTP_200_OK)
+            }, status=status.HTTP_200_OK))
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendCodeView(APIView):
@@ -135,6 +144,8 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
+    # El codigo OTP de 6 digitos se valida aqui: sin limite se podria adivinar por fuerza bruta.
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -169,22 +180,17 @@ class UserProfileView(APIView):
 
 # RBAC y Auditoria Views
 class UserListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        # Admins ven todos los usuarios, otros roles solo ven informacion basica
         users = User.objects.all().select_related('permissions').order_by('id')
         data = UserSerializer(users, many=True).data
         return Response(data)
 
-from core.validation import validate_payload, UserPermissionUpdateSchema
-
 class UserPermissionUpdateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def patch(self, request, user_id):
-        if not (request.user.role == 'admin' or request.user.is_superuser):
-            return Response({"detail": "Permiso denegado. Solo administradores pueden modificar roles y permisos."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             validate_payload(UserPermissionUpdateSchema, request.data)
@@ -213,14 +219,18 @@ class UserPermissionUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AuditLogListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        limit = int(request.query_params.get('limit', 50))
+        try:
+            limit = int(request.query_params.get('limit', 50))
+        except (TypeError, ValueError):
+            limit = 50
+        limit = max(1, min(limit, 500))
         logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:limit]
         data = [{
             "id": log.id,
-            "timestamp": log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": local_strftime(log.timestamp, '%Y-%m-%d %H:%M:%S'),
             "user": log.user.full_name if log.user else 'Sistema/Anonimo',
             "user_email": log.user.email if log.user else 'N/A',
             "role": log.user.role if log.user else 'system',

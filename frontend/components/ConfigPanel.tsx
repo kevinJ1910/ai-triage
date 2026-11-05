@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchWithAuth } from '@/lib/api';
+import { ENGINES_CHANGED_EVENT } from '@/components/EngineStatus';
 
 interface APIKeyItem {
   id: number;
@@ -35,6 +36,7 @@ interface ConfigData {
   active_asr_model: string;
   active_llm_engine: string;
   active_ner_model: string;
+  local_llm_model?: string;
   snomed_version: string;
   snomed_updated_at: string;
   icd10_version: string;
@@ -54,6 +56,7 @@ interface AvailableOptions {
   asr_models: ModelOption[];
   llm_engines: ModelOption[];
   ner_models: ModelOption[];
+  local_llm_models?: string[];
 }
 
 interface RuntimeStatus {
@@ -62,6 +65,8 @@ interface RuntimeStatus {
   gemini_configured: boolean;
   active_keys_count: number;
   system_timezone: string;
+  ner_status?: { model_loaded: boolean; source?: string; detail?: string };
+  local_llm?: { configured: boolean; reachable: boolean; model: string; model_available: boolean };
 }
 
 interface VocabItem {
@@ -84,12 +89,12 @@ interface VocabulariesData {
 
 export default function ConfigPanel() {
   const [config, setConfig] = useState<ConfigData>({
-    active_asr_model: 'large-v3-turbo',
+    active_asr_model: 'auto',
     active_llm_engine: 'gemini-2.5-flash',
-    active_ner_model: 'ClinicalBERT (v2.1 - Recomendado)',
-    snomed_version: 'SNOMED CT (Edicion en Espanol)',
+    active_ner_model: 'auto',
+    snomed_version: 'SNOMED CT International Edition',
     snomed_updated_at: new Date().toISOString(),
-    icd10_version: 'ICD-10 (CIE-10)',
+    icd10_version: 'CIE-10 (OMS)',
     icd10_updated_at: new Date().toISOString(),
   });
 
@@ -142,12 +147,23 @@ export default function ConfigPanel() {
           active_asr_model: config.active_asr_model,
           active_llm_engine: config.active_llm_engine,
           active_ner_model: config.active_ner_model,
+          local_llm_model: config.local_llm_model ?? '',
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Error al guardar');
-      toast.success('Modelos de inferencia actualizados satisfactoriamente');
+      if (data.asr_reload === 'encolada') {
+        toast.success('Modelos actualizados. El worker ASR está cargando el nuevo modelo de Whisper.');
+      } else if (data.asr_reload === 'no disponible') {
+        toast.warning('Modelos guardados, pero el worker ASR no recibió la orden de recarga: se aplicará al reiniciarlo.');
+      } else {
+        toast.success('Modelos de inferencia actualizados satisfactoriamente');
+      }
+      // El estado de los motores de la barra lateral se refresca sin esperar a su sondeo.
+      window.dispatchEvent(new Event(ENGINES_CHANGED_EVENT));
+      // Recarga el estado del servidor local (modelo elegido y si esta descargado).
+      loadConfig();
     } catch (err: any) {
       toast.error(err.message || 'Fallo al guardar configuracion');
     } finally {
@@ -158,10 +174,7 @@ export default function ConfigPanel() {
   const handleDetectProvider = (val: string) => {
     const trimmed = val.trim();
     if (trimmed.startsWith('AIza') || trimmed.includes('AQ.')) return 'Google Gemini';
-    if (trimmed.startsWith('sk-ant-')) return 'Anthropic Claude';
-    if (trimmed.startsWith('sk-proj-') || (trimmed.startsWith('sk-') && trimmed.length > 35)) return 'OpenAI';
-    if (trimmed.toLowerCase().includes('deepseek')) return 'DeepSeek';
-    return 'Autodetectar';
+    return 'Servidor local';
   };
 
   const handleCreateKey = async (e: React.FormEvent) => {
@@ -296,18 +309,18 @@ export default function ConfigPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-900 border border-slate-700/80 rounded-xl p-3 sm:p-5 overflow-y-auto space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-            <Settings className="w-4 h-4" />
+    <div className="flex flex-col h-full w-full bg-[var(--surface-base)] border border-[var(--surface-border)] rounded-2xl p-4 sm:p-6 overflow-y-auto space-y-6 shadow-xl">
+      {/* Header Configuracion */}
+      <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+            <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xs sm:text-sm font-bold uppercase text-white tracking-wider">
+            <h2 className="text-xs sm:text-sm font-semibold uppercase text-slate-100 tracking-wide">
               Configuracion del Sistema y Motores IA
             </h2>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[11px] text-slate-400">
               Parametrizacion de modelos ASR, motores LLM y gestion segura de credenciales
             </p>
           </div>
@@ -316,7 +329,7 @@ export default function ConfigPanel() {
         <button
           onClick={handleSaveModels}
           disabled={savingConfig}
-          className="px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all flex items-center gap-1.5 shadow-md shadow-blue-600/20 disabled:opacity-50"
+          className="px-3.5 py-2 rounded-xl text-xs font-medium text-white bg-sky-600 hover:bg-sky-500 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
         >
           {savingConfig ? (
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -327,24 +340,24 @@ export default function ConfigPanel() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* CARD 1: Model Management */}
-        <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-4 space-y-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-300 pb-2 border-b border-slate-800">
-            <Cpu className="w-4 h-4 text-blue-400" />
-            <h3 className="text-xs uppercase font-bold tracking-wider text-slate-200">
+        <div className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 space-y-4 shadow-sm">
+          <div className="flex items-center gap-2.5 text-slate-200 pb-3 border-b border-[var(--surface-border)]">
+            <Cpu className="w-4 h-4 text-sky-400" />
+            <h3 className="text-xs uppercase font-semibold tracking-wider text-slate-200">
               Motores de Inferencia Clinica
             </h3>
           </div>
 
-          <div className="space-y-3.5">
+          <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                   Motor ASR de Transcripcion (Faster-Whisper)
                 </label>
                 {runtimeStatus && (
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${runtimeStatus.cuda_available ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${runtimeStatus.cuda_available ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
                     {runtimeStatus.hardware_device}
                   </span>
                 )}
@@ -352,10 +365,11 @@ export default function ConfigPanel() {
               <select
                 value={config.active_asr_model}
                 onChange={(e) => setConfig({ ...config, active_asr_model: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
               >
                 {(availableOptions?.asr_models || [
-                  { id: 'large-v3-turbo', name: 'Faster-Whisper (large-v3-turbo) - Alta Precision GPU/CPU (Recomendado)' },
+                  { id: 'auto', name: 'Segun entorno (WHISPER_MODEL_SIZE) - Recomendado' },
+                  { id: 'large-v3-turbo', name: 'Faster-Whisper (large-v3-turbo) - Alta Precision (GPU)' },
                   { id: 'large-v3', name: 'Whisper Large V3 - Modelo Completo (Requiere GPU dedicada)' },
                   { id: 'medium', name: 'Faster-Whisper Medium - Balance Precision/Velocidad' },
                   { id: 'small', name: 'Faster-Whisper Small - Liviano / Baja Latencia' },
@@ -367,8 +381,8 @@ export default function ConfigPanel() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8.
+              <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
+                Aceleracion por tensores CTranslate2 con soporte NVIDIA CUDA y fallback dinamico a CPU INT8. Al guardar, el worker ASR recarga el modelo sin reiniciarse (la primera vez que se usa un modelo lo descarga, y puede tardar).
               </span>
             </div>
 
@@ -377,8 +391,15 @@ export default function ConfigPanel() {
                 <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                   Motor de Explicabilidad y Triaje (LLM)
                 </label>
-                {runtimeStatus?.gemini_configured && (
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                {config.active_llm_engine === 'local' ? (
+                  <span
+                    data-testid="local-llm-status"
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase border ${runtimeStatus?.local_llm?.reachable ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                  >
+                    {runtimeStatus?.local_llm?.reachable ? 'Servidor local disponible' : 'Servidor local no disponible'}
+                  </span>
+                ) : runtimeStatus?.gemini_configured && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
                     Credencial Activa
                   </span>
                 )}
@@ -386,102 +407,147 @@ export default function ConfigPanel() {
               <select
                 value={config.active_llm_engine}
                 onChange={(e) => setConfig({ ...config, active_llm_engine: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
               >
                 {(availableOptions?.llm_engines || [
                   { id: 'gemini-2.5-flash', name: 'Google Gemini 2.5 Flash - Baja Latencia Clinica (Recomendado)' },
-                  { id: 'gemini-1.5-pro', name: 'Google Gemini 1.5 Pro - Razonamiento Extendido' },
-                  { id: 'gpt-4o-mini', name: 'OpenAI GPT-4o-mini - Soporte Multimodal' },
-                  { id: 'gpt-4o', name: 'OpenAI GPT-4o - Modelo de Referencia' },
-                  { id: 'claude-3-5-sonnet', name: 'Anthropic Claude 3.5 Sonnet - Precision Diagnostica' },
+                  { id: 'gemini-3.5-flash-lite', name: 'Google Gemini 3.5 Flash-Lite - Bajo Costo' },
+                  { id: 'gemini-3.8-flash', name: 'Google Gemini 3.8 Flash' },
                 ]).map((opt) => (
                   <option key={opt.id} value={opt.id}>
                     {opt.name}
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                El motor analiza la conversacion medica para extraer sintomas, signos vitales y escala ESI/Manchester.
+              {config.active_llm_engine === 'local' && (
+                <div className="mt-2">
+                  <label htmlFor="local-llm-model" className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                    Modelo local
+                  </label>
+                  <select
+                    id="local-llm-model"
+                    value={config.local_llm_model || runtimeStatus?.local_llm?.model || ''}
+                    onChange={(e) => setConfig({ ...config, local_llm_model: e.target.value })}
+                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                  >
+                    {Array.from(new Set([
+                      ...(availableOptions?.local_llm_models || []),
+                      ...(config.local_llm_model ? [config.local_llm_model] : []),
+                      ...(runtimeStatus?.local_llm?.model ? [runtimeStatus.local_llm.model] : []),
+                    ])).map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-slate-500 mt-1 block leading-relaxed">
+                    Modelos descargados en el servidor (ollama pull). Gemma 4 E4B razona antes de responder: más preciso, pero más lento en CPU.
+                  </span>
+                </div>
+              )}
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm && !runtimeStatus.local_llm.reachable && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {runtimeStatus.local_llm.configured
+                    ? 'El servidor LLM local no responde: mientras no esté disponible, clasificará el motor de reglas.'
+                    : 'No hay servidor LLM local configurado (LOCAL_LLM_BASE_URL): clasificará el motor de reglas.'}
+                </span>
+              )}
+              {config.active_llm_engine === 'local' && runtimeStatus?.local_llm?.reachable && !runtimeStatus.local_llm.model_available && (
+                <span role="alert" className="text-[10px] text-amber-400 mt-1.5 flex items-start gap-1.5 leading-relaxed">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                  {`El servidor responde pero no tiene descargado ${runtimeStatus.local_llm.model} (ollama pull).`}
+                </span>
+              )}
+              <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
+                El LLM recibe la pauta del motor de reglas (Christus Sinergia / Res. 5596) y los criterios recuperados por el RAG; si falla o no hay cuota, clasifica el motor de reglas. El LLM local nunca recurre a Gemini.
               </span>
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Modelo NER Especializado (Entidades Medicas)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Extraccion de Entidades (NER)
+                </label>
+                {runtimeStatus?.ner_status && (
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase border ${runtimeStatus.ner_status.model_loaded ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                    {runtimeStatus.ner_status.model_loaded ? 'RoBERTa cargado' : 'Sin modelo: catalogo'}
+                  </span>
+                )}
+              </div>
               <select
                 value={config.active_ner_model}
                 onChange={(e) => setConfig({ ...config, active_ner_model: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl p-2.5 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
               >
                 {(availableOptions?.ner_models || [
-                  { id: 'ClinicalBERT (v2.1 - Recomendado)', name: 'ClinicalBERT (v2.1 - Recomendado)' },
-                  { id: 'BioBERT (v1.5 - Legacy)', name: 'BioBERT (v1.5 - Legacy)' },
-                  { id: 'PubMedBERT (Experimental)', name: 'PubMedBERT (Experimental)' },
+                  { id: 'auto', name: 'RoBERTa clinico + catalogo' },
+                  { id: 'catalogo', name: 'Solo catalogo terminologico y LLM' },
                 ]).map((opt) => (
                   <option key={opt.id} value={opt.id}>
                     {opt.name}
                   </option>
                 ))}
               </select>
+              <span className="text-[10px] text-slate-500 mt-1.5 block leading-relaxed">
+                El modelo se carga en el worker LLM desde NER_MODEL_PATH (ver ml/ner/README.md). La negacion y el contexto (alergias, antecedentes) los decide el pipeline, no el modelo.
+              </span>
             </div>
           </div>
         </div>
 
         {/* CARD 2: Encrypted API Keys Vault */}
-        <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-4 space-y-4 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-slate-300">
+        <div className="bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 space-y-4 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
+            <div className="flex items-center gap-2.5 text-slate-200">
               <Key className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs uppercase font-bold tracking-wider text-slate-200">
-                Boveda de Llaves API Cifradas (AES)
+              <h3 className="text-xs uppercase font-semibold tracking-wider text-slate-200">
+                Boveda de Llaves API Cifradas (Fernet)
               </h3>
             </div>
             <button
               onClick={() => setShowKeyModal(true)}
-              className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" /> Agregar Llave
             </button>
           </div>
 
           <p className="text-[11px] text-slate-400">
-            Las credenciales de acceso se cifran mediante algoritmos simetricos AES en base de datos. Una vez registradas, las llaves nunca son expuestas en texto plano; unicamente pueden eliminarse.
+            Las credenciales se cifran en base de datos con Fernet (AES-128 + HMAC-SHA256). Una vez registradas no se vuelven a mostrar en texto plano; solo pueden eliminarse. El triaje usa la llave de Gemini.
           </p>
 
           {/* Keys list */}
           <div className="space-y-2 flex-1 overflow-y-auto max-h-[220px] pr-1">
             {apiKeys.length === 0 ? (
-              <div className="p-6 rounded-lg bg-slate-900/50 border border-dashed border-slate-800 text-center text-xs text-slate-500">
+              <div className="p-8 rounded-xl bg-[var(--surface-card)] border border-dashed border-[var(--surface-border)] text-center text-xs text-slate-500">
                 No hay llaves personalizadas registradas. Se esta utilizando la llave configurada en el archivo de entorno (.env).
               </div>
             ) : (
               apiKeys.map((key) => (
                 <div
                   key={key.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all"
+                  className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-card)] border border-[var(--surface-border)] hover:border-slate-700 transition-all shadow-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-md bg-slate-800 flex items-center justify-center text-slate-300 text-xs font-mono font-bold">
-                      {key.provider === 'gemini' ? 'G' : key.provider === 'openai' ? 'OA' : key.provider === 'anthropic' ? 'CL' : key.provider === 'deepseek' ? 'DS' : 'K'}
+                    <div className="w-8 h-8 rounded-lg bg-[var(--surface-base)] border border-[var(--surface-border)] flex items-center justify-center text-slate-300 text-xs font-mono font-bold">
+                      {key.provider === 'gemini' ? 'G' : 'L'}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-slate-200">{key.name}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
                           {key.provider_display}
                         </span>
                         {key.name.includes('.env') && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             .env
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] font-mono text-emerald-400 tracking-wider">
+                        <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-semibold">
                           {key.masked_key}
                         </span>
-                        <span className="text-[9px] text-slate-500">
+                        <span className="text-[10px] text-slate-500">
                           Registrada: {formatDate(key.created_at)}
                         </span>
                       </div>
@@ -500,158 +566,158 @@ export default function ConfigPanel() {
             )}
           </div>
 
-          <div className="p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-500/20 flex items-center gap-2 text-[10px] text-emerald-300">
+          <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 flex items-center gap-2.5 text-[11px] text-emerald-300">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Almacenamiento seguro conforme a estandares HIPAA y Ley 1581 de proteccion de datos.</span>
+            <span>Cifrado en reposo como medida de seguridad para la Ley 1581 de proteccion de datos; no es una certificacion de cumplimiento.</span>
           </div>
         </div>
 
         {/* CARD 3: Vocabularies */}
-        <div className="lg:col-span-2 bg-slate-950/60 rounded-xl border border-slate-800 p-4 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-slate-300">
-              <Database className="w-4 h-4 text-purple-400" />
-              <h3 className="text-xs uppercase font-bold tracking-wider text-slate-200">
+        <div className="lg:col-span-2 bg-[var(--surface-panel)] rounded-2xl border border-[var(--surface-border)] p-4 sm:p-5 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
+            <div className="flex items-center gap-2.5 text-slate-200">
+              <Database className="w-4 h-4 text-teal-400" />
+              <h3 className="text-xs uppercase font-semibold tracking-wider text-slate-200">
                 Estandares de Interoperabilidad Clinica (Vocabularios)
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">
-              Mapeo Semantico Activo
+            <span className="text-[11px] font-mono text-slate-400">
+              Catalogo local versionado
             </span>
           </div>
 
           {/* Token consumption notice banner */}
-          <div className="p-3 rounded-lg bg-indigo-950/20 border border-indigo-500/30 flex items-start gap-2.5 text-[11px] text-indigo-300">
-            <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-xl bg-sky-950/20 border border-sky-500/30 flex items-start gap-3 text-[11px] text-sky-200">
+            <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-white block mb-0.5">Control de Consumo de Tokens (Filtrado Semantico LLM):</span>
-              <p className="text-slate-300 leading-relaxed text-[10px] sm:text-[11px]">
-                El motor realiza busqueda determinista y RAG semantico para vocabulario clinico. Cuando se activa el LLM para disambiguar lenguaje coloquial, cada consulta consume un promedio de <strong>~120 a 180 tokens</strong> (entrada: ~100 tokens, salida estructurada: ~40 tokens). Mantener vocabularios sincronizados permite maximizar el acierto local y reducir llamadas a API de terceros.
+              <span className="font-semibold text-slate-100 block mb-0.5">Consumo de tokens de la normalizacion:</span>
+              <p className="text-slate-300 leading-relaxed text-[11px]">
+                {vocabularies?.snomed?.token_notice || 'Las capas del catalogo no consumen tokens; el LLM solo procesa los terminos residuales en el monitor de normalizacion.'}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* SNOMED CT Card */}
-            <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 flex flex-col justify-between space-y-3">
+            <div className="p-4 bg-[var(--surface-card)] rounded-xl border border-[var(--surface-border)] flex flex-col justify-between space-y-3.5">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">{config.snomed_version}</span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    {vocabularies?.snomed?.status || 'OPERACIONAL'}
+                  <span className="text-xs font-semibold text-slate-200">{vocabularies?.snomed?.title || config.snomed_version}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                    {vocabularies?.snomed?.status || '—'}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 block mt-1">
-                  Proveedor: {vocabularies?.snomed?.provider || 'IHTSDO / SNOMED International (Edicion Espanol)'}
+                <span className="text-[11px] text-slate-400 block mt-1">
+                  Fuente: {vocabularies?.snomed?.provider || '—'}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.snomed_updated_at)} • Ultimo release: {vocabularies?.snomed?.latest_release || '2026-09-01'}
+                  Ultima recarga: {formatDate(config.snomed_updated_at)} • Version del catalogo: {vocabularies?.snomed?.latest_release || '—'}
                 </span>
 
-                <div className="mt-2.5 grid grid-cols-2 gap-2 p-2 rounded bg-slate-950/60 border border-slate-800/80 text-[10px]">
+                <div className="mt-3 grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--surface-base)] border border-[var(--surface-border)] text-[11px]">
                   <div>
-                    <span className="text-slate-500 block text-[9px]">Terminos del Catalogo:</span>
-                    <span className="font-mono font-bold text-slate-300">{(vocabularies?.snomed?.total_terms || 352267).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Codigos verificados:</span>
+                    <span className="font-mono font-semibold text-slate-300">{vocabularies?.snomed ? vocabularies.snomed.total_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[9px]">Prioritarios Urgencias:</span>
-                    <span className="font-mono font-bold text-emerald-400">{(vocabularies?.snomed?.indexed_emergency_terms || 24500).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Conceptos con codigo:</span>
+                    <span className="font-mono font-semibold text-emerald-400">{vocabularies?.snomed ? vocabularies.snomed.indexed_emergency_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                 </div>
 
-                <span className="text-[9px] text-purple-400 uppercase font-bold tracking-wider mt-2 block">
-                  Ontologia de sintomas, signos y hallazgos
+                <span className="text-[10px] text-teal-400 uppercase font-semibold tracking-wider mt-2.5 block">
+                  Sintomas, hallazgos, trastornos y sustancias
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--surface-border)]">
                 <button
                   onClick={() => handleCheckUpdate('snomed')}
                   disabled={checkingUpdate === 'snomed'}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                  className="bg-[var(--surface-panel)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  title="Validar la consistencia del catalogo local"
                 >
                   {checkingUpdate === 'snomed' ? (
-                    <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+                    <RefreshCw className="w-3 h-3 animate-spin text-sky-400" />
                   ) : (
                     <RefreshCw className="w-3 h-3 text-slate-400" />
                   )}
-                  Comprobar
+                  Validar
                 </button>
 
                 <button
                   onClick={() => handleSyncVocab('snomed')}
                   disabled={syncingVocab === 'snomed'}
-                  className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {syncingVocab === 'snomed' ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}
-                  Sincronizar
+                  Recargar
                 </button>
               </div>
             </div>
 
             {/* ICD-10 Card */}
-            <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 flex flex-col justify-between space-y-3">
+            <div className="p-4 bg-[var(--surface-card)] rounded-xl border border-[var(--surface-border)] flex flex-col justify-between space-y-3.5">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">{config.icd10_version}</span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    {vocabularies?.icd10?.status || 'OPERACIONAL'}
+                  <span className="text-xs font-semibold text-slate-200">{vocabularies?.icd10?.title || config.icd10_version}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    {vocabularies?.icd10?.status || '—'}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 block mt-1">
-                  Proveedor: {vocabularies?.icd10?.provider || 'OMS / Catalogo Oficial CIE-10 (Edicion Clinica)'}
+                <span className="text-[11px] text-slate-400 block mt-1">
+                  Fuente: {vocabularies?.icd10?.provider || '—'}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Ultima actualizacion: {formatDate(config.icd10_updated_at)} • Ultimo release: {vocabularies?.icd10?.latest_release || '2026-08-15'}
+                  Ultima recarga: {formatDate(config.icd10_updated_at)} • Version del catalogo: {vocabularies?.icd10?.latest_release || '—'}
                 </span>
 
-                <div className="mt-2.5 grid grid-cols-2 gap-2 p-2 rounded bg-slate-950/60 border border-slate-800/80 text-[10px]">
+                <div className="mt-3 grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--surface-base)] border border-[var(--surface-border)] text-[11px]">
                   <div>
-                    <span className="text-slate-500 block text-[9px]">Codigos del Catalogo:</span>
-                    <span className="font-mono font-bold text-slate-300">{(vocabularies?.icd10?.total_terms || 14200).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Codigos en el catalogo:</span>
+                    <span className="font-mono font-semibold text-slate-300">{vocabularies?.icd10 ? vocabularies.icd10.total_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[9px]">Prioritarios Urgencias:</span>
-                    <span className="font-mono font-bold text-indigo-400">{(vocabularies?.icd10?.indexed_emergency_terms || 4200).toLocaleString('es-CO')}</span>
+                    <span className="text-slate-500 block text-[10px]">Conceptos con codigo:</span>
+                    <span className="font-mono font-semibold text-sky-400">{vocabularies?.icd10 ? vocabularies.icd10.indexed_emergency_terms.toLocaleString('es-CO') : '—'}</span>
                   </div>
                 </div>
 
-                <span className="text-[9px] text-indigo-400 uppercase font-bold tracking-wider mt-2 block">
+                <span className="text-[10px] text-sky-400 uppercase font-semibold tracking-wider mt-2.5 block">
                   Clasificacion Internacional de Enfermedades
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--surface-border)]">
                 <button
                   onClick={() => handleCheckUpdate('icd10')}
                   disabled={checkingUpdate === 'icd10'}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                  title="Comprobar si existe una edicion mas reciente en el servidor oficial"
+                  className="bg-[var(--surface-panel)] hover:bg-slate-800 text-slate-300 border border-[var(--surface-border)] px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  title="Validar la consistencia del catalogo local"
                 >
                   {checkingUpdate === 'icd10' ? (
-                    <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+                    <RefreshCw className="w-3 h-3 animate-spin text-sky-400" />
                   ) : (
                     <RefreshCw className="w-3 h-3 text-slate-400" />
                   )}
-                  Comprobar
+                  Validar
                 </button>
 
                 <button
                   onClick={() => handleSyncVocab('icd10')}
                   disabled={syncingVocab === 'icd10'}
-                  className="bg-blue-600/20 text-blue-400 border border-blue-500/40 hover:bg-blue-600/30 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {syncingVocab === 'icd10' ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
                   ) : (
                     <Upload className="w-3 h-3" />
                   )}
-                  Sincronizar
+                  Recargar
                 </button>
               </div>
             </div>
@@ -662,23 +728,23 @@ export default function ConfigPanel() {
       {/* MODAL: Agregar Llave API Cifrada */}
       {showKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="w-full max-w-md bg-[var(--surface-panel)] border border-[var(--surface-border)] rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-3">
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-bold uppercase text-white tracking-wider">
+                <h3 className="text-xs font-semibold uppercase text-slate-100 tracking-wider">
                   Registrar Llave API Cifrada
                 </h3>
               </div>
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="text-slate-500 hover:text-slate-300"
+                className="text-slate-400 hover:text-slate-200"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateKey} className="space-y-3.5">
+            <form onSubmit={handleCreateKey} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
                   Nombre Identificador
@@ -689,7 +755,7 @@ export default function ConfigPanel() {
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   placeholder="Ej: Google Gemini Pro Produccion"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl py-2 px-3 text-xs text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
                 />
               </div>
 
@@ -699,7 +765,7 @@ export default function ConfigPanel() {
                     Llave API (Texto Plano)
                   </label>
                   {newKeyValue && (
-                    <span className="text-[10px] text-blue-400 font-mono">
+                    <span className="text-[10px] text-sky-400 font-mono font-medium">
                       {handleDetectProvider(newKeyValue)}
                     </span>
                   )}
@@ -711,12 +777,12 @@ export default function ConfigPanel() {
                     value={newKeyValue}
                     onChange={(e) => setNewKeyValue(e.target.value)}
                     placeholder="AIzaSy... o sk-..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 pl-3 pr-9 text-xs text-slate-200 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"
+                    className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl py-2 pl-3 pr-9 text-xs text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-sky-500 focus:outline-none font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPlainKey(!showPlainKey)}
-                    className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
                   >
                     {showPlainKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -730,18 +796,15 @@ export default function ConfigPanel() {
                 <select
                   value={newKeyProvider}
                   onChange={(e) => setNewKeyProvider(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl py-2 px-3 text-xs text-slate-200 focus:ring-1 focus:ring-sky-500 focus:outline-none"
                 >
                   <option value="auto">Autodetectar por formato de prefijo</option>
                   <option value="gemini">Google Gemini (AIza / AQ)</option>
-                  <option value="openai">OpenAI (sk-...)</option>
-                  <option value="anthropic">Anthropic Claude (sk-ant-...)</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="custom">Servidor Local / Compatible OpenAI</option>
+                  <option value="custom">Servidor local / compatible con OpenAI</option>
                 </select>
               </div>
 
-              <div className="p-3 rounded-lg bg-amber-950/20 border border-amber-500/20 flex items-start gap-2 text-[10px] text-amber-300">
+              <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 flex items-start gap-2 text-[11px] text-amber-300">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <span>
                   Por diseno de seguridad, esta llave sera cifrada inmediatamente. Nadie podra recuperarla ni leerla en texto plano.
@@ -752,14 +815,14 @@ export default function ConfigPanel() {
                 <button
                   type="button"
                   onClick={() => setShowKeyModal(false)}
-                  className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800/50 hover:bg-slate-800 transition-colors"
+                  className="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-[var(--surface-card)] transition-colors border border-[var(--surface-border)]"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingKey}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-sm transition-all disabled:opacity-50"
                 >
                   {savingKey ? 'Cifrando...' : 'Guardar Llave Cifrada'}
                 </button>

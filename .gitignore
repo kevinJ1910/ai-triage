@@ -17,6 +17,11 @@ eggs/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
 
 # Virtual environments
 venv/
@@ -28,8 +33,8 @@ ENV/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-/media/
-/staticfiles/
+media/
+staticfiles/
 /logs/
 
 # Celery
@@ -47,10 +52,10 @@ dist/
 .hatch/
 coverage/
 *.tsbuildinfo
-*.tsx陪伴
+.eslintcache
 
-# pnpm
-pnpm-lock.yaml
+# pnpm-lock.yaml se versiona (la CI instala con --frozen-lockfile);
+# se ignoran los lockfiles de otros gestores para no mezclarlos
 package-lock.json
 yarn.lock
 .npm
@@ -75,6 +80,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 Desktop.ini
+CLAUDE.md
+.claude
+.agents
 
 # ===========================================
 # Environment & Secrets
@@ -84,6 +92,9 @@ Desktop.ini
 .env.*.local
 !.env.example
 *.pem
+*.key
+*.crt
+nginx/certs/
 credentials/
 
 # ===========================================
@@ -100,10 +111,22 @@ docker-compose.override.yml
 .cache/
 .pnp
 .pnp.js
-test/
 tmp/
 temp/
 *.tgz
-# Documentation PDFs
+# Documentation PDFs & Office
 Memorias/
 *.pdf
+*.docx
+
+# Modelos y paquetes del NER (se publican fuera de git)
+ml/ner/output/
+
+# Corpus externos descargados para evaluar (p. ej. CodiEsp) y audios del WER
+backend/data/
+
+# Grabaciones de voz: nunca se versionan
+*.wav
+*.m4a
+*.mp3
+*.webm
