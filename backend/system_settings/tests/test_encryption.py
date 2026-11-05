@@ -118,6 +118,23 @@ class TestSystemSettingsAndEncryption:
         assert config.active_asr_model == "large-v3"
         assert config.active_llm_engine == "gemini-3.5-flash-lite"
 
+    def test_system_config_asr_reload_after_warm_health_check_uses_stub(self):
+        from transcription.whisper_engine import WhisperEngine
+
+        health = self.client.get("/api/health_check/")
+        assert health.status_code == status.HTTP_200_OK
+        assert WhisperEngine._instance is not None
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post("/api/config/", {
+            "active_asr_model": "large-v3",
+            "active_llm_engine": "gemini-3.5-flash-lite",
+        }, format="json")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["asr_reload"] == "encolada"
+        assert WhisperEngine._instance.model_size_used == "large-v3"
+        assert WhisperEngine._instance.model.__class__.__name__ == "_StubWhisperModel"
+
     def test_system_config_update_non_admin_forbidden(self):
         self.client.force_authenticate(user=self.nurse)
         response = self.client.post("/api/config/", {
