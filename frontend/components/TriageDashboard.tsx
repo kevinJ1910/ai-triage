@@ -376,10 +376,16 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
       const info = analysisResult.patientInfo;
       setPatientInfo(prev => ({
         name: prev.name || info.name || '',
-        documentId: prev.documentId || info.documentId || '',
+        documentId:
+          info.documentId && info.documentId.length > (prev.documentId || '').length
+            ? info.documentId
+            : (prev.documentId || info.documentId || ''),
         birthDate: prev.birthDate || info.birthDate || '',
         gender: prev.gender !== 'unknown' ? prev.gender : (info.gender || 'unknown'),
-        phone: prev.phone || info.phone || '',
+        phone:
+          info.phone && info.phone.length > (prev.phone || '').length
+            ? info.phone
+            : (prev.phone || info.phone || ''),
         insurance: prev.insurance || info.insurance || ''
       }));
     } else if (analysisResult?.entities?.patientName && analysisResult.entities.patientName !== 'Paciente Desconocido') {
@@ -586,8 +592,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     }
     await loadHistory();
     const savedName = patientInfo.name || 'el paciente';
-    executeResetConsultation(false);
-    toast.success(`Consulta guardada en el historial para ${savedName}. Lista para nueva atención.`);
+    toast.success(`Sesión registrada en el historial para ${savedName}`);
   };
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -644,7 +649,12 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
         const cleanedChunk = (item.text || '').replace(/^\.{2,}\s*/, '').replace(/\s*\.{2,}$/, '').trim();
         if (!cleanedChunk) continue;
         if (coalesced.length > 0 && coalesced[coalesced.length - 1].speaker === item.speaker) {
-          coalesced[coalesced.length - 1].text += ` ${cleanedChunk}`;
+          const prevText = coalesced[coalesced.length - 1].text;
+          if (/\d[.,]?$/.test(prevText) && /^\d/.test(cleanedChunk)) {
+            coalesced[coalesced.length - 1].text = `${prevText.replace(/[.,]+$/, '')}${cleanedChunk}`;
+          } else {
+            coalesced[coalesced.length - 1].text += ` ${cleanedChunk}`;
+          }
         } else {
           coalesced.push({ speaker: item.speaker, text: cleanedChunk });
         }
