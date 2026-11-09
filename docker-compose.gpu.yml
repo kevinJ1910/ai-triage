@@ -1,4 +1,4 @@
-# Override para hosts con GPU NVIDIA y NVIDIA Container Toolkit instalado.
+# Override para hosts con GPU NVIDIA (compatible con WSL2 / Docker Desktop via /dev/dxg y Linux nativo).
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
 # O de forma permanente en el .env de ese equipo (separador ';' en Windows, ':' en Linux/macOS):
@@ -7,32 +7,33 @@ services:
   backend:
     build:
       args:
-        # Instala las librerias CUDA/cuDNN (nvidia-*) en la imagen; en CPU se omiten.
+        # Instala las librerias CUDA/cuDNN (nvidia-*) en la imagen; si no hay GPU cae automaticamente a CPU.
         WITH_CUDA: "true"
 
   # La GPU la usan el worker ASR (Whisper) y, si se activa el perfil llm-local, el LLM local.
+  # Si el contenedor se inicia en un equipo donde CUDA no responda, WhisperEngine cae automaticamente a CPU (int8).
   worker-asr:
     environment:
       WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
-      WHISPER_DEVICE: cuda
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
       WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8_float16}
-      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-2}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-1}
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib
+    devices:
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /usr/lib/wsl:/usr/lib/wsl:ro
     deploy:
       resources:
         limits:
           memory: 8G
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   # LLM local (perfil llm-local): con GPU responde en segundos en vez de minutos.
   llm-local:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    profiles: ["llm-local"]
+    environment:
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib
+    devices:
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /usr/lib/wsl:/usr/lib/wsl:ro

@@ -34,6 +34,11 @@ elif sys.platform.startswith('linux'):
     import glob
     import site
     try:
+        if os.path.isdir("/usr/lib/wsl/lib"):
+            os.environ["LD_LIBRARY_PATH"] = "/usr/lib/wsl/lib:" + os.environ.get("LD_LIBRARY_PATH", "")
+            libcuda_wsl = "/usr/lib/wsl/lib/libcuda.so.1"
+            if os.path.exists(libcuda_wsl):
+                ctypes.CDLL(libcuda_wsl, mode=ctypes.RTLD_GLOBAL)
         for sp in site.getsitepackages():
             for pattern in (
                 "nvidia/cublas/lib/libcublasLt.so*",
@@ -89,8 +94,9 @@ DECODE_OPTIONS = dict(
     log_prob_threshold=-1.0,
     no_speech_threshold=0.6,
     condition_on_previous_text=False,
+    without_timestamps=True,
     vad_filter=True,
-    vad_parameters=dict(min_silence_duration_ms=500),
+    vad_parameters=dict(min_silence_duration_ms=350, speech_pad_ms=200),
 )
 # Una frase de 2 a 8 palabras repetida al menos 3 veces seguidas, o una palabra al menos 4 veces.
 _REPEATED_PHRASE = re.compile(r"\b((?:\w+[\s,.;]+){1,7}?\w+)(?:[\s,.;]+\1\b){2,}", re.IGNORECASE)
@@ -221,6 +227,23 @@ class WhisperEngine:
             return cls._instance
 
     @staticmethod
+    def _has_cuda_gpu() -> bool:
+        try:
+            import ctranslate2
+            return ctranslate2.get_cuda_device_count() > 0
+        except Exception:
+            return False
+
+    @staticmethod
+    def _is_auto_config() -> bool:
+        try:
+            from system_settings.models import SystemConfiguration
+            cfg = SystemConfiguration.get_solo()
+            return not cfg.active_asr_model or cfg.active_asr_model == 'auto'
+        except Exception:
+            return True
+
+    @staticmethod
     def configured_model_size() -> str:
         """Modelo que pide la configuracion: 'auto' respeta WHISPER_MODEL_SIZE del equipo; otro valor lo impone el admin."""
         model_size = getattr(settings, 'WHISPER_MODEL_SIZE', 'small')
@@ -252,6 +275,22 @@ class WhisperEngine:
         device = getattr(settings, 'WHISPER_DEVICE', 'auto')
         compute_type = getattr(settings, 'WHISPER_COMPUTE_TYPE', 'default')
         cpu_threads = getattr(settings, 'WHISPER_CPU_THREADS', 4)
+
+        if device == 'auto':
+            if self._has_cuda_gpu():
+                device = 'cuda'
+                if compute_type in ('default', 'auto', ''):
+                    compute_type = 'int8_float16'
+            else:
+                device = 'cpu'
+                if compute_type in ('default', 'auto', 'int8_float16', 'float16', ''):
+                    compute_type = 'int8'
+                if self._is_auto_config() and model_size in ('large-v3', 'large-v3-turbo'):
+                    model_size = getattr(settings, 'WHISPER_CPU_FALLBACK_MODEL', 'small')
+        elif device == 'cuda' and compute_type in ('default', 'auto', ''):
+            compute_type = 'int8_float16'
+        elif device == 'cpu' and compute_type in ('default', 'auto', 'int8_float16', 'float16', ''):
+            compute_type = 'int8'
 
         logger.info(f"Cargando modelo '{model_size}' en '{device}' (compute_type: {compute_type}, hilos: {cpu_threads})")
         start_time = time.perf_counter()
@@ -288,16 +327,22 @@ class WhisperEngine:
                 except Exception as cuda_int8_err:
                     logger.warning(f"Fallo respaldo CUDA int8_float16 ({cuda_int8_err}).")
 
-            logger.warning(f"Fallo carga con device='{device}' ({e}). Intentando fallback CPU int8.")
+            cpu_model_size = (
+                getattr(settings, 'WHISPER_CPU_FALLBACK_MODEL', 'small')
+                if self._is_auto_config() and model_size in ('large-v3', 'large-v3-turbo')
+                else model_size
+            )
+            logger.warning(f"Fallo carga con device='{device}' ({e}). Intentando fallback CPU int8 con '{cpu_model_size}'.")
             try:
                 if WhisperModel is None:
                     raise RuntimeError('faster_whisper no disponible en entorno local')
                 self.model = WhisperModel(
-                    model_size,
+                    cpu_model_size,
                     device='cpu',
                     compute_type='int8',
                     cpu_threads=cpu_threads
                 )
+                model_size = cpu_model_size
                 self.device_used = 'cpu'
                 self.compute_type_used = 'int8'
                 logger.info(f"Modelo fallback CPU (int8) cargado en {time.perf_counter() - start_time:.2f}s")
@@ -370,6 +415,8 @@ class WhisperEngine:
 
             text_segments = [segment.text for segment in segments]
             transcribed_text, repetition_filtered = clean_transcript(" ".join(text_segments).strip())
+            if transcribed_text:
+                transcribed_text = self._apply_phonetic_corrections(transcribed_text)
             if repetition_filtered:
                 logger.warning(f"Repeticion de Whisper filtrada en la sesion {session_id}")
 
@@ -399,6 +446,21 @@ class WhisperEngine:
                     os.unlink(temp_file_path)
                 except Exception as cleanup_err:
                     logger.error(f"Fallo al eliminar archivo temporal {temp_file_path}: {cleanup_err}")
+
+    @staticmethod
+    def _apply_phonetic_corrections(text: str) -> str:
+        """Corrige en tiempo real errores foneticos conocidos de Whisper (ej. losartanicos -> losartan)."""
+        try:
+            from .terminology import find_concepts
+            matches = [m for m in find_concepts(text) if m.source == 'correccion_asr']
+            if not matches:
+                return text
+            corrected = text
+            for m in reversed(matches):
+                corrected = corrected[:m.start] + m.concept.term + corrected[m.end:]
+            return corrected
+        except Exception:
+            return text
 
     def reset_session(self, session_id: str) -> None:
         reset_session_context(session_id)

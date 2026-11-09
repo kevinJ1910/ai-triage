@@ -16,9 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
-# WITH_CUDA=true (docker-compose.gpu.yml) instala las librerias CUDA/cuDNN de NVIDIA (varios GB);
-# en CPU se omiten y Whisper usa int8 sin ellas.
-ARG WITH_CUDA=false
+# WITH_CUDA=true por defecto incluye las librerias runtime de CUDA/cuDNN (nvidia-*) para que la imagen
+# funcione con aceleracion GPU NVIDIA cuando el host disponga de ella y caiga automaticamente a CPU (int8)
+# en maquinas sin GPU.
+ARG WITH_CUDA=true
 COPY requirements.txt .
 RUN if [ "$WITH_CUDA" = "true" ]; then cp requirements.txt /tmp/requirements.txt; \
     else grep -v '^nvidia-' requirements.txt > /tmp/requirements.txt; fi && \
