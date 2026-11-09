@@ -13,7 +13,7 @@ Funciones puras: no cargan el modelo ni llaman a la red.
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from transcription.terminology import fold, in_allergy_context
+from transcription.terminology import fold, in_allergy_context, lookup_term
 
 from .negation import is_negated, is_preserved_or_privative
 
@@ -28,20 +28,71 @@ _HISTORY_CUE = re.compile(
 )
 _STOPWORDS = {"de", "del", "la", "el", "los", "las", "un", "una", "en", "y", "a", "al", "con", "por", "que",
               "se", "le", "me", "mi", "su", "lo", "muy", "mas", "tipo"}
+_DANGLING_PREPOSITION_RE = re.compile(r"^(?:de|del|al|en|con|por|para)\s+\w+$", re.I)
+_BRIDGE_CONNECTOR_RE = re.compile(r"^\s*(?:de|del|en el|en la|al)?\s*$", re.I)
 
 
 def _key(term: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9 ]", " ", fold(term or "")).split())
 
 
+def _canonical_term(term: str) -> str:
+    """Si el termino coincide con una entrada del catalogo o correccion ASR, devuelve su forma canonica."""
+    cleaned = (term or "").strip()
+    if not cleaned:
+        return ""
+    concept = lookup_term(cleaned)
+    return concept.term if concept else cleaned
+
+
 def _same(a: str, b: str) -> bool:
-    ka, kb = _key(a), _key(b)
-    return bool(ka and kb) and (ka == kb or f" {ka} " in f" {kb} " or f" {kb} " in f" {ka} ")
+    ka, kb = _key(_canonical_term(a)), _key(_canonical_term(b))
+    if not (ka and kb):
+        return False
+    if ka == kb or f" {ka} " in f" {kb} " or f" {kb} " in f" {ka} ":
+        return True
+    # Raiz compartida (>= 6 letras) para variantes morfologicas de una sola palabra (ej. losartan/losartanicos)
+    if " " not in ka and " " not in kb and min(len(ka), len(kb)) >= 6:
+        stem_len = min(len(ka), len(kb), 7)
+        if ka[:stem_len] == kb[:stem_len]:
+            return True
+    return False
 
 
 def _add(entities: Dict[str, List[str]], key: Optional[str], term: str) -> None:
-    if key and term and not any(_same(term, existing) for existing in entities[key]):
-        entities[key].append(term)
+    if not key or not term:
+        return
+    norm_term = _canonical_term(term)
+    # Si llega un fragmento preposicional truncado ('de miocardio') y el antecedente inmediato es 'infarto agudo', unirlos.
+    if _DANGLING_PREPOSITION_RE.match(_key(norm_term)):
+        if entities[key]:
+            combined = f"{entities[key][-1]} {norm_term}"
+            concept = lookup_term(combined)
+            if concept:
+                entities[key][-1] = concept.term
+            elif "infarto" in _key(entities[key][-1]) and "miocardio" in _key(norm_term):
+                entities[key][-1] = "infarto agudo de miocardio"
+        return
+    if not any(_same(norm_term, existing) for existing in entities[key]):
+        entities[key].append(norm_term)
+
+
+def _merge_adjacent_spans(text: str, spans: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Une spans consecutivos de la misma etiqueta separados solo por conectores breves ('de', 'del')."""
+    if not spans:
+        return []
+    merged: List[Dict[str, Any]] = []
+    for span in sorted(spans, key=lambda s: (s["start"], s["end"])):
+        if merged and merged[-1]["label"] == span["label"]:
+            prev = merged[-1]
+            gap = text[prev["end"]:span["start"]]
+            if len(gap) <= 6 and _BRIDGE_CONNECTOR_RE.match(fold(gap)):
+                prev["end"] = span["end"]
+                prev["text"] = text[prev["start"]:prev["end"]]
+                prev["score"] = round((prev["score"] + span["score"]) / 2, 4)
+                continue
+        merged.append(dict(span))
+    return merged
 
 
 def _overlaps(a: Tuple[int, int], b: Tuple[int, int]) -> bool:
@@ -129,7 +180,7 @@ def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: 
     details: List[Dict[str, Any]] = []
     covered: List[Tuple[int, int]] = []
 
-    for span in ner_spans:
+    for span in _merge_adjacent_spans(text, ner_spans):
         bounds = (span["start"], span["end"])
         catalog = [t for t in normalized_terms if _overlaps(bounds, (t["start"], t["end"]))]
         # Solo un concepto que cubre la mencion la normaliza: 'dolor' no sustituye a 'dolor punzante en el talon'.

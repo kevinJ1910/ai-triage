@@ -4,7 +4,7 @@ import json
 import time
 import hashlib
 import logging
-from typing import List, Optional, Literal, Dict, Any
+from typing import List, Optional, Literal, Dict, Any, Tuple
 from django.conf import settings
 from pydantic import BaseModel, Field
 from google import genai
@@ -95,10 +95,115 @@ class LLMUnavailableError(RuntimeError):
 _PHONE_RE = re.compile(r'\b3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b')
 _DOCUMENT_RE = re.compile(r'\b\d{6,11}\b')
 _NAME_RE = re.compile(
-    r'(?i:\b(?:me llamo|mi nombre es|se llama|su nombre es)\s+)'
-    r'((?:[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s?){1,4})'
+    r'(?i:\b(?:me llamo|mi nombre(?:\s+completo)?\s+es|se llama|su nombre es|el paciente se llama|la paciente se llama)\s+)'
+    r'([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,3})'
+)
+_SOY_PROPER_NAME_RE = re.compile(
+    r'\b(?:[Ss]oy)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,18}(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,18}){1,3})\b'
 )
 _PLACEHOLDERS = ("[NOMBRE]", "[DOCUMENTO]", "[TELEFONO]")
+
+# Vocabulario clinico, funcional y de rol que nunca puede formar parte de un nombre propio de paciente.
+_NON_NAME_WORDS = frozenset({
+    "alergico", "alergica", "alergicos", "alergicas", "alergia", "alergias",
+    "hipertenso", "hipertensa", "hipertension", "diabetico", "diabetica", "diabetes",
+    "asmatico", "asmatica", "asma", "epileptico", "epileptica", "epilepsia",
+    "cardiopata", "anticoagulado", "anticoagulada", "operado", "operada",
+    "diagnosticado", "diagnosticada", "cronico", "cronica", "embarazada", "gestante",
+    "fumador", "fumadora", "oncologico", "oncologica", "renal", "dialisis",
+    "dolor", "fiebre", "tos", "mareo", "infarto", "pecho", "brazo", "cabeza",
+    "presion", "tension", "pulso", "saturacion", "vitales", "antecedentes", "antecedente",
+    "penicilina", "losartan", "losartanicos", "metformina", "mefortormina", "omeprazol",
+    "insulina", "acetaminofen", "ibuprofeno", "aspirina", "dipirona", "amoxicilina",
+    "sangrado", "vomito", "nauseas", "disnea", "ahogo", "asfixia", "fractura", "herida",
+    "quemadura", "epoc", "gastritis", "migrana", "convulsion", "desmayo", "conocimiento",
+    "yo", "tu", "el", "ella", "un", "una", "unos", "unas", "los", "las", "lo", "al", "a",
+    "ante", "bajo", "con", "contra", "desde", "durante", "en", "entre", "hacia", "hasta",
+    "mediante", "para", "por", "segun", "sin", "sobre", "tras", "y", "e", "ni", "o", "u",
+    "pero", "sino", "que", "como", "cuando", "donde", "porque", "pues", "si", "no", "ya",
+    "muy", "mas", "menos", "tambien", "tampoco", "solo", "tengo", "tiene", "siento", "siente",
+    "sufro", "sufre", "padezco", "padece", "tomo", "toma", "vengo", "viene", "estoy", "esta",
+    "fui", "fue", "he", "ha", "hace", "ayer", "hoy", "dias", "horas", "anos", "meses",
+    "semanas", "paciente", "usuario", "medico", "doctor", "doctora", "enfermero", "enfermera",
+    "profesional", "hombre", "mujer", "senor", "senora", "joven", "adulto", "mayor",
+    "nino", "nina", "bebe", "desconocido", "desconocida", "ninguno", "ninguna", "null", "none",
+    "urgencias", "admision", "consulta", "hospital", "clinica", "eps", "cedula", "documento",
+})
+_NAME_CONNECTORS = frozenset({"de", "del", "la"})
+
+
+def _fold_word(word: str) -> str:
+    import unicodedata
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", word or "") if not unicodedata.combining(c)
+    ).lower()
+
+
+def _sanitize_patient_name(candidate: Optional[str], require_two_words: bool = False) -> Optional[str]:
+    """
+    Valida y limpia un candidato a nombre de paciente. Descarta frases clinicas ('alergico a la penicilina'),
+    roles ('Paciente Desconocido', 'Usuario') o conectores gramaticales.
+    """
+    if not candidate or not isinstance(candidate, str):
+        return None
+    if any(ph in candidate for ph in _PLACEHOLDERS):
+        return None
+    first_clause = re.split(r"[,.;:()\-/\n]", candidate.strip())[0].strip()
+    if not first_clause:
+        return None
+    raw_words = first_clause.split()
+    valid_tokens: List[str] = []
+    for idx, w in enumerate(raw_words):
+        clean_w = re.sub(r"[^A-Za-zÁÉÍÓÚáéíóúñÑ]", "", w)
+        if not clean_w or len(clean_w) < 2:
+            break
+        folded = _fold_word(clean_w)
+        if folded in _NAME_CONNECTORS:
+            # Solo se admite 'de'/'del'/'la' entre dos nombres propios validos (ej. 'Maria del Carmen')
+            if not valid_tokens or idx + 1 >= len(raw_words):
+                break
+            next_folded = _fold_word(re.sub(r"[^A-Za-zÁÉÍÓÚáéíóúñÑ]", "", raw_words[idx + 1]))
+            if not next_folded or next_folded in _NON_NAME_WORDS or next_folded in _NAME_CONNECTORS:
+                break
+            valid_tokens.append(folded)
+            continue
+        if folded in _NON_NAME_WORDS:
+            break
+        valid_tokens.append(clean_w.capitalize())
+        if len(valid_tokens) >= 4:
+            break
+
+    while valid_tokens and _fold_word(valid_tokens[-1]) in _NAME_CONNECTORS:
+        valid_tokens.pop()
+
+    proper_count = sum(1 for t in valid_tokens if _fold_word(t) not in _NAME_CONNECTORS)
+    min_required = 2 if require_two_words else 1
+    if proper_count < min_required:
+        return None
+    return " ".join(valid_tokens)
+
+
+def _extract_valid_patient_name(text: str) -> Tuple[Optional[str], Optional[Tuple[int, int]]]:
+    """Busca un nombre propio explicito en el relato y devuelve (nombre_limpio, (start, end))."""
+    cleaned_speakers = re.sub(
+        r"(?i)\b(?:usuario|paciente|m[eé]dico|doctor(?:a)?|enfermer[oa])\s*:\s*",
+        " ",
+        text or "",
+    )
+    for match in _NAME_RE.finditer(cleaned_speakers):
+        sanitized = _sanitize_patient_name(match.group(1), require_two_words=False)
+        if sanitized:
+            # Calcular el fin real sobre el texto segun los tokens aceptados
+            raw_tokens = match.group(1).split()[:len(sanitized.split())]
+            end_pos = match.start(1) + len(" ".join(raw_tokens))
+            return sanitized, (match.start(1), end_pos)
+    for match in _SOY_PROPER_NAME_RE.finditer(cleaned_speakers):
+        sanitized = _sanitize_patient_name(match.group(1), require_two_words=True)
+        if sanitized:
+            raw_tokens = match.group(1).split()[:len(sanitized.split())]
+            end_pos = match.start(1) + len(" ".join(raw_tokens))
+            return sanitized, (match.start(1), end_pos)
+    return None, None
 
 
 def _pseudonymize(text: str) -> Dict[str, Any]:
@@ -110,8 +215,12 @@ def _pseudonymize(text: str) -> Dict[str, Any]:
 
     name_match = _NAME_RE.search(text)
     if name_match:
-        found["name"] = name_match.group(1).strip()
-        text = text[:name_match.start(1)] + "[NOMBRE] " + text[name_match.end(1):]
+        sanitized = _sanitize_patient_name(name_match.group(1), require_two_words=False)
+        if sanitized:
+            found["name"] = sanitized
+            raw_tokens = name_match.group(1).split()[:len(sanitized.split())]
+            end_idx = name_match.start(1) + len(" ".join(raw_tokens))
+            text = text[:name_match.start(1)] + "[NOMBRE] " + text[end_idx:].lstrip()
 
     phone_match = _PHONE_RE.search(text)
     if phone_match:
@@ -127,12 +236,20 @@ def _pseudonymize(text: str) -> Dict[str, Any]:
 
 
 def _restore_identifiers(patient_info: Dict[str, Any], identifiers: Dict[str, Optional[str]], raw_transcript: str) -> Dict[str, Any]:
-    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente."""
+    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente y sanea el nombre."""
     local = _extract_patient_info_rules(raw_transcript)
-    for field in ("name", "documentId", "phone"):
+    raw_llm_name = patient_info.get("name")
+    sanitized_llm_name = _sanitize_patient_name(str(raw_llm_name)) if raw_llm_name else None
+    patient_info["name"] = sanitized_llm_name or identifiers.get("name") or local.get("name")
+
+    for field in ("documentId", "phone"):
         value = patient_info.get(field)
         if not value or any(ph in str(value) for ph in _PLACEHOLDERS):
             patient_info[field] = identifiers.get(field) or (local.get(field) if field != "phone" else None)
+
+    if not patient_info.get("gender") or patient_info.get("gender") == "unknown":
+        if local.get("gender") and local["gender"] != "unknown":
+            patient_info["gender"] = local["gender"]
     return patient_info
 
 
@@ -523,13 +640,18 @@ def analyze_triage_transcript(
                 result.get("patientInfo") or {}, pseudonymized["identifiers"], raw_transcript
             )
 
-            # Fusionar signos vitales extraidos por regex si el LLM no los capturo todos
+            # Fusionar signos vitales extraidos por regex limpiando duplicados coloquiales del LLM
             if compact_vitals:
                 current_v = result.get("entities", {}).get("vitals", [])
+                compact_numbers = {num for cv in compact_vitals for num in re.findall(r"\d{2,3}", cv)}
+                filtered_v = [
+                    v for v in current_v
+                    if v in compact_vitals or not any(n in re.findall(r"\d{2,3}", v) for n in compact_numbers)
+                ]
                 for cv in compact_vitals:
-                    if cv not in current_v:
-                        current_v.append(cv)
-                result["entities"]["vitals"] = current_v
+                    if cv not in filtered_v:
+                        filtered_v.append(cv)
+                result["entities"]["vitals"] = filtered_v
 
             label = f"LLM local ({model_name})" if provider == 'local' else f"LLM ({model_name})"
             result["engine_used"] = f"{label} + Christus Sinergia"
@@ -598,19 +720,29 @@ def _describe_llm_failure(err: Optional[Exception]) -> str:
 
 
 def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
-    """Extrae documento y nombre del paciente por regex, sin LLM."""
+    """Extrae documento, nombre, telefono y genero del paciente por reglas deterministas seguras."""
+    from .demographics import derive as derive_demographics
+
     doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
     doc_id = doc_match.group(1) if doc_match else None
 
-    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
-    patient_name = name_match.group(1).strip() if name_match else None
+    phone_match = _PHONE_RE.search(raw_transcript)
+    phone = re.sub(r'\D', '', phone_match.group(0)) if phone_match else None
+    if doc_id and phone and doc_id == phone:
+        doc_id = None
+
+    patient_name, _ = _extract_valid_patient_name(raw_transcript)
+
+    demo = derive_demographics(raw_transcript)
+    sex_map = {"femenino": "female", "masculino": "male"}
+    gender = sex_map.get(demo.get("sexo") or "", "unknown")
 
     return {
         "name": patient_name,
         "documentId": doc_id,
         "birthDate": None,
-        "gender": "unknown",
-        "phone": None,
+        "gender": gender,
+        "phone": phone,
         "insurance": "Christus Sinergia / EPS"
     }
 

@@ -547,7 +547,17 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     setTriageError(null);
     setTriageWarning(null);
     try {
-      const text = fullTranscript.map(t => `${t.speaker}: ${t.text}`).join('\n');
+      const coalesced: { speaker: string; text: string }[] = [];
+      for (const item of fullTranscript) {
+        const cleanedChunk = (item.text || '').replace(/^\.{2,}\s*/, '').replace(/\s*\.{2,}$/, '').trim();
+        if (!cleanedChunk) continue;
+        if (coalesced.length > 0 && coalesced[coalesced.length - 1].speaker === item.speaker) {
+          coalesced[coalesced.length - 1].text += ` ${cleanedChunk}`;
+        } else {
+          coalesced.push({ speaker: item.speaker, text: cleanedChunk });
+        }
+      }
+      const text = coalesced.map(t => `${t.speaker}: ${t.text}`).join('\n');
       const res = await fetchWithAuth('/api/triage/sessions/analyze/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

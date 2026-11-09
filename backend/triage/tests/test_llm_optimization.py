@@ -580,3 +580,31 @@ class TestPromptVersionAndTelemetry:
         assert "SUELO DE URGENCIA" in prompt_v2
         assert "Sin coincidencia léxica directa en el motor de reglas" in prompt_v2
         assert "Motivo de consulta sin compromiso de estado general" not in prompt_v2
+
+    def test_patient_name_extraction_rejects_clinical_phrases(self):
+        from triage.ai_analyzer import _extract_patient_info_rules, _restore_identifiers
+        # Caso real reportado: "Soy alergico a la penicilina y no..." no debe confundirse con el nombre
+        bad_text = (
+            "Usuario: Temo que sea un infarto agudo\n"
+            "Usuario: de miocardio. La presión arterial está en 175 y el pulso en 115.\n"
+            "Usuario: Soy alérgico a la penicilina y no he tenido fiebre ni perdido el conocimiento."
+        )
+        info = _extract_patient_info_rules(bad_text)
+        assert info["name"] is None
+        restored = _restore_identifiers({"name": "alérgico a la penicilina y no"}, {}, bad_text)
+        assert restored["name"] is None
+
+        good_text = "Usuario: Buenas tardes, me llamo Carlos Andrés Gómez, soy hipertenso y alérgico a la penicilina."
+        good_info = _extract_patient_info_rules(good_text)
+        assert good_info["name"] == "Carlos Andrés Gómez"
+
+    def test_systolic_only_blood_pressure_and_chunk_cleaning(self):
+        chunked = (
+            "Usuario: Temo que sea un infarto agudo\n"
+            "Usuario: de miocardio. La enfermera me acaba de tomar los hi...\n"
+            "Usuario: ...los vitales me dijo que la presión arterial está en 175 y el pulso está en 115."
+        )
+        processed = ClinicalTranscriptCompressor.process(chunked)
+        assert "infarto agudo de miocardio" in processed["cleaned_transcript"]
+        assert "PA: 175 mmHg" in processed["compact_vitals"]
+        assert "FC: 115 lpm" in processed["compact_vitals"]
