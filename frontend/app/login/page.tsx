@@ -151,8 +151,11 @@ export default function LoginPage() {
       if (!res.ok) {
         if ((res.status === 403 || res.status === 400) && (data.needs_verification || data.code === 'account_not_verified')) {
           setVerifyEmail(loginEmail.trim().toLowerCase());
+          setVerifyCode('');
+          setError('');
+          setInfoMessage('Cuenta pendiente de verificacion. Se ha enviado un nuevo codigo OTP de 6 digitos a su correo.');
           setIsVerifyModalOpen(true);
-          throw new Error('Cuenta no verificada. Ingrese el codigo OTP enviado a su correo.');
+          return;
         }
         throw new Error(extractErrorMessage(data, 'Credenciales invalidas o error de servidor.'));
       }
@@ -273,6 +276,12 @@ export default function LoginPage() {
 
       setIsVerifyModalOpen(false);
       setVerifyCode('');
+      if (data.access && data.user) {
+        setAccessToken(data.access);
+        localStorage.setItem('user_profile', JSON.stringify(data.user));
+        router.push('/');
+        return;
+      }
       setInfoMessage('Cuenta verificada exitosamente. Ya puede iniciar sesion con sus credenciales.');
       setActiveTab('login');
       setLoginEmail(verifyEmail);
@@ -767,8 +776,22 @@ export default function LoginPage() {
 
             <p className="text-xs text-slate-400">
               Se ha enviado un codigo de 6 digitos a <span className="text-sky-400 font-semibold">{verifyEmail}</span>.
-              (Revise en Mailpit en el puerto 8025 si esta en desarrollo local).
+              (Revise su bandeja de entrada o Mailpit en el puerto 8025).
             </p>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {infoMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
 
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <div>
@@ -827,6 +850,20 @@ export default function LoginPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {infoMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
 
             {forgotStep === 1 ? (
               <form onSubmit={handleRequestPasswordReset} className="space-y-4">

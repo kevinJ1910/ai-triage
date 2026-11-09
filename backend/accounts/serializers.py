@@ -50,6 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
+    document_id = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     password = serializers.CharField(write_only=True, min_length=6)
     confirm_password = serializers.CharField(write_only=True, min_length=6, required=False)
 
@@ -87,6 +88,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         existing = User.objects.filter(email=normalized).first()
         if existing and existing.is_verified:
             raise serializers.ValidationError("Ya existe un usuario verificado con este correo electronico")
+        return normalized
+
+    def validate_document_id(self, value):
+        if not value or not value.strip():
+            return None
+        normalized = value.strip()
+        email = (self.initial_data.get('email') or '').strip().lower()
+        existing = User.objects.filter(document_id=normalized).exclude(email=email).first()
+        if existing:
+            if existing.is_verified:
+                raise serializers.ValidationError("Ya existe un usuario verificado con este numero de documento")
+            existing.document_id = None
+            existing.save(update_fields=['document_id'])
         return normalized
 
     def validate(self, data):
@@ -250,8 +264,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         if not self.user.is_verified and not self.user.is_superuser:
+            AuthVerificationCode.objects.filter(
+                user=self.user, code_type='registration', is_used=False
+            ).update(is_used=True)
+            code = ''.join(secrets.choice('0123456789') for _ in range(6))
+            AuthVerificationCode.objects.create(
+                user=self.user,
+                code=code,
+                code_type='registration',
+                expires_at=timezone.now() + timedelta(minutes=15)
+            )
+            send_verification_email(self.user, code)
             raise serializers.ValidationError({
-                "detail": "Tu cuenta requiere verificacion de correo previa. Introduce tu codigo OTP.",
+                "detail": "Tu cuenta requiere verificacion de correo previa. Se ha enviado un nuevo codigo OTP a tu correo.",
                 "code": "account_not_verified",
                 "needs_verification": True,
                 "email": self.user.email

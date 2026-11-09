@@ -117,3 +117,54 @@ class TestOTPAndVerification:
             "password": new_pw
         }, format="json")
         assert login_res.status_code == status.HTTP_200_OK
+
+    def test_login_unverified_user_generates_new_otp(self):
+        old_otp = AuthVerificationCode.objects.create(
+            user=self.user,
+            code="111222",
+            code_type="registration",
+            expires_at=timezone.now() + timedelta(minutes=15)
+        )
+        res = self.client.post("/api/auth/login/", {
+            "email": self.user.email,
+            "password": "InitialPassword123!"
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+        assert "needs_verification" in res.data or "code" in res.data
+
+        old_otp.refresh_from_db()
+        assert old_otp.is_used is True
+
+        active_codes = AuthVerificationCode.objects.filter(
+            user=self.user,
+            code_type="registration",
+            is_used=False
+        )
+        assert active_codes.count() == 1
+        assert active_codes.first().code != "111222"
+
+    def test_reregister_unverified_user_with_same_document_id(self):
+        payload = {
+            "email": "pending.nurse@hospital.com",
+            "password": "InitialPassword123!",
+            "confirm_password": "InitialPassword123!",
+            "first_name": "Elena",
+            "last_name": "Rios",
+            "role": "enfermero",
+            "document_id": "CC-90909090",
+            "phone": "3009090909"
+        }
+        res1 = self.client.post("/api/auth/register/", payload, format="json")
+        assert res1.status_code == status.HTTP_201_CREATED
+
+        payload["password"] = "UpdatedPassword456!"
+        payload["confirm_password"] = "UpdatedPassword456!"
+        res2 = self.client.post("/api/auth/register/", payload, format="json")
+        assert res2.status_code == status.HTTP_201_CREATED
+
+        active_codes = AuthVerificationCode.objects.filter(
+            user__email="pending.nurse@hospital.com",
+            code_type="registration",
+            is_used=False
+        )
+        assert active_codes.count() == 1
