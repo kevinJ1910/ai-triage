@@ -49,8 +49,9 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=6)
-    confirm_password = serializers.CharField(write_only=True, min_length=6)
+    confirm_password = serializers.CharField(write_only=True, min_length=6, required=False)
 
     class Meta:
         model = User
@@ -65,28 +66,72 @@ class RegisterSerializer(serializers.ModelSerializer):
             'confirm_password',
         ]
 
+    def to_internal_value(self, data):
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+        if 'confirm_password' not in data and 'password' in data:
+            data['confirm_password'] = data['password']
+        if 'phone' not in data and 'phone_number' in data:
+            data['phone'] = data['phone_number']
+        if 'document_id' not in data:
+            doc_num = data.get('document_number')
+            doc_type = data.get('document_type')
+            if doc_num:
+                data['document_id'] = f"{doc_type}-{doc_num}" if doc_type else doc_num
+        role_map = {'doctor': 'medico', 'nurse': 'enfermero', 'triage_staff': 'enfermero'}
+        if data.get('role') in role_map:
+            data['role'] = role_map[data['role']]
+        return super().to_internal_value(data)
+
+    def validate_email(self, value):
+        normalized = value.strip().lower()
+        existing = User.objects.filter(email=normalized).first()
+        if existing and existing.is_verified:
+            raise serializers.ValidationError("Ya existe un usuario verificado con este correo electronico")
+        return normalized
+
     def validate(self, data):
+        if not data.get('confirm_password'):
+            data['confirm_password'] = data.get('password')
         validate_payload(RegisterSchema, getattr(self, 'initial_data', data))
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Las contrasenas no coinciden"})
         return data
 
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
+        validated_data.pop('confirm_password', None)
         password = validated_data.pop('password')
         
-        user = User(
-            email=validated_data['email'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-            document_id=validated_data.get('document_id'),
-            phone=validated_data.get('phone', ''),
-            role=validated_data.get('role', 'medico'),
-            is_verified=False,
-            is_active=True
-        )
-        user.set_password(password)
-        user.save()
+        email = validated_data['email']
+        existing_unverified = User.objects.filter(email=email, is_verified=False).first()
+        if existing_unverified:
+            user = existing_unverified
+            user.first_name = validated_data.get('first_name', user.first_name)
+            user.last_name = validated_data.get('last_name', user.last_name)
+            user.document_id = validated_data.get('document_id', user.document_id)
+            user.phone = validated_data.get('phone', user.phone)
+            user.role = validated_data.get('role', user.role)
+            user.set_password(password)
+            user.save()
+        else:
+            user = User(
+                email=email,
+                first_name=validated_data.get('first_name', ''),
+                last_name=validated_data.get('last_name', ''),
+                document_id=validated_data.get('document_id'),
+                phone=validated_data.get('phone', ''),
+                role=validated_data.get('role', 'medico'),
+                is_verified=False,
+                is_active=True
+            )
+            user.set_password(password)
+            user.save()
+
+        # Asegurar permisos por defecto para el rol
+        if not hasattr(user, 'permissions'):
+            UserPermission.create_defaults_for_role(user)
+
+        # Invalidar codigos OTP previos para este usuario si existian
+        AuthVerificationCode.objects.filter(user=user, code_type='registration', is_used=False).update(is_used=True)
 
         # Generar codigo OTP de 6 digitos
         code = ''.join(secrets.choice('0123456789') for _ in range(6))
@@ -171,9 +216,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=6)
-    confirm_password = serializers.CharField(min_length=6)
+    confirm_password = serializers.CharField(min_length=6, required=False)
 
     def validate(self, data):
+        if not data.get('confirm_password'):
+            data['confirm_password'] = data.get('new_password')
         validate_payload(PasswordResetConfirmSchema, getattr(self, 'initial_data', data))
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Las contrasenas no coinciden"})
@@ -206,6 +253,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError({
                 "detail": "Tu cuenta requiere verificacion de correo previa. Introduce tu codigo OTP.",
                 "code": "account_not_verified",
+                "needs_verification": True,
                 "email": self.user.email
             })
 
