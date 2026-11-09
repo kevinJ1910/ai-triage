@@ -83,6 +83,28 @@ POSTGRES_PORT=5432
 ```
 
 ### 3.3. Correo Electrónico (OTP y Recuperación)
+
+El subsistema de autenticación envía códigos OTP de 6 dígitos (vigencia de 15 minutos y un solo uso) en tres eventos:
+1. **Registro de personal (`POST /api/auth/register/`):** Crea la cuenta en estado pendiente (`is_verified=False`) o actualiza los datos si la cuenta previa aún no había sido verificada, e inmediatamente envía un código OTP.
+2. **Inicio de sesión de cuenta pendiente (`POST /api/auth/login/`):** Si el usuario cerró la ventana de registro sin validar el OTP e intenta iniciar sesión posteriormente con sus credenciales, el servidor invalida códigos anteriores expirados, **genera y envía automáticamente un nuevo código OTP** al correo registrado y abre el modal de verificación en el cliente.
+3. **Recuperación de contraseña (`POST /api/auth/password-reset/request/`):** Genera y envía un OTP de restablecimiento.
+
+#### Opción A: Servidor SMTP Real (Producción / Gmail con Contraseña de Aplicación)
+Cuando `EMAIL_HOST` se configura con un proveedor SMTP externo (por ejemplo `smtp.gmail.com`), el backend entrega el correo en la bandeja real del destinatario y, si el contenedor `mailpit` está activo en la red Docker, deposita en paralelo una copia espejo en `http://localhost:8025` para auditoría local.
+
+> **Requisito para Gmail:** La cuenta configurada en `EMAIL_HOST_USER` debe tener activada la Verificación en 2 Pasos de Google y utilizar una **Contraseña de Aplicación (App Password)** de 16 caracteres sin espacios en `EMAIL_HOST_PASSWORD`.
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=notificaciones.triage@gmail.com
+EMAIL_HOST_PASSWORD=xxxxxxxxxxxxxxxx
+DEFAULT_FROM_EMAIL=AI-Triage <notificaciones.triage@gmail.com>
+```
+
+#### Opción B: Sandbox Local (Solo Mailpit)
 ```env
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 EMAIL_HOST=mailpit
