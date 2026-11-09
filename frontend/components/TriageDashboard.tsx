@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, ChevronLeft, Search, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle, Stethoscope, Ban } from 'lucide-react';
+import { Mic, Square, Activity, FileText, Send, AlertTriangle, CheckCircle2, ShieldAlert, Thermometer, Pill, Clock, Save, History, ChevronRight, ChevronLeft, Search, Download, Play, Pause, RotateCcw, Code, Edit3, Check, X, User, Plus, ChevronDown, ChevronUp, Info, HelpCircle, Stethoscope, Ban, Calendar } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import { useWhisperASR } from '@/hooks/useWhisperASR';
@@ -109,6 +109,57 @@ interface TriageDashboardProps {
   userProfile?: UserProfile | null;
 }
 
+interface ActiveConsultationSnapshot {
+  transcript: { speaker: string; text: string }[];
+  analysisResult: AnalysisResult | null;
+  triageError: string | null;
+  triageWarning: string | null;
+  isWarningMinimized: boolean;
+  isEditMode: boolean;
+  editedEntities: TriageEntities | null;
+  isEditingJustification: boolean;
+  editedJustification: string;
+  syncStatus: 'idle' | 'syncing' | 'success';
+  isVerifyingTranscript: boolean;
+  activeSessionId: number | null;
+  selectedSessionId: string | null;
+  patientInfo: PatientInfo;
+}
+
+const createInitialPatientInfo = (): PatientInfo => ({
+  name: '',
+  documentId: '',
+  birthDate: '',
+  gender: 'unknown',
+  phone: '',
+  insurance: '',
+});
+
+const createInitialConsultationSnapshot = (): ActiveConsultationSnapshot => ({
+  transcript: [],
+  analysisResult: null,
+  triageError: null,
+  triageWarning: null,
+  isWarningMinimized: false,
+  isEditMode: false,
+  editedEntities: null,
+  isEditingJustification: false,
+  editedJustification: '',
+  syncStatus: 'idle',
+  isVerifyingTranscript: false,
+  activeSessionId: null,
+  selectedSessionId: null,
+  patientInfo: createInitialPatientInfo(),
+});
+
+// Memoria en modulo: conserva la consulta activa al cambiar de pestana en la barra lateral
+// y se reinicia al refrescar la pagina (F5), pulsar Nueva Consulta o Guardar en Historial.
+let activeConsultationCache: ActiveConsultationSnapshot = createInitialConsultationSnapshot();
+
+export function resetActiveConsultationCache() {
+  activeConsultationCache = createInitialConsultationSnapshot();
+}
+
 export default function TriageDashboard({ userProfile }: TriageDashboardProps = {}) {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(userProfile || null);
 
@@ -149,22 +200,22 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
   // transcripcion va por detras de la voz (tipico en CPU con modelos grandes).
   const isAsrLagging = (isRecording || isTranscribing) && (asrLagSeconds > 6 || pendingChunks >= 2);
 
-  const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>([]);
+  const [transcript, setTranscript] = useState<{speaker: string, text: string}[]>(() => activeConsultationCache.transcript);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [triageError, setTriageError] = useState<string | null>(null);
-  const [triageWarning, setTriageWarning] = useState<string | null>(null);
-  const [isWarningMinimized, setIsWarningMinimized] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => activeConsultationCache.analysisResult);
+  const [triageError, setTriageError] = useState<string | null>(() => activeConsultationCache.triageError);
+  const [triageWarning, setTriageWarning] = useState<string | null>(() => activeConsultationCache.triageWarning);
+  const [isWarningMinimized, setIsWarningMinimized] = useState(() => activeConsultationCache.isWarningMinimized);
   const [showNewConsultModal, setShowNewConsultModal] = useState(false);
   const [pendingLevelChange, setPendingLevelChange] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(null);
-  const [isEditingJustification, setIsEditingJustification] = useState(false);
-  const [editedJustification, setEditedJustification] = useState('');
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>('idle');
+  const [isEditMode, setIsEditMode] = useState(() => activeConsultationCache.isEditMode);
+  const [editedEntities, setEditedEntities] = useState<TriageEntities | null>(() => activeConsultationCache.editedEntities);
+  const [isEditingJustification, setIsEditingJustification] = useState(() => activeConsultationCache.isEditingJustification);
+  const [editedJustification, setEditedJustification] = useState(() => activeConsultationCache.editedJustification);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success'>(() => activeConsultationCache.syncStatus);
   const [isWaitingForAnalysis, setIsWaitingForAnalysis] = useState(false);
-  const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(false);
-  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [isVerifyingTranscript, setIsVerifyingTranscript] = useState(() => activeConsultationCache.isVerifyingTranscript);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(() => activeConsultationCache.activeSessionId);
 
   const handlePromptNewConsultation = () => {
     if (transcript.length > 0 || analysisResult) {
@@ -175,7 +226,8 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     }
   };
 
-  const executeResetConsultation = () => {
+  const executeResetConsultation = (notify: boolean = true) => {
+    resetActiveConsultationCache();
     setTranscript([]);
     resetTranscript();
     setAnalysisResult(null);
@@ -185,21 +237,17 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
     setEditedEntities(null);
     setIsEditMode(false);
     setIsEditingJustification(false);
+    setEditedJustification('');
     setIsVerifyingTranscript(false);
     setSyncStatus('idle');
     setActiveSessionId(null);
     setShowHistory(false);
     setSelectedSessionId(null);
-    setPatientInfo({
-      name: '',
-      documentId: '',
-      birthDate: '',
-      gender: 'unknown',
-      phone: '',
-      insurance: ''
-    });
+    setPatientInfo(createInitialPatientInfo());
     setShowNewConsultModal(false);
-    toast.success('Nueva consulta médica iniciada.');
+    if (notify) {
+      toast.success('Nueva consulta médica iniciada.');
+    }
   };
 
   const handleRequestTriageLevelChange = (newLevel: number) => {
@@ -227,14 +275,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
   const handleAddLine = () => {
     setTranscript(prev => [...prev, { speaker: 'Paciente', text: '' }]);
   };
-  const [patientInfo, setPatientInfo] = useState<PatientInfo>({
-    name: '',
-    documentId: '',
-    birthDate: '',
-    gender: 'unknown',
-    phone: '',
-    insurance: ''
-  });
+  const [patientInfo, setPatientInfo] = useState<PatientInfo>(() => activeConsultationCache.patientInfo);
 
   const [leftRatio, setLeftRatio] = useState(55);
   const [rightRatio, setRightRatio] = useState(60);
@@ -352,8 +393,42 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
   const [savedSessions, setSavedSessions] = useState<TriageSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() => activeConsultationCache.selectedSessionId);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    activeConsultationCache = {
+      transcript,
+      analysisResult,
+      triageError,
+      triageWarning,
+      isWarningMinimized,
+      isEditMode,
+      editedEntities,
+      isEditingJustification,
+      editedJustification,
+      syncStatus,
+      isVerifyingTranscript,
+      activeSessionId,
+      selectedSessionId,
+      patientInfo,
+    };
+  }, [
+    transcript,
+    analysisResult,
+    triageError,
+    triageWarning,
+    isWarningMinimized,
+    isEditMode,
+    editedEntities,
+    isEditingJustification,
+    editedJustification,
+    syncStatus,
+    isVerifyingTranscript,
+    activeSessionId,
+    selectedSessionId,
+    patientInfo,
+  ]);
 
   const filteredSessions = savedSessions.filter(session => {
     const query = searchQuery.toLowerCase();
@@ -489,13 +564,30 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
 
   const handleSaveSession = async () => {
     if (!analysisResult) return;
-    // La sesion ya se persiste en BD al analizar; aqui solo se refresca el historial.
     if (!activeSessionId) {
       toast.error('Esta sesión no está registrada en el servidor.');
       return;
     }
+    try {
+      const currentEntities = isEditMode && editedEntities ? editedEntities : analysisResult.entities;
+      await fetchWithAuth(`/api/triage/sessions/${activeSessionId}/override_level/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          final_level: analysisResult.triage?.level,
+          justification: analysisResult.triage?.justification,
+          clinical_entities: currentEntities,
+          patient_info: patientInfo,
+          override_reason: 'Guardado de consulta clínica en historial',
+        }),
+      });
+    } catch (e) {
+      console.error('Error sincronizando datos al guardar sesión:', e);
+    }
     await loadHistory();
-    toast.success(`Sesión registrada en el historial para ${patientInfo.name || 'el paciente'}`);
+    const savedName = patientInfo.name || 'el paciente';
+    executeResetConsultation(false);
+    toast.success(`Consulta guardada en el historial para ${savedName}. Lista para nueva atención.`);
   };
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -561,7 +653,7 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
       const res = await fetchWithAuth('/api/triage/sessions/analyze/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text })
+        body: JSON.stringify({ transcript: text, patient_info: patientInfo })
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -619,14 +711,6 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
       setIsEditingJustification(false);
       setIsVerifyingTranscript(false);
       setSyncStatus('idle');
-      setPatientInfo({
-        name: '',
-        documentId: '',
-        birthDate: '',
-        gender: 'unknown',
-        phone: '',
-        insurance: ''
-      });
       startRecording();
     }
   };
@@ -1186,13 +1270,10 @@ export default function TriageDashboard({ userProfile }: TriageDashboardProps = 
                 </div>
                 <div>
                   <label htmlFor="patient-birth-date" className="text-xs text-slate-300 font-medium block mb-1.5">Fecha Nacimiento</label>
-                  <input
+                  <BirthDatePicker
                     id="patient-birth-date"
-                    aria-label="Fecha Nacimiento"
-                    type="date"
                     value={patientInfo.birthDate}
-                    onChange={e => setPatientInfo({ ...patientInfo, birthDate: e.target.value })}
-                    className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all"
+                    onChange={(newDate) => setPatientInfo({ ...patientInfo, birthDate: newDate })}
                   />
                   <InputWarning 
                     warning={patientInfo.birthDate ? validateDate(patientInfo.birthDate, { maxDate: new Date().toISOString().split('T')[0], label: 'Fecha de nacimiento' }).warning : null} 
@@ -1919,6 +2000,304 @@ function ConfirmModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+const WEEKDAY_SHORT = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+
+function parseIsoDate(val: string): { year: number; month: number; day: number } | null {
+  if (!val || !/^\d{4}-\d{2}-\d{2}$/.test(val)) return null;
+  const [y, m, d] = val.split('-').map(Number);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  return { year: y, month: m - 1, day: d };
+}
+
+function formatIsoDate(year: number, monthIndex: number, day: number): string {
+  const m = String(monthIndex + 1).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
+  return `${year}-${m}-${d}`;
+}
+
+function getDaysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function calculateAgeYears(isoDate: string): number | null {
+  const parsed = parseIsoDate(isoDate);
+  if (!parsed) return null;
+  const today = new Date();
+  let age = today.getFullYear() - parsed.year;
+  const monthDiff = today.getMonth() - parsed.month;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.day)) {
+    age -= 1;
+  }
+  return age >= 0 && age <= 130 ? age : null;
+}
+
+function BirthDatePicker({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (newDate: string) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const parsed = parseIsoDate(value);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewYear, setViewYear] = useState<number>(() => parsed?.year ?? currentYear - 35);
+  const [viewMonth, setViewMonth] = useState<number>(() => parsed?.month ?? 0);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const p = parseIsoDate(value);
+    if (p) {
+      setViewYear(p.year);
+      setViewMonth(p.month);
+    }
+  }, [value]);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const popoverWidth = 288;
+    const popoverHeight = 325;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - popoverWidth - 12));
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
+      setPopoverStyle({
+        position: 'fixed',
+        bottom: `${window.innerHeight - rect.top + 6}px`,
+        left: `${left}px`,
+        width: `${popoverWidth}px`,
+        zIndex: 60,
+      });
+    } else {
+      setPopoverStyle({
+        position: 'fixed',
+        top: `${rect.bottom + 6}px`,
+        left: `${left}px`,
+        width: `${popoverWidth}px`,
+        zIndex: 60,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePopoverPosition();
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        popoverRef.current &&
+        !popoverRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, updatePopoverPosition]);
+
+  const years: number[] = [];
+  for (let y = currentYear; y >= 1905; y -= 1) {
+    years.push(y);
+  }
+
+  const daysInCurrentMonth = getDaysInMonth(viewYear, viewMonth);
+  const firstDayWeekIdx = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // Lunes = 0
+
+  const handleYearChange = (newYear: number) => {
+    setViewYear(newYear);
+    if (parsed) {
+      const clampedDay = Math.min(parsed.day, getDaysInMonth(newYear, viewMonth));
+      onChange(formatIsoDate(newYear, viewMonth, clampedDay));
+    }
+  };
+
+  const handleMonthChange = (newMonth: number) => {
+    setViewMonth(newMonth);
+    if (parsed) {
+      const clampedDay = Math.min(parsed.day, getDaysInMonth(viewYear, newMonth));
+      onChange(formatIsoDate(viewYear, newMonth, clampedDay));
+    }
+  };
+
+  const handleSelectDay = (day: number) => {
+    onChange(formatIsoDate(viewYear, viewMonth, day));
+    setIsOpen(false);
+  };
+
+  const age = calculateAgeYears(value);
+  const displayLabel = parsed
+    ? `${String(parsed.day).padStart(2, '0')} ${MONTH_NAMES[parsed.month].slice(0, 3)} ${parsed.year}`
+    : 'Seleccionar fecha...';
+
+  const today = new Date();
+  const isFutureDay = (day: number) => {
+    if (viewYear > today.getFullYear()) return true;
+    if (viewYear === today.getFullYear() && viewMonth > today.getMonth()) return true;
+    if (viewYear === today.getFullYear() && viewMonth === today.getMonth() && day > today.getDate()) return true;
+    return false;
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        id={id}
+        type="button"
+        aria-label="Fecha Nacimiento"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(prev => !prev)}
+        className="w-full bg-[var(--surface-sunken)] border border-slate-800 hover:border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/30 font-mono transition-all flex items-center justify-between gap-2 text-left"
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+          <span className={parsed ? 'text-slate-100' : 'text-slate-500'}>{displayLabel}</span>
+        </span>
+        <span className="flex items-center gap-1.5 shrink-0">
+          {age !== null && (
+            <span className="px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-300 text-[10px] font-semibold">
+              {age} años
+            </span>
+          )}
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+
+      {isOpen && (
+        <div
+          ref={popoverRef}
+          style={popoverStyle}
+          role="dialog"
+          aria-label="Selector de fecha de nacimiento"
+          className="bg-[var(--surface-panel)] border border-slate-700 rounded-2xl p-3.5 shadow-2xl space-y-3"
+        >
+          {/* Selectores directos de Mes y Año */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+                Mes
+              </label>
+              <select
+                aria-label="Mes de nacimiento"
+                value={viewMonth}
+                onChange={e => handleMonthChange(Number(e.target.value))}
+                className="w-full bg-[var(--surface-sunken)] border border-slate-700 hover:border-sky-500/50 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500 cursor-pointer"
+              >
+                {MONTH_NAMES.map((m, idx) => (
+                  <option key={m} value={idx}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">
+                Año
+              </label>
+              <select
+                aria-label="Año de nacimiento"
+                value={viewYear}
+                onChange={e => handleYearChange(Number(e.target.value))}
+                className="w-full bg-[var(--surface-sunken)] border border-slate-700 hover:border-sky-500/50 rounded-lg px-2 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-sky-500 cursor-pointer"
+              >
+                {years.map(y => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Cabecera días de la semana */}
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {WEEKDAY_SHORT.map(dayName => (
+              <span key={dayName} className="text-[10px] font-semibold text-slate-400 py-0.5">
+                {dayName}
+              </span>
+            ))}
+          </div>
+
+          {/* Cuadrícula de días */}
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: firstDayWeekIdx }).map((_, idx) => (
+              <div key={`empty-${idx}`} className="h-7" />
+            ))}
+            {Array.from({ length: daysInCurrentMonth }).map((_, idx) => {
+              const day = idx + 1;
+              const isSelected =
+                parsed?.year === viewYear && parsed?.month === viewMonth && parsed?.day === day;
+              const disabled = isFutureDay(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleSelectDay(day)}
+                  className={`h-7 rounded-lg text-xs font-mono transition-all flex items-center justify-center ${
+                    isSelected
+                      ? 'bg-sky-500 text-white font-bold shadow-sm shadow-sky-500/40'
+                      : disabled
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-200 hover:bg-sky-500/20 hover:text-sky-300'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Acciones rápidas */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+              className="text-[11px] text-slate-400 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-slate-800/60"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition-colors px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20"
+            >
+              Listo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
