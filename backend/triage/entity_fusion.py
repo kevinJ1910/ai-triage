@@ -30,6 +30,12 @@ _STOPWORDS = {"de", "del", "la", "el", "los", "las", "un", "una", "en", "y", "a"
               "se", "le", "me", "mi", "su", "lo", "muy", "mas", "tipo"}
 _DANGLING_PREPOSITION_RE = re.compile(r"^(?:de|del|al|en|con|por|para)\s+\w+$", re.I)
 _BRIDGE_CONNECTOR_RE = re.compile(r"^\s*(?:de|del|en el|en la|al)?\s*$", re.I)
+_CONVERSATIONAL_PREFIX_RE = re.compile(
+    r"^(?:temo que sea(?: un| una)?|creo que (?:es|sea|tengo)(?: un| una)?|"
+    r"siento (?:mucho|mucha|un poco de)?|(?:no )?(?:he|ha) tenido|tenido)\s+",
+    re.I,
+)
+_INTENSIFIER_RE = re.compile(r"\b(?:mucho|mucha|muchos|muchas|bastante|demasiado|un poco de|un poquito de)\b", re.I)
 
 
 def _key(term: str) -> str:
@@ -38,11 +44,18 @@ def _key(term: str) -> str:
 
 def _canonical_term(term: str) -> str:
     """Si el termino coincide con una entrada del catalogo o correccion ASR, devuelve su forma canonica."""
-    cleaned = (term or "").strip()
+    cleaned = _CONVERSATIONAL_PREFIX_RE.sub("", (term or "").strip()).strip()
     if not cleaned:
         return ""
     concept = lookup_term(cleaned)
-    return concept.term if concept else cleaned
+    if concept:
+        return concept.term
+    deintensified = " ".join(_INTENSIFIER_RE.sub("", cleaned).split())
+    if deintensified and deintensified != cleaned:
+        concept = lookup_term(deintensified)
+        if concept:
+            return concept.term
+    return cleaned
 
 
 def _same(a: str, b: str) -> bool:
@@ -165,6 +178,18 @@ def _supported(term: str, folded_text: str) -> bool:
     return _support_state(term, folded_text) is True
 
 
+def canonicalize_entities(raw_entities: Optional[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """Normaliza, une fragmentos preposicionales y deduplica las listas de entidades devueltas por el LLM."""
+    cleaned: Dict[str, List[str]] = {key: [] for key in ENTITY_KEYS}
+    if not isinstance(raw_entities, dict):
+        return cleaned
+    for key in ENTITY_KEYS:
+        for term in raw_entities.get(key) or []:
+            if isinstance(term, str) and term.strip():
+                _add(cleaned, key, term)
+    return cleaned
+
+
 def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: List[Dict[str, Any]],
                   llm_entities: Optional[Dict[str, List[str]]] = None,
                   min_score: float = 0.6) -> Tuple[Dict[str, List[str]], List[Dict[str, Any]]]:
@@ -173,7 +198,7 @@ def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: 
     ner_spans y normalized_terms (el relato limpio del triaje).
     """
     folded = fold(text)
-    llm_entities = llm_entities or {}
+    llm_entities = canonicalize_entities(llm_entities)
     llm_terms = [t for key in ("symptoms", "diagnoses", "medications", "allergies", "history")
                  for t in llm_entities.get(key) or []]
     entities: Dict[str, List[str]] = {key: [] for key in ENTITY_KEYS}
@@ -191,7 +216,7 @@ def fuse_entities(text: str, ner_spans: List[Dict[str, Any]], normalized_terms: 
         negated = is_negated(folded, *bounds) or (
             span["label"] != "FARMACO" and is_preserved_or_privative(folded, *bounds)
         )
-        term = max(equivalent, key=lambda t: t["end"] - t["start"])["medical_term"] if equivalent else raw
+        term = max(equivalent, key=lambda t: t["end"] - t["start"])["medical_term"] if equivalent else _canonical_term(raw)
         key = _entity_key(span["label"], text, span["start"], equivalent)
         if negated:
             key = None if span["label"] == "FARMACO" else "negated_findings"

@@ -129,6 +129,8 @@ class TriageOverrideSchema(BaseModel):
     override_reason: Optional[str] = Field(default="", max_length=1000)
     justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
+    clinical_entities: Optional[Dict[str, Any]] = None
+    patient_info: Optional[Dict[str, Any]] = None
 
 class TriageReferenceSchema(BaseModel):
     reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")

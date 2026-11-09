@@ -16,7 +16,7 @@ from .clinical_protocol import evaluate_christus_sinergia_triage, is_rule_fallba
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
-from .entity_fusion import entities_from_terms, fuse_entities
+from .entity_fusion import canonicalize_entities, entities_from_terms, fuse_entities
 from .metrics import combine_levels
 from . import ner_model
 
@@ -265,18 +265,44 @@ class PatientInfoSchema(BaseModel):
 
 
 class EntitiesSchema(BaseModel):
-    symptoms: List[str] = Field(default_factory=list, description="Sintomas y signos presentes (nunca los negados)")
+    symptoms: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Sintomas y signos clinicos presentes en terminologia medica canonica (ej. 'dolor torácico opresivo', "
+            "'disnea', 'irradiación a miembro superior', 'mareo'); nunca incluir hallazgos negados ni verbos "
+            "conversacionales ('temo que', 'me falta')"
+        ),
+    )
     diagnoses: List[str] = Field(
         default_factory=list,
-        description="Enfermedades, lesiones o estados del episodio actual nombrados como tales (fractura, quemadura, gripa, gestacion)",
+        description=(
+            "Enfermedades agudas, sospechas diagnosticas, lesiones o estados del episodio actual completos "
+            "(ej. 'infarto agudo de miocardio', 'fractura', 'quemadura', 'gestacion'); nunca dividir una misma "
+            "entidad en dos items"
+        ),
     )
-    medications: List[str] = Field(default_factory=list, description="Medicamentos de uso habitual o prescritos")
-    allergies: List[str] = Field(default_factory=list, description="Sustancias a las que el paciente refiere alergia")
-    vitals: List[str] = Field(default_factory=list, description="Constantes vitales detectadas en consulta")
-    history: List[str] = Field(default_factory=list, description="Antecedentes patologicos o quirurgicos")
+    medications: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Medicamentos o principios activos de uso habitual o prescritos en forma farmacologica normalizada "
+            "(ej. 'losartán', 'metformina'), corrigiendo errores foneticos del ASR"
+        ),
+    )
+    allergies: List[str] = Field(default_factory=list, description="Sustancias o farmacos a los que el paciente refiere alergia")
+    vitals: List[str] = Field(
+        default_factory=list,
+        description="Constantes vitales detectadas en formato compacto estandar (ej. 'PA: 175 mmHg', 'FC: 115 lpm')",
+    )
+    history: List[str] = Field(
+        default_factory=list,
+        description="Antecedentes patologicos cronicos o quirurgicos normalizados (ej. 'hipertensión arterial', 'diabetes mellitus')",
+    )
     negated_findings: List[str] = Field(
         default_factory=list,
-        description="Hallazgos negados explicitamente ('niega dolor toracico', 'sin fiebre'); no van en symptoms",
+        description=(
+            "Hallazgos negados explicitamente como sustantivos clinicos ('fiebre', 'pérdida de conciencia', "
+            "'dolor torácico'); no van en symptoms"
+        ),
     )
 
 
@@ -644,13 +670,10 @@ def analyze_triage_transcript(
             if compact_vitals:
                 current_v = result.get("entities", {}).get("vitals", [])
                 compact_numbers = {num for cv in compact_vitals for num in re.findall(r"\d{2,3}", cv)}
-                filtered_v = [
-                    v for v in current_v
-                    if v in compact_vitals or not any(n in re.findall(r"\d{2,3}", v) for n in compact_numbers)
-                ]
-                for cv in compact_vitals:
-                    if cv not in filtered_v:
-                        filtered_v.append(cv)
+                filtered_v = list(compact_vitals)
+                for v in current_v:
+                    if v not in filtered_v and not any(n in re.findall(r"\d{2,3}", v) for n in compact_numbers):
+                        filtered_v.append(v)
                 result["entities"]["vitals"] = filtered_v
 
             label = f"LLM local ({model_name})" if provider == 'local' else f"LLM ({model_name})"
@@ -669,13 +692,15 @@ def analyze_triage_transcript(
             result["rag_context"] = rag_criterion_ids
             result["normalized_terms"] = normalized_terms
             result["ner_spans"] = []
+            llm_entities = result["entities"]
             if ner_engine:
                 # Hibrido: las menciones del NER y la negacion determinista mandan; el LLM desempata.
-                llm_entities = result["entities"]
                 fused, details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms, llm_entities,
                                                min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
                 result["entities"] = {**fused, "vitals": llm_entities.get("vitals", [])}
                 result["ner_spans"] = details
+            else:
+                result["entities"] = {**canonicalize_entities(llm_entities), "vitals": llm_entities.get("vitals", [])}
             result["ner_engine"] = ner_engine
             result = _apply_combine_policy(result, rule_baseline, policy)
 

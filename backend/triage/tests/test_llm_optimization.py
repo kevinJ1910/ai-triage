@@ -608,3 +608,20 @@ class TestPromptVersionAndTelemetry:
         assert "infarto agudo de miocardio" in processed["cleaned_transcript"]
         assert "PA: 175 mmHg" in processed["compact_vitals"]
         assert "FC: 115 lpm" in processed["compact_vitals"]
+
+    def test_canonicalize_entities_refines_colloquial_and_fragmented_llm_output(self):
+        from triage.entity_fusion import canonicalize_entities
+        raw_llm = {
+            "symptoms": ["dolor opresivo en el pecho", "se me pasa al brazo", "me falta mucho aire", "mareo"],
+            "diagnoses": ["Temo que sea un infarto agudo", "de miocardio"],
+            "medications": ["losartánicos", "mefortormina"],
+            "allergies": ["penicilina"],
+            "history": ["hipertensión arterial", "diabetes mellitus"],
+            "negated_findings": ["he tenido fiebre", "perdido el conocimiento"],
+        }
+        cleaned = canonicalize_entities(raw_llm)
+        assert cleaned["symptoms"] == ["dolor torácico opresivo", "irradiación a miembro superior", "disnea", "mareo"]
+        assert cleaned["diagnoses"] == ["infarto agudo de miocardio"]
+        assert cleaned["medications"] == ["losartán", "metformina"]
+        assert cleaned["allergies"] == ["penicilina"]
+        assert cleaned["negated_findings"] == ["fiebre", "pérdida de conciencia"]

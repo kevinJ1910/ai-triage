@@ -91,7 +91,14 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
             # El analizador solo devuelve 'error' ante entradas no analizables; nunca por fallo del LLM.
             return Response(analysis, status=status.HTTP_400_BAD_REQUEST)
 
-        patient_info = analysis.get('patientInfo', {})
+        patient_info = dict(analysis.get('patientInfo') or {})
+        client_patient_info = request.data.get('patient_info')
+        if isinstance(client_patient_info, dict):
+            for k in ('name', 'documentId', 'birthDate', 'gender', 'phone', 'insurance'):
+                val = client_patient_info.get(k)
+                if val and (k != 'gender' or val != 'unknown'):
+                    patient_info[k] = val
+            analysis['patientInfo'] = patient_info
         triage_data = analysis.get('triage', {})
         entities = analysis.get('entities', {})
         confidence = analysis.get('confidence', None)
@@ -198,6 +205,42 @@ class TriageSessionViewSet(viewsets.GenericViewSet):
 
         if isinstance(final_symptoms, list):
             session.final_symptoms = final_symptoms
+
+        if isinstance(validated.clinical_entities, dict):
+            current_entities = dict(session.clinical_entities) if isinstance(session.clinical_entities, dict) else {}
+            for k in ('symptoms', 'diagnoses', 'medications', 'allergies', 'vitals', 'history', 'negated_findings'):
+                if isinstance(validated.clinical_entities.get(k), list):
+                    current_entities[k] = validated.clinical_entities[k]
+            session.clinical_entities = current_entities
+            if isinstance(current_entities.get('symptoms'), list) and final_symptoms is None:
+                session.final_symptoms = current_entities['symptoms']
+
+        if isinstance(validated.patient_info, dict) and session.patient_id:
+            pat = session.patient
+            p_info = validated.patient_info
+            pat_changed = []
+            if p_info.get('name') and str(p_info['name']).strip():
+                pat.full_name = str(p_info['name']).strip()[:200]
+                pat_changed.append('full_name')
+            parsed_bd = _parse_iso_date(p_info.get('birthDate'))
+            if parsed_bd is not None:
+                pat.birth_date = parsed_bd
+                pat_changed.append('birth_date')
+            if p_info.get('gender') in ('male', 'female', 'other', 'unknown'):
+                pat.gender = p_info['gender']
+                pat_changed.append('gender')
+            if p_info.get('phone') is not None:
+                pat.phone = str(p_info['phone']).strip()[:30]
+                pat_changed.append('phone')
+            if p_info.get('insurance') and str(p_info['insurance']).strip():
+                pat.insurance = str(p_info['insurance']).strip()[:100]
+                pat_changed.append('insurance')
+            new_doc = str(p_info.get('documentId') or '').strip()[:50]
+            if new_doc and new_doc != pat.document_id and not Patient.objects.filter(document_id=new_doc).exclude(id=pat.id).exists():
+                pat.document_id = new_doc
+                pat_changed.append('document_id')
+            if pat_changed:
+                pat.save(update_fields=pat_changed)
 
         session.save()
 
@@ -709,10 +752,6 @@ def _upsert_patient(patient_info: dict, session_uuid: str) -> Patient:
     nunca sobrescribe datos registrados con lo que extrajo la IA.
     Sin documento se crea un paciente anonimo propio de esta sesion.
     """
-    document_id = patient_info.get('documentId')
-    if not document_id:
-        return Patient.objects.create(document_id=f"anon-{session_uuid[:8]}")
-
     extracted = {
         'full_name': patient_info.get('name'),
         'birth_date': _parse_iso_date(patient_info.get('birthDate')),
@@ -720,6 +759,16 @@ def _upsert_patient(patient_info: dict, session_uuid: str) -> Patient:
         'phone': patient_info.get('phone'),
         'insurance': patient_info.get('insurance'),
     }
+    document_id = patient_info.get('documentId')
+    if not document_id:
+        return Patient.objects.create(
+            document_id=f"anon-{session_uuid[:8]}",
+            full_name=extracted['full_name'] or '',
+            birth_date=extracted['birth_date'],
+            gender=extracted['gender'] or 'unknown',
+            phone=extracted['phone'] or '',
+            insurance=extracted['insurance'] or 'Contributivo',
+        )
     patient, created = Patient.objects.select_for_update().get_or_create(
         document_id=document_id,
         defaults={
