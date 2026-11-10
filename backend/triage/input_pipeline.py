@@ -6,6 +6,9 @@ from .negation import find_affirmed
 
 # Expresiones regulares para muletillas, redundancias y ruido conversacional en consultas de voz
 FILLER_PATTERNS = [
+    r"(?:^|\b)(?:usuario|paciente|medico|médico|enfermero|enfermera)\s*:\s*",
+    r"\b[a-záéíóúñ]{1,3}\.{2,}\s*",
+    r"\.{2,}",
     r"\b(eh+|eh+m+|este+|mmm+|ah+|oh+|uh+)\b",
     r"\b(o sea|digamos que|por decirlo asi|bueno|como le digo|como le explicaba|mire doctor|mire doctora|buenas tardes|buenos dias|buenas noches|hola doctor|hola doctora)\b",
     r"\b(pues nada|la verdad es que|como le venia diciendo|segun parece|por asi decirlo|si me entiende|usted sabe|como quien dice|la cosa es que|le cuento que|imaginese que)\b",
@@ -18,6 +21,7 @@ VITAL_PATTERNS = {
     "blood_pressure": [
         (r"\b(?:tension|presion|pa|ta)\s*(?:arterial)?\s*(?:de|en|esta en|salio en|dio|marco)?\s*([0-9]{2,3})\s*(?:sobre|\/|\s)\s*([0-9]{2,3})\b", "PA: {0}/{1} mmHg"),
         (r"\b([0-9]{2,3})\s*\/\s*([0-9]{2,3})\s*(?:de tension|de presion|mmhg)?\b", "PA: {0}/{1} mmHg"),
+        (r"\b(?:tension|presion)\s*(?:arterial)?\s*(?:de|en|esta en|salio en|dio|marco)\s*([0-9]{2,3})\b", "PA: {0} mmHg"),
     ],
     "heart_rate": [
         (r"\b(?:frecuencia cardiaca|fc|pulso)\s*(?:de|en|esta en|salio en|dio|marco)?\s*([0-9]{2,3})\s*(?:lpm|latidos|por minuto)?\b", "FC: {0} lpm"),
@@ -94,10 +98,15 @@ class ClinicalTranscriptCompressor:
         for pat, fmt in VITAL_PATTERNS["blood_pressure"]:
             match = re.search(pat, norm_text)
             if match:
-                sys, dia = match.group(1), match.group(2)
-                compact_vitals.append(fmt.format(sys, dia))
-                parsed_vitals["bp_sys"] = int(sys)
-                parsed_vitals["bp_dia"] = int(dia)
+                sys = match.group(1)
+                dia = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+                if dia:
+                    compact_vitals.append(fmt.format(sys, dia))
+                    parsed_vitals["bp_sys"] = int(sys)
+                    parsed_vitals["bp_dia"] = int(dia)
+                else:
+                    compact_vitals.append(fmt.format(sys))
+                    parsed_vitals["bp_sys"] = int(sys)
                 break
 
         # Frecuencia cardiaca

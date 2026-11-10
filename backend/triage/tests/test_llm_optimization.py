@@ -580,3 +580,115 @@ class TestPromptVersionAndTelemetry:
         assert "SUELO DE URGENCIA" in prompt_v2
         assert "Sin coincidencia léxica directa en el motor de reglas" in prompt_v2
         assert "Motivo de consulta sin compromiso de estado general" not in prompt_v2
+
+    def test_patient_name_extraction_rejects_clinical_phrases(self):
+        from triage.ai_analyzer import _extract_patient_info_rules, _restore_identifiers
+        # Caso real reportado: "Soy alergico a la penicilina y no..." no debe confundirse con el nombre
+        bad_text = (
+            "Usuario: Temo que sea un infarto agudo\n"
+            "Usuario: de miocardio. La presión arterial está en 175 y el pulso en 115.\n"
+            "Usuario: Soy alérgico a la penicilina y no he tenido fiebre ni perdido el conocimiento."
+        )
+        info = _extract_patient_info_rules(bad_text)
+        assert info["name"] is None
+        restored = _restore_identifiers({"name": "alérgico a la penicilina y no"}, {}, bad_text)
+        assert restored["name"] is None
+
+        good_text = "Usuario: Buenas tardes, me llamo Carlos Andrés Gómez, soy hipertenso y alérgico a la penicilina."
+        good_info = _extract_patient_info_rules(good_text)
+        assert good_info["name"] == "Carlos Andrés Gómez"
+
+    def test_systolic_only_blood_pressure_and_chunk_cleaning(self):
+        chunked = (
+            "Usuario: Temo que sea un infarto agudo\n"
+            "Usuario: de miocardio. La enfermera me acaba de tomar los hi...\n"
+            "Usuario: ...los vitales me dijo que la presión arterial está en 175 y el pulso está en 115."
+        )
+        processed = ClinicalTranscriptCompressor.process(chunked)
+        assert "infarto agudo de miocardio" in processed["cleaned_transcript"]
+        assert "PA: 175 mmHg" in processed["compact_vitals"]
+        assert "FC: 115 lpm" in processed["compact_vitals"]
+
+    def test_canonicalize_entities_refines_colloquial_and_fragmented_llm_output(self):
+        from triage.entity_fusion import canonicalize_entities
+        raw_llm = {
+            "symptoms": ["dolor opresivo en el pecho", "se me pasa al brazo", "me falta mucho aire", "mareo"],
+            "diagnoses": ["Temo que sea un infarto agudo", "de miocardio"],
+            "medications": ["losartánicos", "mefortormina"],
+            "allergies": ["penicilina"],
+            "history": ["hipertensión arterial", "diabetes mellitus"],
+            "negated_findings": ["he tenido fiebre", "perdido el conocimiento"],
+        }
+        cleaned = canonicalize_entities(raw_llm)
+        assert cleaned["symptoms"] == ["dolor torácico opresivo", "irradiación a miembro superior", "disnea", "mareo"]
+        assert cleaned["diagnoses"] == ["infarto agudo de miocardio"]
+        assert cleaned["medications"] == ["losartán", "metformina"]
+        assert cleaned["allergies"] == ["penicilina"]
+        assert cleaned["negated_findings"] == ["fiebre", "pérdida de conciencia"]
+
+    def test_antecedentes_misclassified_as_diagnoses_are_routed_to_history(self):
+        from triage.entity_fusion import canonicalize_entities, fuse_entities
+        from transcription.normalizer import concept_mappings
+
+        transcript = (
+            "Temo que sea un infarto agudo de miocardio. "
+            "Y antecedentes. Sufro hipertensión, diabetes, hipotiroidismo y migraña."
+        )
+        raw_llm = {
+            "symptoms": [],
+            "diagnoses": [
+                "infarto agudo de miocardio",
+                "hipertensión arterial",
+                "diabetes mellitus",
+                "hipotiroidismo",
+                "migraña",
+            ],
+            "medications": [],
+            "allergies": [],
+            "history": [],
+            "negated_findings": [],
+        }
+        cleaned = canonicalize_entities(raw_llm, text=transcript)
+        assert cleaned["diagnoses"] == ["infarto agudo de miocardio"]
+        assert "hipertensión arterial" in cleaned["history"]
+        assert "diabetes mellitus" in cleaned["history"]
+        assert "hipotiroidismo" in cleaned["history"]
+        assert "migraña" in cleaned["history"]
+
+        ner_spans = [
+            {"start": 16, "end": 42, "label": "ENFERMEDAD", "score": 0.95, "text": "infarto agudo de miocardio"},
+            {"start": 66, "end": 78, "label": "ENFERMEDAD", "score": 0.92, "text": "hipertensión"},
+            {"start": 80, "end": 88, "label": "ENFERMEDAD", "score": 0.91, "text": "diabetes"},
+            {"start": 90, "end": 104, "label": "ENFERMEDAD", "score": 0.90, "text": "hipotiroidismo"},
+            {"start": 107, "end": 114, "label": "ENFERMEDAD", "score": 0.89, "text": "migraña"},
+        ]
+        fused, _ = fuse_entities(transcript, ner_spans, concept_mappings(transcript), raw_llm)
+        assert fused["diagnoses"] == ["infarto agudo de miocardio"]
+        assert {"hipertensión arterial", "diabetes mellitus", "hipotiroidismo", "migraña"}.issubset(set(fused["history"]))
+
+    def test_fragmented_and_spoken_numbers_for_document_phone_and_birthdate(self):
+        from triage.ai_analyzer import _extract_patient_info_rules, _restore_identifiers
+
+        t1 = (
+            "Me llamo Carlos Andrés Mendoza, mi cédula es 1. 020. 345. 678, "
+            "mi teléfono es 310 55 44 321 y nací el 15 de mayo de 1980."
+        )
+        info1 = _extract_patient_info_rules(t1)
+        assert info1["name"] == "Carlos Andrés Mendoza"
+        assert info1["documentId"] == "1020345678"
+        assert info1["phone"] == "3105544321"
+        assert info1["birthDate"] == "1980-05-15"
+
+        t2 = (
+            "Documento 9 8 7 6 5 4 3 2 1, celular 3 1 5 2 3 4 5 6 7 8, "
+            "fecha de nacimiento veintitrés de octubre de mil novecientos noventa y dos."
+        )
+        info2 = _extract_patient_info_rules(t2)
+        assert info2["documentId"] == "987654321"
+        assert info2["phone"] == "3152345678"
+        assert info2["birthDate"] == "1992-10-23"
+
+        restored = _restore_identifiers({"documentId": "1020", "phone": "310 55", "birthDate": None}, {}, t1)
+        assert restored["documentId"] == "1020345678"
+        assert restored["phone"] == "3105544321"
+        assert restored["birthDate"] == "1980-05-15"

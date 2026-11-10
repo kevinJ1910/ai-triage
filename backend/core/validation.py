@@ -49,17 +49,29 @@ class LoginSchema(BaseModel):
 class RegisterSchema(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
-    confirm_password: str = Field(min_length=6)
+    confirm_password: Optional[str] = Field(default=None, min_length=6)
     first_name: Optional[str] = Field(default="", max_length=150)
     last_name: Optional[str] = Field(default="", max_length=150)
     document_id: Optional[str] = Field(default=None, max_length=50)
     phone: Optional[str] = Field(default="", max_length=30)  # Flexible
-    role: Optional[Literal['medico', 'enfermero', 'admin']] = 'medico'
+    role: Optional[Union[Literal['medico', 'enfermero', 'admin', 'doctor', 'nurse', 'triage_staff'], str]] = 'medico'
+
+    @field_validator('role')
+    @classmethod
+    def normalize_role(cls, v):
+        if not v:
+            return 'medico'
+        role_map = {
+            'doctor': 'medico',
+            'nurse': 'enfermero',
+            'triage_staff': 'enfermero'
+        }
+        return role_map.get(v, v)
 
     @field_validator('confirm_password')
     @classmethod
     def passwords_match(cls, v, info):
-        if 'password' in info.data and v != info.data['password']:
+        if v is not None and 'password' in info.data and v != info.data['password']:
             raise ValueError('Las contrasenas no coinciden')
         return v
 
@@ -77,12 +89,12 @@ class PasswordResetConfirmSchema(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6, pattern=r'^\d{6}$')
     new_password: str = Field(min_length=6)
-    confirm_password: str = Field(min_length=6)
+    confirm_password: Optional[str] = Field(default=None, min_length=6)
 
     @field_validator('confirm_password')
     @classmethod
     def passwords_match(cls, v, info):
-        if 'new_password' in info.data and v != info.data['new_password']:
+        if v is not None and 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Las contraseñas no coinciden')
         return v
 
@@ -117,6 +129,8 @@ class TriageOverrideSchema(BaseModel):
     override_reason: Optional[str] = Field(default="", max_length=1000)
     justification: Optional[str] = Field(default=None, max_length=5000)
     final_symptoms: Optional[List[str]] = None  # Flexible
+    clinical_entities: Optional[Dict[str, Any]] = None
+    patient_info: Optional[Dict[str, Any]] = None
 
 class TriageReferenceSchema(BaseModel):
     reference_level: int = Field(ge=1, le=5, description="Nivel de referencia asignado a ciegas (1-5)")

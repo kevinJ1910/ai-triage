@@ -26,11 +26,13 @@ x-backend-env: &backend-env
   LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://llm-local:11434}
   LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-gemma4:e4b-it-qat}
   LOCAL_LLM_TIMEOUT_SECONDS: ${LOCAL_LLM_TIMEOUT_SECONDS:-300}
-  EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
-  EMAIL_HOST: mailpit
-  EMAIL_PORT: "1025"
-  EMAIL_USE_TLS: "False"
-  DEFAULT_FROM_EMAIL: AI-Triage <no-reply@hospital.com>
+  EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+  EMAIL_HOST: ${EMAIL_HOST:-mailpit}
+  EMAIL_PORT: "${EMAIL_PORT:-1025}"
+  EMAIL_USE_TLS: "${EMAIL_USE_TLS:-False}"
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-AI-Triage <no-reply@hospital.com>}
 
 services:
   postgres:
@@ -120,10 +122,11 @@ services:
       <<: *backend-env
       RUN_STARTUP_TASKS: "False"
       WHISPER_PRELOAD: "True"
-      # 'small' mantiene la latencia por fragmento de 4 s asumible en CPU; ajustable en .env.
-      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
-      WHISPER_DEVICE: cpu
-      WHISPER_COMPUTE_TYPE: int8
+      # Con WHISPER_DEVICE=auto detecta GPU NVIDIA (large-v3-turbo en cuda int8_float16) o cae a CPU (small int8).
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-large-v3-turbo}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-auto}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-1}
       WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-4}
     command: ["celery", "-A", "config", "worker", "-Q", "asr", "--pool", "solo", "-n", "asr@%h", "--loglevel", "INFO"]
     volumes:

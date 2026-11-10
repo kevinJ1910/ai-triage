@@ -32,6 +32,37 @@ import {
   InputWarning 
 } from '@/lib/validation';
 
+function extractErrorMessage(data: unknown, fallback: string): string {
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    if (typeof record.detail === 'string') return record.detail;
+    if (typeof record.error === 'string') return record.error;
+    if (typeof record.message === 'string') return record.message;
+
+    const keys = Object.keys(record);
+    if (keys.length > 0) {
+      const firstVal = record[keys[0]];
+      const msg = Array.isArray(firstVal) ? firstVal.join(', ') : String(firstVal);
+      const fieldLabels: Record<string, string> = {
+        email: 'Correo',
+        password: 'Contraseña',
+        confirm_password: 'Confirmar contraseña',
+        new_password: 'Nueva contraseña',
+        code: 'Código de verificación',
+        document_id: 'Documento',
+        phone: 'Teléfono',
+        role: 'Rol',
+        non_field_errors: 'Error',
+      };
+      const label = fieldLabels[keys[0]] || keys[0];
+      return `${label}: ${msg}`;
+    }
+  }
+  return fallback;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -47,7 +78,7 @@ export default function LoginPage() {
   const [regDocType, setRegDocType] = useState('CC');
   const [regDocNumber, setRegDocNumber] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regRole, setRegRole] = useState('doctor');
+  const [regRole, setRegRole] = useState('medico');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
@@ -66,6 +97,7 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotCode, setForgotCode] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
   // UI status state
@@ -88,6 +120,7 @@ export default function LoginPage() {
   const forgotEmailWarning = forgotEmail ? validateEmail(forgotEmail).warning : null;
   const forgotCodeWarning = forgotCode ? validateOtpCode(forgotCode).warning : null;
   const forgotNewPasswordWarning = forgotNewPassword ? validatePassword(forgotNewPassword).warning : null;
+  const forgotConfirmPasswordWarning = forgotConfirmPassword ? validatePassword(forgotNewPassword, forgotConfirmPassword).warning : null;
 
   // Handle Login Submit
   const handleLogin = async (e: React.FormEvent) => {
@@ -116,12 +149,15 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 403 && data.needs_verification) {
+        if ((res.status === 403 || res.status === 400) && (data.needs_verification || data.code === 'account_not_verified')) {
           setVerifyEmail(loginEmail.trim().toLowerCase());
+          setVerifyCode('');
+          setError('');
+          setInfoMessage('Cuenta pendiente de verificacion. Se ha enviado un nuevo codigo OTP de 6 digitos a su correo.');
           setIsVerifyModalOpen(true);
-          throw new Error('Cuenta no verificada. Ingrese el codigo OTP enviado a su correo.');
+          return;
         }
-        throw new Error(data.detail || data.error || 'Credenciales invalidas o error de servidor.');
+        throw new Error(extractErrorMessage(data, 'Credenciales invalidas o error de servidor.'));
       }
 
       // El access token queda en memoria; el refresh lo fija el backend en una cookie httpOnly
@@ -169,6 +205,10 @@ export default function LoginPage() {
 
     setLoading(true);
 
+    const formattedDocId = regDocNumber.trim()
+      ? (regDocType ? `${regDocType}-${regDocNumber.trim()}` : regDocNumber.trim())
+      : undefined;
+
     try {
       const res = await fetch('/api/auth/register/', {
         method: 'POST',
@@ -176,10 +216,13 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: regEmail.trim().toLowerCase(),
           password: regPassword,
+          confirm_password: regConfirmPassword,
           first_name: regFirstName.trim(),
           last_name: regLastName.trim(),
+          document_id: formattedDocId,
           document_type: regDocType,
           document_number: regDocNumber.trim(),
+          phone: regPhone.trim(),
           phone_number: regPhone.trim(),
           role: regRole
         })
@@ -188,8 +231,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        const errorKey = Object.keys(data)[0];
-        throw new Error(data.detail || data.error || `${errorKey}: ${JSON.stringify(data[errorKey])}`);
+        throw new Error(extractErrorMessage(data, 'Error en el registro'));
       }
 
       setVerifyEmail(regEmail.trim().toLowerCase());
@@ -221,7 +263,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: verifyEmail,
+          email: verifyEmail.trim().toLowerCase(),
           code: verifyCode.trim()
         })
       });
@@ -229,11 +271,17 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Codigo de verificacion incorrecto o expirado.');
+        throw new Error(extractErrorMessage(data, 'Codigo de verificacion incorrecto o expirado.'));
       }
 
       setIsVerifyModalOpen(false);
       setVerifyCode('');
+      if (data.access && data.user) {
+        setAccessToken(data.access);
+        localStorage.setItem('user_profile', JSON.stringify(data.user));
+        router.push('/');
+        return;
+      }
       setInfoMessage('Cuenta verificada exitosamente. Ya puede iniciar sesion con sus credenciales.');
       setActiveTab('login');
       setLoginEmail(verifyEmail);
@@ -255,13 +303,13 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: verifyEmail,
+          email: verifyEmail.trim().toLowerCase(),
           purpose: 'activation'
         })
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'No fue posible reenviar el codigo.');
+        throw new Error(extractErrorMessage(data, 'No fue posible reenviar el codigo.'));
       }
       setInfoMessage('Nuevo codigo OTP enviado a su bandeja de correo.');
     } catch (err: unknown) {
@@ -293,7 +341,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al procesar la solicitud.');
+        throw new Error(extractErrorMessage(data, 'Error al procesar la solicitud.'));
       }
       setForgotStep(2);
       setInfoMessage('Codigo de recuperacion enviado. Ingrese el codigo y su nueva clave.');
@@ -316,9 +364,9 @@ export default function LoginPage() {
       return;
     }
 
-    const passCheck = validatePassword(forgotNewPassword);
+    const passCheck = validatePassword(forgotNewPassword, forgotConfirmPassword);
     if (!passCheck.isValid) {
-      setError(passCheck.warning || 'Contrasena no valida.');
+      setError(passCheck.warning || 'Contrasenas no validas.');
       return;
     }
 
@@ -331,20 +379,23 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: forgotEmail.trim().toLowerCase(),
           code: forgotCode.trim(),
-          new_password: forgotNewPassword
+          new_password: forgotNewPassword,
+          confirm_password: forgotConfirmPassword
         })
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Codigo invalido o error al actualizar clave.');
+        throw new Error(extractErrorMessage(data, 'Codigo invalido o error al actualizar clave.'));
       }
       setIsForgotModalOpen(false);
       setForgotStep(1);
       setForgotEmail('');
       setForgotCode('');
       setForgotNewPassword('');
+      setForgotConfirmPassword('');
       setInfoMessage('Contrasena actualizada con exito. Ingrese con su nueva clave.');
       setActiveTab('login');
+      setLoginPassword('');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al actualizar contrasena';
       setError(msg);
@@ -603,9 +654,8 @@ export default function LoginPage() {
                   onChange={(e) => setRegRole(e.target.value)}
                   className="w-full px-3 py-2 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
-                  <option value="doctor">Medico de Urgencias</option>
-                  <option value="nurse">Enfermero(a) Jefe</option>
-                  <option value="triage_staff">Personal de Triaje</option>
+                  <option value="medico">Medico de Urgencias</option>
+                  <option value="enfermero">Enfermero(a) Jefe</option>
                   <option value="admin">Administrador del Sistema</option>
                 </select>
               </div>
@@ -726,8 +776,22 @@ export default function LoginPage() {
 
             <p className="text-xs text-slate-400">
               Se ha enviado un codigo de 6 digitos a <span className="text-sky-400 font-semibold">{verifyEmail}</span>.
-              (Revise en Mailpit en el puerto 8025 si esta en desarrollo local).
+              (Revise su bandeja de entrada o Mailpit en el puerto 8025).
             </p>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {infoMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
 
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <div>
@@ -787,6 +851,20 @@ export default function LoginPage() {
               </button>
             </div>
 
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {infoMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{infoMessage}</span>
+              </div>
+            )}
+
             {forgotStep === 1 ? (
               <form onSubmit={handleRequestPasswordReset} className="space-y-4">
                 <p className="text-xs text-slate-400">
@@ -841,12 +919,26 @@ export default function LoginPage() {
                   <input
                     type="password"
                     required
-                    placeholder="Minimo 8 caracteres"
+                    placeholder="Minimo 6 caracteres"
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
                   />
                   <InputWarning warning={forgotNewPasswordWarning} id="forgot-pass-warning" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Confirmar Contrasena
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Repetir nueva clave"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[var(--surface-card)] border border-[var(--surface-border)] rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                  <InputWarning warning={forgotConfirmPasswordWarning} id="forgot-confirm-warning" />
                 </div>
                 <button
                   type="submit"

@@ -188,14 +188,14 @@ export function useWhisperASR(): UseWhisperASRReturn {
       mediaRecorderRef.current.start();
       setIsRecording(true);
 
-      // Setup chunk timer (every 4 seconds, cycle recorder to trigger dataavailable)
+      // Setup chunk timer (every 2.8 seconds, cycle recorder to trigger dataavailable with lower latency)
       intervalRef.current = setInterval(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           // Stop and immediately restart creates a completed chunk
           mediaRecorderRef.current.stop();
           mediaRecorderRef.current.start();
         }
-      }, 4000);
+      }, 2800);
 
     } catch (error: any) {
       console.error('Failed to start MediaRecorder:', error);

@@ -4,7 +4,7 @@ import json
 import time
 import hashlib
 import logging
-from typing import List, Optional, Literal, Dict, Any
+from typing import List, Optional, Literal, Dict, Any, Tuple
 from django.conf import settings
 from pydantic import BaseModel, Field
 from google import genai
@@ -16,7 +16,7 @@ from .clinical_protocol import evaluate_christus_sinergia_triage, is_rule_fallba
 from .input_pipeline import ClinicalTranscriptCompressor
 from .clinical_rag import ClinicalKnowledgeRAG
 from .clinical_cache import ClinicalQueryCache
-from .entity_fusion import entities_from_terms, fuse_entities
+from .entity_fusion import canonicalize_entities, entities_from_terms, fuse_entities
 from .metrics import combine_levels
 from . import ner_model
 
@@ -92,13 +92,335 @@ class LLMUnavailableError(RuntimeError):
     """No hay ningun LLM utilizable (sin clave o sin servidor local). Solo se lanza con strict_llm=True."""
 
 # Seudonimizacion de identificadores antes de enviar texto a un LLM externo (Ley 1581 de 2012).
-_PHONE_RE = re.compile(r'\b3\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b')
-_DOCUMENT_RE = re.compile(r'\b\d{6,11}\b')
+_PHONE_RE = re.compile(r'\b3(?:[\s.,-]{0,2}\d){9}(?!\d)')
+_DOCUMENT_RE = re.compile(r'\b\d(?:[\s.,-]{0,2}\d){5,10}(?!\d)')
+_PHONE_CUE_RE = re.compile(
+    r'(?i)\b(?:tel[eé]fono|celular|m[oó]vil|contacto|whatsapp|n[uú]mero\s+de\s+(?:tel[eé]fono|celular|contacto))'
+    r'(?:\s+(?:es|el|n[uú]mero))?[\s:.,-]*((?:\d[\s.,-]*){7,10})(?!\d)'
+)
+_DOC_CUE_RE = re.compile(
+    r'(?i)\b(?:c[eé]dula(?:\s+de\s+ciudadan[ií]a)?|documento(?:\s+de\s+identidad)?|identificaci[oó]n|'
+    r'n[uú]mero\s+de\s+(?:documento|c[eé]dula|identificaci[oó]n)|c\.?c\.?|t\.?i\.?)'
+    r'(?:\s+(?:es|el|la|n[uú]mero))?[\s:.,-]*((?:\d[\s.,-]*){6,11})(?!\d)'
+)
+_DATE_LIKE_RE = re.compile(r'^\d{1,2}[\s/\-.]+\d{1,2}[\s/\-.]+\d{2,4}$')
+_MONTH_MAP = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
+_SPOKEN_TENS = {
+    "treinta": 30, "cuarenta": 40, "cincuenta": 50,
+    "sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90,
+}
+_SPOKEN_UNITS = {
+    "cero": 0, "un": 1, "uno": 1, "una": 1, "primero": 1, "dos": 2, "tres": 3,
+    "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9,
+    "diez": 10, "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15,
+    "dieciseis": 16, "dieciséis": 16, "diecisiete": 17, "dieciocho": 18, "diecinueve": 19,
+    "veinte": 20, "veintiun": 21, "veintiún": 21, "veintiuno": 21,
+    "veintidos": 22, "veintidós": 22, "veintitres": 23, "veintitrés": 23,
+    "veinticuatro": 24, "veinticinco": 25, "veintiseis": 26, "veintiséis": 26,
+    "veintisiete": 27, "veintiocho": 28, "veintinueve": 29,
+}
+_SPOKEN_HUNDREDS = {
+    "cien": 100, "ciento": 100, "doscientos": 200, "trescientos": 300,
+    "cuatrocientos": 400, "quinientos": 500, "seiscientos": 600,
+    "setecientos": 700, "ochocientos": 800, "novecientos": 900,
+}
+
+
+def _normalize_spoken_numbers(text: str) -> str:
+    """
+    Convierte palabras numericas en espanol ('uno uno cinco...', 'quince de mayo de mil novecientos ochenta')
+    a digitos para permitir la union determinista de documento, telefono y fecha de nacimiento.
+    """
+    if not text:
+        return ""
+    import unicodedata
+    out = text
+
+    def _strip_accents(s: str) -> str:
+        return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+    # 1. Años hablados: 'mil novecientos ochenta y cinco' -> '1985', 'dos mil cuatro' -> '2004'
+    tens_pat = "|".join(_SPOKEN_TENS.keys())
+    units_pat = "|".join(_SPOKEN_UNITS.keys())
+
+    def _replace_1900(m: re.Match) -> str:
+        ten_w = _strip_accents(m.group(1) or "").lower()
+        unit_w = _strip_accents(m.group(2) or "").lower()
+        val = 1900 + _SPOKEN_TENS.get(ten_w, 0) + _SPOKEN_UNITS.get(unit_w, 0)
+        return str(val)
+
+    out = re.sub(
+        rf"(?i)\bmil\s+novecientos(?:\s+({tens_pat})(?:\s+y\s+({units_pat}))?|\s+({units_pat}))?\b",
+        lambda m: str(
+            1900
+            + (_SPOKEN_TENS.get(_strip_accents(m.group(1) or "").lower(), 0) if m.group(1) else 0)
+            + (_SPOKEN_UNITS.get(_strip_accents(m.group(2) or m.group(3) or "").lower(), 0))
+        ),
+        out,
+    )
+    out = re.sub(
+        rf"(?i)\bdos\s+mil(?:\s+({tens_pat})(?:\s+y\s+({units_pat}))?|\s+({units_pat}))?\b",
+        lambda m: str(
+            2000
+            + (_SPOKEN_TENS.get(_strip_accents(m.group(1) or "").lower(), 0) if m.group(1) else 0)
+            + (_SPOKEN_UNITS.get(_strip_accents(m.group(2) or m.group(3) or "").lower(), 0))
+        ),
+        out,
+    )
+
+    # 2. Decenas compuestas: 'treinta y cinco' -> '35'
+    out = re.sub(
+        rf"(?i)\b({tens_pat})\s+y\s+({units_pat})\b",
+        lambda m: str(
+            _SPOKEN_TENS[_strip_accents(m.group(1)).lower()]
+            + _SPOKEN_UNITS[_strip_accents(m.group(2)).lower()]
+        ),
+        out,
+    )
+
+    # 3. Centenas + decenas/unidades: 'trescientos quince' -> '315'
+    hundreds_pat = "|".join(_SPOKEN_HUNDREDS.keys())
+    out = re.sub(
+        rf"(?i)\b({hundreds_pat})(?:\s+(\d{{1,2}}|{tens_pat}|{units_pat}))?\b",
+        lambda m: str(
+            _SPOKEN_HUNDREDS[_strip_accents(m.group(1)).lower()]
+            + (
+                int(m.group(2))
+                if (m.group(2) and m.group(2).isdigit())
+                else _SPOKEN_TENS.get(_strip_accents(m.group(2) or "").lower(), 0)
+                + _SPOKEN_UNITS.get(_strip_accents(m.group(2) or "").lower(), 0)
+            )
+        ),
+        out,
+    )
+
+    # 4. Decenas simples ('ochenta' -> '80') y numeros 2..29 ('quince' -> '15', 'dos' -> '2')
+    safe_number_words = {
+        k: v for k, v in {**_SPOKEN_TENS, **_SPOKEN_UNITS}.items() if k not in ("un", "una")
+    }
+    safe_pat = "|".join(sorted(safe_number_words.keys(), key=len, reverse=True))
+    out = re.sub(
+        rf"(?i)\b({safe_pat})\b",
+        lambda m: str(safe_number_words[_strip_accents(m.group(1)).lower()]),
+        out,
+    )
+    # 'punto', 'guion', 'mil' o 'millones' entre digitos -> separador numerico
+    out = re.sub(r"(?i)\bmil\s+(?=\d{1,3}\b)", "1 ", out)
+    out = re.sub(r"(?<=\d)\s+(?:punto|guion|millones|mill[oó]n|mil)\s+(?=\d)", ".", out, flags=re.I)
+    return out
+
+
+def _extract_phone_number(text: str) -> Tuple[Optional[str], Optional[Tuple[int, int]]]:
+    """Extrae y une los digitos del telefono (incluso si el ASR los separo con espacios, puntos o comas)."""
+    for source_text in (text or "", _normalize_spoken_numbers(text or "")):
+        cue_match = _PHONE_CUE_RE.search(source_text)
+        if cue_match:
+            digits = re.sub(r"\D", "", cue_match.group(1))
+            if 7 <= len(digits) <= 10:
+                return digits, (cue_match.start(1), cue_match.end(1))
+        for match in _PHONE_RE.finditer(source_text):
+            raw_chunk = match.group(0).strip()
+            if _DATE_LIKE_RE.match(raw_chunk):
+                continue
+            digits = re.sub(r"\D", "", raw_chunk)
+            if len(digits) == 10 and digits.startswith("3"):
+                return digits, (match.start(), match.end())
+    return None, None
+
+
+def _extract_document_id(text: str, exclude_phone: Optional[str] = None) -> Tuple[Optional[str], Optional[Tuple[int, int]]]:
+    """Extrae y une los digitos del documento de identidad (6 a 11 digitos, unidos aunque tengan pausas o puntos)."""
+    for source_text in (text or "", _normalize_spoken_numbers(text or "")):
+        cue_match = _DOC_CUE_RE.search(source_text)
+        if cue_match:
+            digits = re.sub(r"\D", "", cue_match.group(1))
+            if 6 <= len(digits) <= 11 and digits != exclude_phone:
+                return digits, (cue_match.start(1), cue_match.end(1))
+        for match in _DOCUMENT_RE.finditer(source_text):
+            raw_chunk = match.group(0).strip()
+            if _DATE_LIKE_RE.match(raw_chunk):
+                continue
+            digits = re.sub(r"\D", "", raw_chunk)
+            if 6 <= len(digits) <= 11 and digits != exclude_phone:
+                return digits, (match.start(), match.end())
+    return None, None
+
+
+def _format_valid_birth_date(year: int, month: int, day: int) -> Optional[str]:
+    if year < 100:
+        year = 2000 + year if year <= 26 else 1900 + year
+    if not (1900 <= year <= 2026 and 1 <= month <= 12 and 1 <= day <= 31):
+        return None
+    return f"{year:04d}-{month:02d}-{day:02d}"
+
+
+def _extract_birth_date(text: str) -> Optional[str]:
+    """Extrae y normaliza la fecha de nacimiento a YYYY-MM-DD desde formatos hablados o numericos."""
+    if not text:
+        return None
+    norm = _normalize_spoken_numbers(text)
+
+    # 1. Formato ISO YYYY-MM-DD o YYYY/MM/DD
+    iso_m = re.search(r"\b(19\d{2}|20[0-2]\d)[\s/\-.]+(0?[1-9]|1[0-2])[\s/\-.]+(0?[1-9]|[12]\d|3[01])\b", norm)
+    if iso_m:
+        res = _format_valid_birth_date(int(iso_m.group(1)), int(iso_m.group(2)), int(iso_m.group(3)))
+        if res:
+            return res
+
+    # 2. Mes en espanol: '15 de mayo de 1980', '15 mayo 1980', '15 de mayo del 80'
+    months_pat = "|".join(_MONTH_MAP.keys())
+    es_m = re.search(
+        rf"(?i)\b(\d{{1,2}})\s*(?:de|del|,|\s)\s*({months_pat})\s*(?:de|del|,|\s)\s*(\d{{2,4}})\b",
+        norm,
+    )
+    if es_m:
+        res = _format_valid_birth_date(int(es_m.group(3)), _MONTH_MAP[es_m.group(2).lower()], int(es_m.group(1)))
+        if res:
+            return res
+
+    es_m2 = re.search(
+        rf"(?i)\b({months_pat})\s+(\d{{1,2}})\s*(?:de|del|,|\s)\s*(\d{{2,4}})\b",
+        norm,
+    )
+    if es_m2:
+        res = _format_valid_birth_date(int(es_m2.group(3)), _MONTH_MAP[es_m2.group(1).lower()], int(es_m2.group(2)))
+        if res:
+            return res
+
+    # 3. Contexto explicito de nacimiento con numeros separados por espacio, punto, barra, guion o 'del'
+    cue_m = re.search(
+        r"(?i)\b(?:fecha\s+de\s+nacimiento|nac[ií]|naci[oó]|nacid[oa](?:\s+el)?|cumplea[ñn]os)"
+        r"(?:\s+(?:es|el))?[\s:.,-]*"
+        r"(\d{1,2})(?:\s*(?:[/\-.]|de|del)\s*|\s+)(\d{1,2})(?:\s*(?:[/\-.]|de|del)\s*|\s+)(19\d{2}|20[0-2]\d|\d{2})\b",
+        norm,
+    )
+    if cue_m:
+        res = _format_valid_birth_date(int(cue_m.group(3)), int(cue_m.group(2)), int(cue_m.group(1)))
+        if res:
+            return res
+
+    # 4. Formato numerico estandar DD/MM/YYYY o DD-MM-YYYY o DD.MM.YYYY
+    dmy_m = re.search(r"\b(0?[1-9]|[12]\d|3[01])\s*[/\-.]\s*(0?[1-9]|1[0-2])\s*[/\-.]\s*(19\d{2}|20[0-2]\d)\b", norm)
+    if dmy_m:
+        res = _format_valid_birth_date(int(dmy_m.group(3)), int(dmy_m.group(2)), int(dmy_m.group(1)))
+        if res:
+            return res
+
+    return None
 _NAME_RE = re.compile(
-    r'(?i:\b(?:me llamo|mi nombre es|se llama|su nombre es)\s+)'
-    r'((?:[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s?){1,4})'
+    r'(?i:\b(?:me llamo|mi nombre(?:\s+completo)?\s+es|se llama|su nombre es|el paciente se llama|la paciente se llama)\s+)'
+    r'([A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,3})'
+)
+_SOY_PROPER_NAME_RE = re.compile(
+    r'\b(?:[Ss]oy)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,18}(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,18}){1,3})\b'
 )
 _PLACEHOLDERS = ("[NOMBRE]", "[DOCUMENTO]", "[TELEFONO]")
+
+# Vocabulario clinico, funcional y de rol que nunca puede formar parte de un nombre propio de paciente.
+_NON_NAME_WORDS = frozenset({
+    "alergico", "alergica", "alergicos", "alergicas", "alergia", "alergias",
+    "hipertenso", "hipertensa", "hipertension", "diabetico", "diabetica", "diabetes",
+    "asmatico", "asmatica", "asma", "epileptico", "epileptica", "epilepsia",
+    "cardiopata", "anticoagulado", "anticoagulada", "operado", "operada",
+    "diagnosticado", "diagnosticada", "cronico", "cronica", "embarazada", "gestante",
+    "fumador", "fumadora", "oncologico", "oncologica", "renal", "dialisis",
+    "dolor", "fiebre", "tos", "mareo", "infarto", "pecho", "brazo", "cabeza",
+    "presion", "tension", "pulso", "saturacion", "vitales", "antecedentes", "antecedente",
+    "penicilina", "losartan", "losartanicos", "metformina", "mefortormina", "omeprazol",
+    "insulina", "acetaminofen", "ibuprofeno", "aspirina", "dipirona", "amoxicilina",
+    "sangrado", "vomito", "nauseas", "disnea", "ahogo", "asfixia", "fractura", "herida",
+    "quemadura", "epoc", "gastritis", "migrana", "convulsion", "desmayo", "conocimiento",
+    "yo", "tu", "el", "ella", "un", "una", "unos", "unas", "los", "las", "lo", "al", "a",
+    "ante", "bajo", "con", "contra", "desde", "durante", "en", "entre", "hacia", "hasta",
+    "mediante", "para", "por", "segun", "sin", "sobre", "tras", "y", "e", "ni", "o", "u",
+    "pero", "sino", "que", "como", "cuando", "donde", "porque", "pues", "si", "no", "ya",
+    "muy", "mas", "menos", "tambien", "tampoco", "solo", "tengo", "tiene", "siento", "siente",
+    "sufro", "sufre", "padezco", "padece", "tomo", "toma", "vengo", "viene", "estoy", "esta",
+    "fui", "fue", "he", "ha", "hace", "ayer", "hoy", "dias", "horas", "anos", "meses",
+    "semanas", "paciente", "usuario", "medico", "doctor", "doctora", "enfermero", "enfermera",
+    "profesional", "hombre", "mujer", "senor", "senora", "joven", "adulto", "mayor",
+    "nino", "nina", "bebe", "desconocido", "desconocida", "ninguno", "ninguna", "null", "none",
+    "urgencias", "admision", "consulta", "hospital", "clinica", "eps", "cedula", "documento",
+})
+_NAME_CONNECTORS = frozenset({"de", "del", "la"})
+
+
+def _fold_word(word: str) -> str:
+    import unicodedata
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", word or "") if not unicodedata.combining(c)
+    ).lower()
+
+
+def _sanitize_patient_name(candidate: Optional[str], require_two_words: bool = False) -> Optional[str]:
+    """
+    Valida y limpia un candidato a nombre de paciente. Descarta frases clinicas ('alergico a la penicilina'),
+    roles ('Paciente Desconocido', 'Usuario') o conectores gramaticales.
+    """
+    if not candidate or not isinstance(candidate, str):
+        return None
+    if any(ph in candidate for ph in _PLACEHOLDERS):
+        return None
+    first_clause = re.split(r"[,.;:()\-/\n]", candidate.strip())[0].strip()
+    if not first_clause:
+        return None
+    raw_words = first_clause.split()
+    valid_tokens: List[str] = []
+    for idx, w in enumerate(raw_words):
+        clean_w = re.sub(r"[^A-Za-zÁÉÍÓÚáéíóúñÑ]", "", w)
+        if not clean_w or len(clean_w) < 2:
+            break
+        folded = _fold_word(clean_w)
+        if folded in _NAME_CONNECTORS:
+            # Solo se admite 'de'/'del'/'la' entre dos nombres propios validos (ej. 'Maria del Carmen')
+            if not valid_tokens or idx + 1 >= len(raw_words):
+                break
+            next_folded = _fold_word(re.sub(r"[^A-Za-zÁÉÍÓÚáéíóúñÑ]", "", raw_words[idx + 1]))
+            if not next_folded or next_folded in _NON_NAME_WORDS or next_folded in _NAME_CONNECTORS:
+                break
+            valid_tokens.append(folded)
+            continue
+        if folded in _NON_NAME_WORDS:
+            break
+        valid_tokens.append(clean_w.capitalize())
+        if len(valid_tokens) >= 4:
+            break
+
+    while valid_tokens and _fold_word(valid_tokens[-1]) in _NAME_CONNECTORS:
+        valid_tokens.pop()
+
+    proper_count = sum(1 for t in valid_tokens if _fold_word(t) not in _NAME_CONNECTORS)
+    min_required = 2 if require_two_words else 1
+    if proper_count < min_required:
+        return None
+    return " ".join(valid_tokens)
+
+
+def _extract_valid_patient_name(text: str) -> Tuple[Optional[str], Optional[Tuple[int, int]]]:
+    """Busca un nombre propio explicito en el relato y devuelve (nombre_limpio, (start, end))."""
+    cleaned_speakers = re.sub(
+        r"(?i)\b(?:usuario|paciente|m[eé]dico|doctor(?:a)?|enfermer[oa])\s*:\s*",
+        " ",
+        text or "",
+    )
+    for match in _NAME_RE.finditer(cleaned_speakers):
+        sanitized = _sanitize_patient_name(match.group(1), require_two_words=False)
+        if sanitized:
+            # Calcular el fin real sobre el texto segun los tokens aceptados
+            raw_tokens = match.group(1).split()[:len(sanitized.split())]
+            end_pos = match.start(1) + len(" ".join(raw_tokens))
+            return sanitized, (match.start(1), end_pos)
+    for match in _SOY_PROPER_NAME_RE.finditer(cleaned_speakers):
+        sanitized = _sanitize_patient_name(match.group(1), require_two_words=True)
+        if sanitized:
+            raw_tokens = match.group(1).split()[:len(sanitized.split())]
+            end_pos = match.start(1) + len(" ".join(raw_tokens))
+            return sanitized, (match.start(1), end_pos)
+    return None, None
 
 
 def _pseudonymize(text: str) -> Dict[str, Any]:
@@ -110,29 +432,57 @@ def _pseudonymize(text: str) -> Dict[str, Any]:
 
     name_match = _NAME_RE.search(text)
     if name_match:
-        found["name"] = name_match.group(1).strip()
-        text = text[:name_match.start(1)] + "[NOMBRE] " + text[name_match.end(1):]
+        sanitized = _sanitize_patient_name(name_match.group(1), require_two_words=False)
+        if sanitized:
+            found["name"] = sanitized
+            raw_tokens = name_match.split() if hasattr(name_match, "split") else name_match.group(1).split()[:len(sanitized.split())]
+            end_idx = name_match.start(1) + len(" ".join(raw_tokens))
+            text = text[:name_match.start(1)] + "[NOMBRE] " + text[end_idx:].lstrip()
 
-    phone_match = _PHONE_RE.search(text)
-    if phone_match:
-        found["phone"] = re.sub(r'\D', '', phone_match.group(0))
+    phone_digits, _ = _extract_phone_number(text)
+    if phone_digits:
+        found["phone"] = phone_digits
     text = _PHONE_RE.sub("[TELEFONO]", text)
 
-    doc_match = _DOCUMENT_RE.search(text)
-    if doc_match:
-        found["documentId"] = doc_match.group(0)
+    doc_digits, _ = _extract_document_id(text, exclude_phone=found["phone"])
+    if doc_digits:
+        found["documentId"] = doc_digits
     text = _DOCUMENT_RE.sub("[DOCUMENTO]", text)
 
     return {"text": text, "identifiers": found}
 
 
 def _restore_identifiers(patient_info: Dict[str, Any], identifiers: Dict[str, Optional[str]], raw_transcript: str) -> Dict[str, Any]:
-    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente."""
+    """Sustituye marcadores devueltos por el LLM con los valores reales extraidos localmente y sanea el nombre."""
     local = _extract_patient_info_rules(raw_transcript)
-    for field in ("name", "documentId", "phone"):
-        value = patient_info.get(field)
-        if not value or any(ph in str(value) for ph in _PLACEHOLDERS):
-            patient_info[field] = identifiers.get(field) or (local.get(field) if field != "phone" else None)
+    raw_llm_name = patient_info.get("name")
+    sanitized_llm_name = _sanitize_patient_name(str(raw_llm_name)) if raw_llm_name else None
+    patient_info["name"] = sanitized_llm_name or identifiers.get("name") or local.get("name")
+
+    for field in ("documentId", "phone"):
+        raw_val = patient_info.get(field)
+        clean_llm_digits = (
+            re.sub(r"\D", "", str(raw_val))
+            if raw_val and not any(ph in str(raw_val) for ph in _PLACEHOLDERS)
+            else ""
+        )
+        best_local = local.get(field) or identifiers.get(field) or ""
+        if best_local and len(best_local) >= len(clean_llm_digits):
+            patient_info[field] = best_local
+        elif clean_llm_digits:
+            patient_info[field] = clean_llm_digits
+        else:
+            patient_info[field] = None
+
+    raw_bdate = patient_info.get("birthDate")
+    normalized_llm_bdate = _extract_birth_date(str(raw_bdate)) if raw_bdate else None
+    patient_info["birthDate"] = local.get("birthDate") or normalized_llm_bdate or (
+        str(raw_bdate) if raw_bdate and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(raw_bdate)) else None
+    )
+
+    if not patient_info.get("gender") or patient_info.get("gender") == "unknown":
+        if local.get("gender") and local["gender"] != "unknown":
+            patient_info["gender"] = local["gender"]
     return patient_info
 
 
@@ -148,18 +498,44 @@ class PatientInfoSchema(BaseModel):
 
 
 class EntitiesSchema(BaseModel):
-    symptoms: List[str] = Field(default_factory=list, description="Sintomas y signos presentes (nunca los negados)")
+    symptoms: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Sintomas y signos clinicos presentes en terminologia medica canonica (ej. 'dolor torácico opresivo', "
+            "'disnea', 'irradiación a miembro superior', 'mareo'); nunca incluir hallazgos negados ni verbos "
+            "conversacionales ('temo que', 'me falta')"
+        ),
+    )
     diagnoses: List[str] = Field(
         default_factory=list,
-        description="Enfermedades, lesiones o estados del episodio actual nombrados como tales (fractura, quemadura, gripa, gestacion)",
+        description=(
+            "Enfermedades agudas, sospechas diagnosticas, lesiones o estados del episodio actual completos "
+            "(ej. 'infarto agudo de miocardio', 'fractura', 'quemadura', 'gestacion'); nunca dividir una misma "
+            "entidad en dos items"
+        ),
     )
-    medications: List[str] = Field(default_factory=list, description="Medicamentos de uso habitual o prescritos")
-    allergies: List[str] = Field(default_factory=list, description="Sustancias a las que el paciente refiere alergia")
-    vitals: List[str] = Field(default_factory=list, description="Constantes vitales detectadas en consulta")
-    history: List[str] = Field(default_factory=list, description="Antecedentes patologicos o quirurgicos")
+    medications: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Medicamentos o principios activos de uso habitual o prescritos en forma farmacologica normalizada "
+            "(ej. 'losartán', 'metformina'), corrigiendo errores foneticos del ASR"
+        ),
+    )
+    allergies: List[str] = Field(default_factory=list, description="Sustancias o farmacos a los que el paciente refiere alergia")
+    vitals: List[str] = Field(
+        default_factory=list,
+        description="Constantes vitales detectadas en formato compacto estandar (ej. 'PA: 175 mmHg', 'FC: 115 lpm')",
+    )
+    history: List[str] = Field(
+        default_factory=list,
+        description="Antecedentes patologicos cronicos o quirurgicos normalizados (ej. 'hipertensión arterial', 'diabetes mellitus')",
+    )
     negated_findings: List[str] = Field(
         default_factory=list,
-        description="Hallazgos negados explicitamente ('niega dolor toracico', 'sin fiebre'); no van en symptoms",
+        description=(
+            "Hallazgos negados explicitamente como sustantivos clinicos ('fiebre', 'pérdida de conciencia', "
+            "'dolor torácico'); no van en symptoms"
+        ),
     )
 
 
@@ -523,13 +899,15 @@ def analyze_triage_transcript(
                 result.get("patientInfo") or {}, pseudonymized["identifiers"], raw_transcript
             )
 
-            # Fusionar signos vitales extraidos por regex si el LLM no los capturo todos
+            # Fusionar signos vitales extraidos por regex limpiando duplicados coloquiales del LLM
             if compact_vitals:
                 current_v = result.get("entities", {}).get("vitals", [])
-                for cv in compact_vitals:
-                    if cv not in current_v:
-                        current_v.append(cv)
-                result["entities"]["vitals"] = current_v
+                compact_numbers = {num for cv in compact_vitals for num in re.findall(r"\d{2,3}", cv)}
+                filtered_v = list(compact_vitals)
+                for v in current_v:
+                    if v not in filtered_v and not any(n in re.findall(r"\d{2,3}", v) for n in compact_numbers):
+                        filtered_v.append(v)
+                result["entities"]["vitals"] = filtered_v
 
             label = f"LLM local ({model_name})" if provider == 'local' else f"LLM ({model_name})"
             result["engine_used"] = f"{label} + Christus Sinergia"
@@ -547,13 +925,18 @@ def analyze_triage_transcript(
             result["rag_context"] = rag_criterion_ids
             result["normalized_terms"] = normalized_terms
             result["ner_spans"] = []
+            llm_entities = result["entities"]
             if ner_engine:
                 # Hibrido: las menciones del NER y la negacion determinista mandan; el LLM desempata.
-                llm_entities = result["entities"]
                 fused, details = fuse_entities(cleaned_transcript, ner_spans, normalized_terms, llm_entities,
                                                min_score=getattr(settings, "NER_MIN_SCORE", 0.6))
                 result["entities"] = {**fused, "vitals": llm_entities.get("vitals", [])}
                 result["ner_spans"] = details
+            else:
+                result["entities"] = {
+                    **canonicalize_entities(llm_entities, text=cleaned_transcript),
+                    "vitals": llm_entities.get("vitals", []),
+                }
             result["ner_engine"] = ner_engine
             result = _apply_combine_policy(result, rule_baseline, policy)
 
@@ -598,19 +981,24 @@ def _describe_llm_failure(err: Optional[Exception]) -> str:
 
 
 def _extract_patient_info_rules(raw_transcript: str) -> Dict[str, Any]:
-    """Extrae documento y nombre del paciente por regex, sin LLM."""
-    doc_match = re.search(r'\b(?:cc|cédula|cedula|identificación|documento|numero|ti)?\s*([0-9]{6,11})\b', raw_transcript, re.I)
-    doc_id = doc_match.group(1) if doc_match else None
+    """Extrae documento, nombre, telefono, fecha de nacimiento y genero del paciente por reglas deterministas."""
+    from .demographics import derive as derive_demographics
 
-    name_match = re.search(r'\b(?:soy|me llamo|paciente|nombre(?:\s+es)?)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s]{3,30})', raw_transcript, re.I)
-    patient_name = name_match.group(1).strip() if name_match else None
+    phone, _ = _extract_phone_number(raw_transcript)
+    doc_id, _ = _extract_document_id(raw_transcript, exclude_phone=phone)
+    birth_date = _extract_birth_date(raw_transcript)
+    patient_name, _ = _extract_valid_patient_name(raw_transcript)
+
+    demo = derive_demographics(raw_transcript)
+    sex_map = {"femenino": "female", "masculino": "male"}
+    gender = sex_map.get(demo.get("sexo") or "", "unknown")
 
     return {
         "name": patient_name,
         "documentId": doc_id,
-        "birthDate": None,
-        "gender": "unknown",
-        "phone": None,
+        "birthDate": birth_date,
+        "gender": gender,
+        "phone": phone,
         "insurance": "Christus Sinergia / EPS"
     }
 

@@ -1,8 +1,53 @@
 import logging
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_from_email() -> str:
+    default_from = getattr(settings, 'DEFAULT_FROM_EMAIL', 'AI-Triage <no-reply@hospital.com>')
+    host_user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip()
+    if host_user and default_from == 'AI-Triage <no-reply@hospital.com>':
+        return f"AI-Triage <{host_user}>"
+    return default_from
+
+
+def _dispatch_email(subject: str, text_content: str, html_content: str, recipient: str) -> bool:
+    from_email = _resolve_from_email()
+    to_email = [recipient]
+    sent_primary = False
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
+    msg.attach_alternative(html_content, "text/html")
+    try:
+        msg.send(fail_silently=False)
+        logger.info(f"Correo enviado exitosamente a {recipient} via {getattr(settings, 'EMAIL_HOST', 'default')}")
+        sent_primary = True
+    except Exception as e:
+        logger.error(f"Fallo al enviar correo primario a {recipient}: {e}")
+
+    # Si el servidor primario es externo (ej. smtp.gmail.com), replicar o hacer fallback en Mailpit local
+    primary_host = (getattr(settings, 'EMAIL_HOST', '') or '').strip().lower()
+    if primary_host not in ('mailpit', 'localhost', '127.0.0.1'):
+        try:
+            mailpit_conn = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host='mailpit',
+                port=1025,
+                username='',
+                password='',
+                use_tls=False,
+                fail_silently=True,
+            )
+            mirror_msg = EmailMultiAlternatives(subject, text_content, from_email, to_email, connection=mailpit_conn)
+            mirror_msg.attach_alternative(html_content, "text/html")
+            mirror_msg.send(fail_silently=True)
+        except Exception:
+            pass
+
+    return sent_primary
+
 
 def send_verification_email(user, code: str):
     """
@@ -10,8 +55,6 @@ def send_verification_email(user, code: str):
     Estilizado con la paleta de colores oscuros y diseno clinico del proyecto AI-Triage.
     """
     subject = f"Codigo de Verificacion AI-Triage: {code}"
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'AI-Triage <no-reply@hospital.com>')
-    to_email = [user.email]
 
     text_content = f"""
 AI-Triage - Sistema de Clasificacion Medica Inteligente
@@ -96,23 +139,13 @@ Este codigo es valido durante 15 minutos. Si no solicitaste este registro, por f
 </body>
 </html>
 """
-    msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
-    msg.attach_alternative(html_content, "text/html")
-    try:
-        msg.send(fail_silently=False)
-        logger.info(f"Correo de verificacion enviado a {user.email}")
-        return True
-    except Exception as e:
-        logger.error(f"Fallo al enviar correo a {user.email}: {e}")
-        return False
+    return _dispatch_email(subject, text_content, html_content, user.email)
 
 def send_password_reset_email(user, code: str):
     """
     Envia correo para restablecer contrasena con codigo OTP de 6 digitos.
     """
     subject = f"Restablecimiento de Contrasena AI-Triage: {code}"
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'AI-Triage <no-reply@hospital.com>')
-    to_email = [user.email]
 
     text_content = f"""
 AI-Triage - Recuperacion de Acceso
@@ -190,12 +223,4 @@ Este codigo expira en 15 minutos. Si tu no realizaste esta solicitud, reportalo 
 </body>
 </html>
 """
-    msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
-    msg.attach_alternative(html_content, "text/html")
-    try:
-        msg.send(fail_silently=False)
-        logger.info(f"Correo de restablecimiento enviado a {user.email}")
-        return True
-    except Exception as e:
-        logger.error(f"Fallo al enviar correo a {user.email}: {e}")
-        return False
+    return _dispatch_email(subject, text_content, html_content, user.email)

@@ -302,6 +302,22 @@ class TestWhisperModelSelection:
         _, model_cls = self._init_engine(mocker)
         assert model_cls.call_args.args[0] == "medium"
 
+    @override_settings(WHISPER_MODEL_SIZE="large-v3-turbo", WHISPER_DEVICE="auto", WHISPER_COMPUTE_TYPE="auto")
+    def test_auto_device_selects_cuda_when_gpu_available_and_cpu_fallback_when_absent(self, mocker):
+        mocker.patch.object(WhisperEngine, "_has_cuda_gpu", return_value=True)
+        engine_gpu, model_cls = self._init_engine(mocker)
+        assert model_cls.call_args.args[0] == "large-v3-turbo"
+        assert model_cls.call_args.kwargs["device"] == "cuda"
+        assert model_cls.call_args.kwargs["compute_type"] == "int8_float16"
+        assert engine_gpu.get_status()["device"] == "cuda"
+
+        mocker.patch.object(WhisperEngine, "_has_cuda_gpu", return_value=False)
+        engine_cpu, model_cls_cpu = self._init_engine(mocker)
+        assert model_cls_cpu.call_args.args[0] == "small"
+        assert model_cls_cpu.call_args.kwargs["device"] == "cpu"
+        assert model_cls_cpu.call_args.kwargs["compute_type"] == "int8"
+        assert engine_cpu.get_status()["device"] == "cpu"
+
 
 @pytest.mark.django_db
 class TestNormalizerGemini:

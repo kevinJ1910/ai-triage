@@ -13,8 +13,9 @@
 
 1. **Requisitos del navegador:** Ingresar desde Google Chrome, Microsoft Edge o Mozilla Firefox actualizados a través de la URL institucional segura (`https://<dominio-hospital>/` o `https://localhost/`). El protocolo **HTTPS** es obligatorio para que el navegador autorice la captura del micrófono (`getUserMedia`).
 2. **Registro e inicio de sesión:**
-   - En el primer registro, el profesional ingresa correo institucional, nombre completo, documento de identidad, teléfono, rol solicitado y contraseña robusta.
-   - El sistema envía un **código OTP de 6 dígitos** al correo electrónico registrado (con vigencia de 15 minutos y un único uso). Una vez verificado en pantalla, la cuenta queda activa con los permisos base de su rol.
+   - En el primer registro, el profesional ingresa correo institucional, nombres, apellidos, tipo y número de documento de identidad, teléfono, rol clínico solicitado y contraseña con confirmación.
+   - El sistema envía un **código OTP de 6 dígitos** al correo electrónico registrado (y una copia espejo a Mailpit en `http://localhost:8025` en despliegues con Docker), con vigencia de 15 minutos y un único uso. Al validar el código en el modal emergente, la cuenta queda verificada (`is_verified=True`) y la sesión se inicia automáticamente redirigiendo al panel principal.
+   - **Cuentas pendientes de verificación:** Si el usuario cierra el modal de verificación durante el registro sin ingresar el OTP, puede iniciar sesión posteriormente con su correo y contraseña; el sistema detectará que la cuenta sigue pendiente, **generará y enviará automáticamente un nuevo código OTP de 6 dígitos** al correo y abrirá el modal de verificación para completar la activación. Asimismo, es posible volver a enviar el formulario de registro o pulsar **Reenviar Código** dentro del modal.
    - Durante el inicio de sesión ordinario, la plataforma mantiene el token de acceso únicamente en la memoria volátil de la pestaña y renueva la sesión de forma transparente mediante una cookie segura `httpOnly`.
 3. **Recuperación de contraseña y cierre de sesión:**
    - En caso de olvido, la opción *«¿Olvidó su contraseña?»* envía un código OTP al correo verificado para definir una nueva clave.
